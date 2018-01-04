@@ -1,0 +1,50 @@
+package util
+
+import (
+	"github.com/gunk/opt/http"
+	"github.com/gunk/opt"
+)
+
+// Message is a Echo message.
+type Message struct {
+	// Msg holds a message.
+	Msg string `pb:1`
+}
+
+// Status is a server health status.
+type Status int
+
+// Status values.
+const (
+	Unknown CheckStatus = iota
+	Error
+	OK
+)
+
+// CheckStatusResponse is the response for a check status.
+type CheckStatusResponse struct {
+	Status Status `pb:1`
+
+	// +gunk opt.Deprecated(true)
+	OldField int
+}
+
+// Util is a utility service.
+type Util interface {
+	// Echo echoes a message.
+	//
+	// +gunk http.Match{
+	//		Method:	"POST",
+	// 		Path:	"/",
+	// 		Body:	"*",
+	//	}
+	Echo(Message) Message
+
+	// CheckStatus sends the server health status.
+	//
+	// +gunk http.Match{
+	//		Method:	"GET",
+	// 		Path:	"/",
+	//	}
+	CheckStatus() CheckStatusResponse
+}

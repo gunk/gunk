@@ -79,56 +79,95 @@ func runPaths(paths ...string) error {
 
 func protoFile(r io.Reader, filename string) (*descriptor.FileDescriptorProto, error) {
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, filename, r, parser.ParseComments)
+	file, err := parser.ParseFile(fset, filename, r, parser.ParseComments)
 	if err != nil {
 		return nil, err
 	}
-	pfile := &descriptor.FileDescriptorProto{
-		Name:   &filename,
-		Syntax: proto.String("proto3"),
+	g := gunkGen{
+		gfile: file,
+		pfile: &descriptor.FileDescriptorProto{
+			Name:   &filename,
+			Syntax: proto.String("proto3"),
+		},
 	}
-	for _, decl := range f.Decls {
-		gd, ok := decl.(*ast.GenDecl)
-		if !ok {
-			return nil, fmt.Errorf("%s: invalid declaration %T", filename, decl)
-		}
-		if gd.Tok != token.TYPE {
-			continue
-		}
-		for _, spec := range gd.Specs {
-			ts := spec.(*ast.TypeSpec)
-			switch ts.Type.(type) {
-			case *ast.StructType:
-				msg, err := protoMessage(ts)
-				if err != nil {
-					return nil, err
-				}
-				pfile.MessageType = append(pfile.MessageType, msg)
-			case *ast.InterfaceType:
-				// TODO: services
-			case *ast.Ident:
-				enum, err := protoEnum(ts, f.Decls)
-				if err != nil {
-					return nil, err
-				}
-				pfile.EnumType = append(pfile.EnumType, enum)
-			default:
-				return nil, fmt.Errorf("%s: invalid declaration type %T", filename, ts.Type)
-			}
+	for _, decl := range file.Decls {
+		if err := g.decl(decl); err != nil {
+			return nil, err
 		}
 	}
-	return pfile, nil
+	return g.pfile, nil
 }
 
-func protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorProto, error) {
+type gunkGen struct {
+	gfile *ast.File
+	pfile *descriptor.FileDescriptorProto
+
+	msgIndex  int32
+	enumIndex int32
+}
+
+func (g *gunkGen) decl(decl ast.Decl) error {
+	gd, ok := decl.(*ast.GenDecl)
+	if !ok {
+		return fmt.Errorf("invalid declaration %T", decl)
+	}
+	if gd.Tok != token.TYPE {
+		return nil
+	}
+	for _, spec := range gd.Specs {
+		ts := spec.(*ast.TypeSpec)
+		if ts.Doc == nil {
+			// pass it on to the helpers
+			ts.Doc = gd.Doc
+		}
+		switch ts.Type.(type) {
+		case *ast.StructType:
+			msg, err := g.protoMessage(ts)
+			if err != nil {
+				return err
+			}
+			g.pfile.MessageType = append(g.pfile.MessageType, msg)
+		case *ast.InterfaceType:
+			// TODO: services
+		case *ast.Ident:
+			enum, err := g.protoEnum(ts)
+			if err != nil {
+				return err
+			}
+			g.pfile.EnumType = append(g.pfile.EnumType, enum)
+		default:
+			return fmt.Errorf("invalid declaration type %T", ts.Type)
+		}
+	}
+	return nil
+}
+
+func (g *gunkGen) addDoc(doc *ast.CommentGroup, path ...int32) {
+	if doc == nil {
+		return
+	}
+	if g.pfile.SourceCodeInfo == nil {
+		g.pfile.SourceCodeInfo = &descriptor.SourceCodeInfo{}
+	}
+	g.pfile.SourceCodeInfo.Location = append(g.pfile.SourceCodeInfo.Location,
+		&descriptor.SourceCodeInfo_Location{
+			Path:            path,
+			LeadingComments: proto.String(doc.Text()),
+		},
+	)
+}
+
+func (g *gunkGen) protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorProto, error) {
+	g.addDoc(tspec.Doc, messagePath, g.msgIndex)
 	msg := &descriptor.DescriptorProto{
 		Name: &tspec.Name.Name,
 	}
 	stype := tspec.Type.(*ast.StructType)
-	for _, field := range stype.Fields.List {
+	for i, field := range stype.Fields.List {
 		if len(field.Names) != 1 {
 			return nil, fmt.Errorf("need all fields to have one name")
 		}
+		g.addDoc(field.Doc, messagePath, g.msgIndex, messageFieldPath, int32(i))
 		pfield := &descriptor.FieldDescriptorProto{
 			Name:   &field.Names[0].Name,
 			Number: protoNumber(field.Tag),
@@ -144,14 +183,16 @@ func protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorProto, error) {
 		}
 		msg.Field = append(msg.Field, pfield)
 	}
+	g.msgIndex++
 	return msg, nil
 }
 
-func protoEnum(tspec *ast.TypeSpec, decls []ast.Decl) (*descriptor.EnumDescriptorProto, error) {
+func (g *gunkGen) protoEnum(tspec *ast.TypeSpec) (*descriptor.EnumDescriptorProto, error) {
+	g.addDoc(tspec.Doc, enumPath, g.enumIndex)
 	enum := &descriptor.EnumDescriptorProto{
 		Name: &tspec.Name.Name,
 	}
-	for _, decl := range decls {
+	for _, decl := range g.gfile.Decls {
 		gd, ok := decl.(*ast.GenDecl)
 		if !ok || gd.Tok != token.CONST {
 			continue
@@ -182,6 +223,7 @@ func protoEnum(tspec *ast.TypeSpec, decls []ast.Decl) (*descriptor.EnumDescripto
 			}
 		}
 	}
+	g.enumIndex++
 	return enum, nil
 }
 
@@ -207,3 +249,17 @@ func protoType(from ast.Expr) (descriptor.FieldDescriptorProto_Type, string) {
 	}
 	return 0, ""
 }
+
+const (
+	// tag numbers in FileDescriptorProto
+	packagePath = 2 // package
+	messagePath = 4 // message_type
+	enumPath    = 5 // enum_type
+	// tag numbers in DescriptorProto
+	messageFieldPath   = 2 // field
+	messageMessagePath = 3 // nested_type
+	messageEnumPath    = 4 // enum_type
+	messageOneofPath   = 8 // oneof_decl
+	// tag numbers in EnumDescriptorProto
+	enumValuePath = 2 // value
+)

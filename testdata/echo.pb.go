@@ -28,6 +28,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+// Status is a server health status.
 type Status int32
 
 const (
@@ -52,7 +53,9 @@ func (x Status) String() string {
 }
 func (Status) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
+// Message is a Echo message.
 type Message struct {
+	// Msg holds a message.
 	Msg string `protobuf:"bytes,0,,name=Msg" json:"Msg,omitempty"`
 }
 
@@ -68,6 +71,7 @@ func (m *Message) GetMsg() string {
 	return ""
 }
 
+// CheckStatusResponse is the response for a check status.
 type CheckStatusResponse struct {
 	Status Status `protobuf:"varint,1,,name=Status,enum=Status" json:"Status,omitempty"`
 }

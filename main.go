@@ -90,20 +90,30 @@ func protoFile(r io.Reader, filename string) (*descriptor.FileDescriptorProto, e
 	for _, decl := range f.Decls {
 		gd, ok := decl.(*ast.GenDecl)
 		if !ok {
-			return nil, fmt.Errorf("%s: invalid declaration type %T", filename, decl)
+			return nil, fmt.Errorf("%s: invalid declaration %T", filename, decl)
 		}
-		switch gd.Tok {
-		case token.TYPE:
-			for _, spec := range gd.Specs {
-				ts := spec.(*ast.TypeSpec)
-				switch ts.Type.(type) {
-				case *ast.StructType:
-					msg, err := protoMessage(ts)
-					if err != nil {
-						return nil, err
-					}
-					pfile.MessageType = append(pfile.MessageType, msg)
+		if gd.Tok != token.TYPE {
+			continue
+		}
+		for _, spec := range gd.Specs {
+			ts := spec.(*ast.TypeSpec)
+			switch ts.Type.(type) {
+			case *ast.StructType:
+				msg, err := protoMessage(ts)
+				if err != nil {
+					return nil, err
 				}
+				pfile.MessageType = append(pfile.MessageType, msg)
+			case *ast.InterfaceType:
+				// TODO: services
+			case *ast.Ident:
+				enum, err := protoEnum(ts, f.Decls)
+				if err != nil {
+					return nil, err
+				}
+				pfile.EnumType = append(pfile.EnumType, enum)
+			default:
+				return nil, fmt.Errorf("%s: invalid declaration type %T", filename, ts.Type)
 			}
 		}
 	}
@@ -127,7 +137,6 @@ func protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorProto, error) {
 		case 0:
 			return nil, fmt.Errorf("unsupported field type: %v", field.Type)
 		case descriptor.FieldDescriptorProto_TYPE_ENUM:
-			continue
 			pfield.Type = &ptype
 			pfield.TypeName = &tname
 		default:
@@ -136,6 +145,44 @@ func protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorProto, error) {
 		msg.Field = append(msg.Field, pfield)
 	}
 	return msg, nil
+}
+
+func protoEnum(tspec *ast.TypeSpec, decls []ast.Decl) (*descriptor.EnumDescriptorProto, error) {
+	enum := &descriptor.EnumDescriptorProto{
+		Name: &tspec.Name.Name,
+	}
+	for _, decl := range decls {
+		gd, ok := decl.(*ast.GenDecl)
+		if !ok || gd.Tok != token.CONST {
+			continue
+		}
+		// TODO: don't force iotas, use go/types for constant
+		// folding
+		iotaVal := 0
+		carryType := false
+		for _, spec := range gd.Specs {
+			vs := spec.(*ast.ValueSpec)
+			ident, ok := vs.Type.(*ast.Ident)
+			if carryType && ok {
+				carryType = false
+			}
+			if !carryType {
+				carryType = ok && ident.Name == *enum.Name
+			}
+			if !carryType {
+				continue
+				iotaVal = 0
+			}
+			for _, name := range vs.Names {
+				enum.Value = append(enum.Value, &descriptor.EnumValueDescriptorProto{
+					Name:   &name.Name,
+					Number: proto.Int32(int32(iotaVal)),
+				})
+				iotaVal++
+			}
+		}
+	}
+	return enum, nil
 }
 
 func protoNumber(fieldTag *ast.BasicLit) *int32 {
@@ -155,7 +202,7 @@ func protoType(from ast.Expr) (descriptor.FieldDescriptorProto_Type, string) {
 		case "string":
 			return descriptor.FieldDescriptorProto_TYPE_STRING, ""
 		default:
-			return descriptor.FieldDescriptorProto_TYPE_ENUM, x.Name
+			return descriptor.FieldDescriptorProto_TYPE_ENUM, "." + x.Name
 		}
 	}
 	return 0, ""

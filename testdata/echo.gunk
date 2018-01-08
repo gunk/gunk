@@ -24,9 +24,6 @@ const (
 // CheckStatusResponse is the response for a check status.
 type CheckStatusResponse struct {
 	Status Status `pb:"1"`
-
-	// +gunk opt.Deprecated(true)
-	OldField int
 }
 
 // Util is a utility service.

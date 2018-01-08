@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/golang/protobuf/protoc-gen-go/generator"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
@@ -81,7 +82,8 @@ func protoFile(r io.Reader, filename string) (*descriptor.FileDescriptorProto, e
 		return nil, err
 	}
 	pfile := &descriptor.FileDescriptorProto{
-		Name: &filename,
+		Name:   &filename,
+		Syntax: proto.String("proto3"),
 	}
 	for _, decl := range f.Decls {
 		gd, ok := decl.(*ast.GenDecl)

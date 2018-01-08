@@ -16,7 +16,7 @@ type Status int
 
 // Status values.
 const (
-	Unknown CheckStatus = iota
+	Unknown Status = iota
 	Error
 	OK
 )

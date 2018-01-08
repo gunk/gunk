@@ -33,14 +33,18 @@ func runDir(path string) error {
 	if err != nil {
 		return err
 	}
+	return runPaths(matches...)
+}
+
+func runPaths(paths ...string) error {
 	req := &plugin.CodeGeneratorRequest{}
-	for _, match := range matches {
-		f, err := os.Open(match)
+	for _, path := range paths {
+		f, err := os.Open(path)
 		if err != nil {
 			return err
 		}
-		req.FileToGenerate = append(req.FileToGenerate, match)
-		pfile, err := protoFile(f, match)
+		req.FileToGenerate = append(req.FileToGenerate, path)
+		pfile, err := protoFile(f, path)
 		f.Close()
 		if err != nil {
 			return err

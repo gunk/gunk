@@ -11,6 +11,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/golang/protobuf/proto"
@@ -118,7 +120,8 @@ func protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorProto, error) {
 			return nil, fmt.Errorf("need all fields to have one name")
 		}
 		pfield := &descriptor.FieldDescriptorProto{
-			Name: &field.Names[0].Name,
+			Name:   &field.Names[0].Name,
+			Number: protoNumber(field.Tag),
 		}
 		switch ptype, tname := protoType(field.Type); ptype {
 		case 0:
@@ -133,6 +136,16 @@ func protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorProto, error) {
 		msg.Field = append(msg.Field, pfield)
 	}
 	return msg, nil
+}
+
+func protoNumber(fieldTag *ast.BasicLit) *int32 {
+	if fieldTag == nil {
+		return nil
+	}
+	str, _ := strconv.Unquote(fieldTag.Value)
+	tag := reflect.StructTag(str)
+	number, _ := strconv.Atoi(tag.Get("pb"))
+	return proto.Int32(int32(number))
 }
 
 func protoType(from ast.Expr) (descriptor.FieldDescriptorProto_Type, string) {

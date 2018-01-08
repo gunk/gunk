@@ -8,7 +8,7 @@ import (
 // Message is a Echo message.
 type Message struct {
 	// Msg holds a message.
-	Msg string `pb:1`
+	Msg string `pb:"1"`
 }
 
 // Status is a server health status.
@@ -23,7 +23,7 @@ const (
 
 // CheckStatusResponse is the response for a check status.
 type CheckStatusResponse struct {
-	Status Status `pb:1`
+	Status Status `pb:"1"`
 
 	// +gunk opt.Deprecated(true)
 	OldField int

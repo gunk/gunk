@@ -4,6 +4,8 @@
 /*
 Package echo is a generated protocol buffer package.
 
+package util contains a simple Echo service.
+
 It is generated from these files:
 	testdata/echo.gunk
 

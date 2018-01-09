@@ -90,6 +90,7 @@ func protoFile(r io.Reader, filename string) (*descriptor.FileDescriptorProto, e
 			Syntax: proto.String("proto3"),
 		},
 	}
+	g.addDoc(file.Doc, packagePath)
 	for _, decl := range file.Decls {
 		if err := g.decl(decl); err != nil {
 			return nil, err

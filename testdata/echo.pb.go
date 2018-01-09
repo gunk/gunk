@@ -10,6 +10,7 @@ It is generated from these files:
 	testdata/echo.gunk
 
 It has these top-level messages:
+	Empty
 	Message
 	CheckStatusResponse
 */
@@ -18,6 +19,11 @@ package echo
 import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
+
+import (
+	context "golang.org/x/net/context"
+	grpc "google.golang.org/grpc"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -55,6 +61,14 @@ func (x Status) String() string {
 }
 func (Status) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
+type Empty struct {
+}
+
+func (m *Empty) Reset()                    { *m = Empty{} }
+func (m *Empty) String() string            { return proto.CompactTextString(m) }
+func (*Empty) ProtoMessage()               {}
+func (*Empty) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+
 // Message is a Echo message.
 type Message struct {
 	// Msg holds a message.
@@ -64,7 +78,7 @@ type Message struct {
 func (m *Message) Reset()                    { *m = Message{} }
 func (m *Message) String() string            { return proto.CompactTextString(m) }
 func (*Message) ProtoMessage()               {}
-func (*Message) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
+func (*Message) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
 
 func (m *Message) GetMsg() string {
 	if m != nil {
@@ -81,7 +95,7 @@ type CheckStatusResponse struct {
 func (m *CheckStatusResponse) Reset()                    { *m = CheckStatusResponse{} }
 func (m *CheckStatusResponse) String() string            { return proto.CompactTextString(m) }
 func (*CheckStatusResponse) ProtoMessage()               {}
-func (*CheckStatusResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
+func (*CheckStatusResponse) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
 
 func (m *CheckStatusResponse) GetStatus() Status {
 	if m != nil {
@@ -91,23 +105,132 @@ func (m *CheckStatusResponse) GetStatus() Status {
 }
 
 func init() {
+	proto.RegisterType((*Empty)(nil), "Empty")
 	proto.RegisterType((*Message)(nil), "Message")
 	proto.RegisterType((*CheckStatusResponse)(nil), "CheckStatusResponse")
 	proto.RegisterEnum("Status", Status_name, Status_value)
 }
 
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion4
+
+// Client API for Util service
+
+type UtilClient interface {
+	Echo(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error)
+	CheckStatus(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*CheckStatusResponse, error)
+}
+
+type utilClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewUtilClient(cc *grpc.ClientConn) UtilClient {
+	return &utilClient{cc}
+}
+
+func (c *utilClient) Echo(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error) {
+	out := new(Message)
+	err := grpc.Invoke(ctx, "/Util/Echo", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *utilClient) CheckStatus(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*CheckStatusResponse, error) {
+	out := new(CheckStatusResponse)
+	err := grpc.Invoke(ctx, "/Util/CheckStatus", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Server API for Util service
+
+type UtilServer interface {
+	Echo(context.Context, *Message) (*Message, error)
+	CheckStatus(context.Context, *Empty) (*CheckStatusResponse, error)
+}
+
+func RegisterUtilServer(s *grpc.Server, srv UtilServer) {
+	s.RegisterService(&_Util_serviceDesc, srv)
+}
+
+func _Util_Echo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Message)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UtilServer).Echo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Util/Echo",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UtilServer).Echo(ctx, req.(*Message))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Util_CheckStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UtilServer).CheckStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Util/CheckStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UtilServer).CheckStatus(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Util_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "Util",
+	HandlerType: (*UtilServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Echo",
+			Handler:    _Util_Echo_Handler,
+		},
+		{
+			MethodName: "CheckStatus",
+			Handler:    _Util_CheckStatus_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "testdata/echo.gunk",
+}
+
 func init() { proto.RegisterFile("testdata/echo.gunk", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
-	// 148 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x12, 0x2a, 0x49, 0x2d, 0x2e,
-	0x49, 0x49, 0x2c, 0x49, 0xd4, 0x4f, 0x4d, 0xce, 0xc8, 0xd7, 0x4b, 0x2f, 0xcd, 0xcb, 0x56, 0x12,
-	0xe1, 0x62, 0xf7, 0x4d, 0x2d, 0x2e, 0x4e, 0x4c, 0x4f, 0x15, 0xe2, 0xe4, 0x62, 0xf6, 0x2d, 0x4e,
-	0x97, 0x60, 0xd0, 0xe0, 0x54, 0xd2, 0xe1, 0x12, 0x76, 0xce, 0x48, 0x4d, 0xce, 0x0e, 0x2e, 0x49,
-	0x2c, 0x29, 0x2d, 0x0e, 0x4a, 0x2d, 0x2e, 0xc8, 0xcf, 0x2b, 0x4e, 0x15, 0x12, 0xe5, 0x62, 0x83,
-	0x88, 0x48, 0x30, 0x6a, 0xf0, 0x19, 0xb1, 0xeb, 0x41, 0x38, 0x5a, 0x1a, 0x30, 0x61, 0x21, 0x6e,
-	0x2e, 0xf6, 0xd0, 0xbc, 0xec, 0xbc, 0xfc, 0xf2, 0x3c, 0x01, 0x06, 0x21, 0x4e, 0x2e, 0x56, 0xd7,
-	0xa2, 0xa2, 0xfc, 0x22, 0x01, 0x46, 0x21, 0x36, 0x2e, 0x26, 0x7f, 0x6f, 0x01, 0xa6, 0x24, 0xb6,
-	0x82, 0xa2, 0xfc, 0x92, 0x7c, 0x63, 0x40, 0x00, 0x00, 0x00, 0xff, 0xff, 0xce, 0x42, 0x2a, 0xdb,
-	0x8a, 0x00, 0x00, 0x00,
+	// 197 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x8e, 0x41, 0x4b, 0x84, 0x40,
+	0x18, 0x86, 0xd5, 0x74, 0x26, 0x3f, 0x21, 0xe4, 0xcb, 0x40, 0x3c, 0x7a, 0x92, 0x8a, 0x09, 0xec,
+	0x27, 0x84, 0xa7, 0x10, 0xa1, 0xf0, 0x07, 0x4c, 0x36, 0x68, 0x58, 0x33, 0x32, 0xf3, 0x49, 0xec,
+	0xbf, 0x5f, 0x58, 0x77, 0x97, 0x3d, 0xec, 0xed, 0x7d, 0x9f, 0xcb, 0xf3, 0x00, 0x92, 0x72, 0xf4,
+	0x2d, 0x49, 0xbe, 0xa8, 0x61, 0x32, 0x62, 0x5c, 0xf5, 0x5c, 0x72, 0x88, 0x9a, 0xbf, 0x85, 0x76,
+	0x65, 0x06, 0xbc, 0x55, 0xce, 0xc9, 0x51, 0x61, 0x0c, 0x37, 0xad, 0x1b, 0x73, 0xaf, 0x8a, 0xcb,
+	0x67, 0xb8, 0x7f, 0x9b, 0xd4, 0x30, 0x7f, 0x92, 0xa4, 0xd5, 0x7d, 0x28, 0xb7, 0x18, 0xed, 0x14,
+	0x3e, 0x00, 0xdb, 0x48, 0xee, 0x57, 0x77, 0x35, 0x17, 0xdb, 0x79, 0xac, 0x4e, 0x18, 0x13, 0xe0,
+	0xbd, 0x9e, 0xb5, 0xf9, 0xd7, 0xa9, 0x87, 0x31, 0x44, 0x8d, 0xb5, 0xc6, 0xa6, 0x3e, 0x32, 0x08,
+	0xba, 0xf7, 0x34, 0xa8, 0x3b, 0x08, 0x7b, 0xfa, 0xf9, 0xc5, 0x02, 0xc2, 0x66, 0x98, 0x0c, 0xde,
+	0x8a, 0xa3, 0xbc, 0x38, 0x2f, 0x7c, 0x82, 0xe4, 0xc2, 0x8d, 0x4c, 0x1c, 0x42, 0x8b, 0x4c, 0x5c,
+	0x29, 0xfa, 0x62, 0x8b, 0x35, 0x64, 0x5e, 0xf7, 0x01, 0x00, 0x00, 0xff, 0xff, 0x27, 0x15, 0x77,
+	0x48, 0xe4, 0x00, 0x00, 0x00,
 }

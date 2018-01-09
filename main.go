@@ -18,6 +18,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/golang/protobuf/protoc-gen-go/generator"
+	_ "github.com/golang/protobuf/protoc-gen-go/grpc"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 )
 
@@ -40,7 +41,9 @@ func runDir(path string) error {
 }
 
 func runPaths(paths ...string) error {
-	req := &plugin.CodeGeneratorRequest{}
+	req := &plugin.CodeGeneratorRequest{
+		Parameter: proto.String("plugins=grpc"),
+	}
 	for _, path := range paths {
 		f, err := os.Open(path)
 		if err != nil {
@@ -88,9 +91,19 @@ func protoFile(r io.Reader, filename string) (*descriptor.FileDescriptorProto, e
 		pfile: &descriptor.FileDescriptorProto{
 			Name:   &filename,
 			Syntax: proto.String("proto3"),
+			// TODO: replace our Empty copy with empty.proto
+			// (how do we load it?)
+			//Dependency: []string{
+			//        "google/protobuf/empty.proto",
+			//},
+			//PublicDependency: []int32{0},
 		},
 	}
 	g.addDoc(file.Doc, packagePath)
+	g.pfile.MessageType = append(g.pfile.MessageType, &descriptor.DescriptorProto{
+		Name: proto.String("Empty"),
+	})
+	g.msgIndex++
 	for _, decl := range file.Decls {
 		if err := g.decl(decl); err != nil {
 			return nil, err
@@ -129,7 +142,11 @@ func (g *gunkGen) decl(decl ast.Decl) error {
 			}
 			g.pfile.MessageType = append(g.pfile.MessageType, msg)
 		case *ast.InterfaceType:
-			// TODO: services
+			srv, err := g.protoService(ts)
+			if err != nil {
+				return err
+			}
+			g.pfile.Service = append(g.pfile.Service, srv)
 		case *ast.Ident:
 			enum, err := g.protoEnum(ts)
 			if err != nil {
@@ -188,6 +205,49 @@ func (g *gunkGen) protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorProto
 	return msg, nil
 }
 
+func (g *gunkGen) protoService(tspec *ast.TypeSpec) (*descriptor.ServiceDescriptorProto, error) {
+	srv := &descriptor.ServiceDescriptorProto{
+		Name: &tspec.Name.Name,
+	}
+	itype := tspec.Type.(*ast.InterfaceType)
+	for _, method := range itype.Methods.List {
+		if len(method.Names) != 1 {
+			return nil, fmt.Errorf("need all methods to have one name")
+		}
+		pmethod := &descriptor.MethodDescriptorProto{
+			Name: &method.Names[0].Name,
+		}
+		sign := method.Type.(*ast.FuncType)
+		var err error
+		pmethod.InputType, err = protoParamType(sign.Params)
+		if err != nil {
+			return nil, err
+		}
+		pmethod.OutputType, err = protoParamType(sign.Results)
+		if err != nil {
+			return nil, err
+		}
+		srv.Method = append(srv.Method, pmethod)
+	}
+	return srv, nil
+}
+
+func protoParamType(fields *ast.FieldList) (*string, error) {
+	if fields == nil || len(fields.List) == 0 {
+		//return proto.String("google.protobuf.Empty"), nil
+		return proto.String(".Empty"), nil
+	}
+	if len(fields.List) > 1 {
+		return nil, fmt.Errorf("need all methods to have <=1 results")
+	}
+	field := fields.List[0]
+	_, tname := protoType(field.Type)
+	if tname == "" {
+		return nil, fmt.Errorf("could not get type for %v", field.Type)
+	}
+	return &tname, nil
+}
+
 func (g *gunkGen) protoEnum(tspec *ast.TypeSpec) (*descriptor.EnumDescriptorProto, error) {
 	g.addDoc(tspec.Doc, enumPath, g.enumIndex)
 	enum := &descriptor.EnumDescriptorProto{
@@ -243,7 +303,7 @@ func protoType(from ast.Expr) (descriptor.FieldDescriptorProto_Type, string) {
 	case *ast.Ident:
 		switch x.Name {
 		case "string":
-			return descriptor.FieldDescriptorProto_TYPE_STRING, ""
+			return descriptor.FieldDescriptorProto_TYPE_STRING, x.Name
 		default:
 			return descriptor.FieldDescriptorProto_TYPE_ENUM, "." + x.Name
 		}

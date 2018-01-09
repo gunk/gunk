@@ -6,10 +6,8 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -41,24 +39,12 @@ func runDir(path string) error {
 }
 
 func runPaths(paths ...string) error {
-	req := &plugin.CodeGeneratorRequest{
-		Parameter: proto.String("plugins=grpc"),
-	}
+	t := translator{}
 	for _, path := range paths {
-		f, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		req.FileToGenerate = append(req.FileToGenerate, path)
-		pfile, err := protoFile(f, path)
-		f.Close()
-		if err != nil {
-			return err
-		}
-		req.ProtoFile = append(req.ProtoFile, pfile)
+		t.addFile(path, true)
 	}
 	g := generator.New()
-	g.Request = req
+	g.Request = t.request()
 	g.CommandLineParameters(g.Request.GetParameter())
 
 	// Create a wrapped version of the Descriptors and EnumDescriptors that
@@ -80,47 +66,60 @@ func runPaths(paths ...string) error {
 	return nil
 }
 
-func protoFile(r io.Reader, filename string) (*descriptor.FileDescriptorProto, error) {
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, filename, r, parser.ParseComments)
-	if err != nil {
-		return nil, err
-	}
-	g := gunkGen{
-		gfile: file,
-		pfile: &descriptor.FileDescriptorProto{
-			Name:   &filename,
-			Syntax: proto.String("proto3"),
-			// TODO: replace our Empty copy with empty.proto
-			// (how do we load it?)
-			//Dependency: []string{
-			//        "google/protobuf/empty.proto",
-			//},
-			//PublicDependency: []int32{0},
-		},
-	}
-	g.addDoc(file.Doc, packagePath)
-	g.pfile.MessageType = append(g.pfile.MessageType, &descriptor.DescriptorProto{
-		Name: proto.String("Empty"),
-	})
-	g.msgIndex++
-	for _, decl := range file.Decls {
-		if err := g.decl(decl); err != nil {
-			return nil, err
-		}
-	}
-	return g.pfile, nil
-}
-
-type gunkGen struct {
+type translator struct {
 	gfile *ast.File
 	pfile *descriptor.FileDescriptorProto
+
+	toGen  []string
+	pfiles []*descriptor.FileDescriptorProto
 
 	msgIndex  int32
 	enumIndex int32
 }
 
-func (g *gunkGen) decl(decl ast.Decl) error {
+func (t *translator) request() *plugin.CodeGeneratorRequest {
+	return &plugin.CodeGeneratorRequest{
+		Parameter:      proto.String("plugins=grpc"),
+		FileToGenerate: t.toGen,
+		ProtoFile:      t.pfiles,
+	}
+}
+
+func (t *translator) addFile(path string, toGenerate bool) error {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
+	if err != nil {
+		return err
+	}
+	t.gfile = file
+	t.pfile = &descriptor.FileDescriptorProto{
+		Name:   &path,
+		Syntax: proto.String("proto3"),
+		// TODO: replace our Empty copy with empty.proto
+		// (how do we load it?)
+		//Dependency: []string{
+		//        "google/protobuf/empty.proto",
+		//},
+		//PublicDependency: []int32{0},
+	}
+	t.addDoc(file.Doc, packagePath)
+	t.pfile.MessageType = append(t.pfile.MessageType, &descriptor.DescriptorProto{
+		Name: proto.String("Empty"),
+	})
+	t.msgIndex++
+	for _, decl := range file.Decls {
+		if err := t.decl(decl); err != nil {
+			return err
+		}
+	}
+	if toGenerate {
+		t.toGen = append(t.toGen, path)
+	}
+	t.pfiles = append(t.pfiles, t.pfile)
+	return nil
+}
+
+func (t *translator) decl(decl ast.Decl) error {
 	gd, ok := decl.(*ast.GenDecl)
 	if !ok {
 		return fmt.Errorf("invalid declaration %T", decl)
@@ -136,23 +135,23 @@ func (g *gunkGen) decl(decl ast.Decl) error {
 		}
 		switch ts.Type.(type) {
 		case *ast.StructType:
-			msg, err := g.protoMessage(ts)
+			msg, err := t.protoMessage(ts)
 			if err != nil {
 				return err
 			}
-			g.pfile.MessageType = append(g.pfile.MessageType, msg)
+			t.pfile.MessageType = append(t.pfile.MessageType, msg)
 		case *ast.InterfaceType:
-			srv, err := g.protoService(ts)
+			srv, err := t.protoService(ts)
 			if err != nil {
 				return err
 			}
-			g.pfile.Service = append(g.pfile.Service, srv)
+			t.pfile.Service = append(t.pfile.Service, srv)
 		case *ast.Ident:
-			enum, err := g.protoEnum(ts)
+			enum, err := t.protoEnum(ts)
 			if err != nil {
 				return err
 			}
-			g.pfile.EnumType = append(g.pfile.EnumType, enum)
+			t.pfile.EnumType = append(t.pfile.EnumType, enum)
 		default:
 			return fmt.Errorf("invalid declaration type %T", ts.Type)
 		}
@@ -160,14 +159,14 @@ func (g *gunkGen) decl(decl ast.Decl) error {
 	return nil
 }
 
-func (g *gunkGen) addDoc(doc *ast.CommentGroup, path ...int32) {
+func (t *translator) addDoc(doc *ast.CommentGroup, path ...int32) {
 	if doc == nil {
 		return
 	}
-	if g.pfile.SourceCodeInfo == nil {
-		g.pfile.SourceCodeInfo = &descriptor.SourceCodeInfo{}
+	if t.pfile.SourceCodeInfo == nil {
+		t.pfile.SourceCodeInfo = &descriptor.SourceCodeInfo{}
 	}
-	g.pfile.SourceCodeInfo.Location = append(g.pfile.SourceCodeInfo.Location,
+	t.pfile.SourceCodeInfo.Location = append(t.pfile.SourceCodeInfo.Location,
 		&descriptor.SourceCodeInfo_Location{
 			Path:            path,
 			LeadingComments: proto.String(doc.Text()),
@@ -175,8 +174,8 @@ func (g *gunkGen) addDoc(doc *ast.CommentGroup, path ...int32) {
 	)
 }
 
-func (g *gunkGen) protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorProto, error) {
-	g.addDoc(tspec.Doc, messagePath, g.msgIndex)
+func (t *translator) protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorProto, error) {
+	t.addDoc(tspec.Doc, messagePath, t.msgIndex)
 	msg := &descriptor.DescriptorProto{
 		Name: &tspec.Name.Name,
 	}
@@ -185,7 +184,7 @@ func (g *gunkGen) protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorProto
 		if len(field.Names) != 1 {
 			return nil, fmt.Errorf("need all fields to have one name")
 		}
-		g.addDoc(field.Doc, messagePath, g.msgIndex, messageFieldPath, int32(i))
+		t.addDoc(field.Doc, messagePath, t.msgIndex, messageFieldPath, int32(i))
 		pfield := &descriptor.FieldDescriptorProto{
 			Name:   &field.Names[0].Name,
 			Number: protoNumber(field.Tag),
@@ -201,11 +200,11 @@ func (g *gunkGen) protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorProto
 		}
 		msg.Field = append(msg.Field, pfield)
 	}
-	g.msgIndex++
+	t.msgIndex++
 	return msg, nil
 }
 
-func (g *gunkGen) protoService(tspec *ast.TypeSpec) (*descriptor.ServiceDescriptorProto, error) {
+func (t *translator) protoService(tspec *ast.TypeSpec) (*descriptor.ServiceDescriptorProto, error) {
 	srv := &descriptor.ServiceDescriptorProto{
 		Name: &tspec.Name.Name,
 	}
@@ -248,12 +247,12 @@ func protoParamType(fields *ast.FieldList) (*string, error) {
 	return &tname, nil
 }
 
-func (g *gunkGen) protoEnum(tspec *ast.TypeSpec) (*descriptor.EnumDescriptorProto, error) {
-	g.addDoc(tspec.Doc, enumPath, g.enumIndex)
+func (t *translator) protoEnum(tspec *ast.TypeSpec) (*descriptor.EnumDescriptorProto, error) {
+	t.addDoc(tspec.Doc, enumPath, t.enumIndex)
 	enum := &descriptor.EnumDescriptorProto{
 		Name: &tspec.Name.Name,
 	}
-	for _, decl := range g.gfile.Decls {
+	for _, decl := range t.gfile.Decls {
 		gd, ok := decl.(*ast.GenDecl)
 		if !ok || gd.Tok != token.CONST {
 			continue
@@ -284,7 +283,7 @@ func (g *gunkGen) protoEnum(tspec *ast.TypeSpec) (*descriptor.EnumDescriptorProt
 			}
 		}
 	}
-	g.enumIndex++
+	t.enumIndex++
 	return enum, nil
 }
 

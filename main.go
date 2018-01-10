@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"go/ast"
+	"go/constant"
 	"go/parser"
 	"go/token"
 	"go/types"
@@ -293,34 +294,24 @@ func (t *translator) protoEnum(tspec *ast.TypeSpec) (*descriptor.EnumDescriptorP
 	enum := &descriptor.EnumDescriptorProto{
 		Name: &tspec.Name.Name,
 	}
+	enumType := t.info.TypeOf(tspec.Name)
 	for _, decl := range t.gfile.Decls {
 		gd, ok := decl.(*ast.GenDecl)
 		if !ok || gd.Tok != token.CONST {
 			continue
 		}
-		// TODO: don't force iotas, use go/types for constant
-		// folding
-		iotaVal := 0
-		carryType := false
 		for _, spec := range gd.Specs {
 			vs := spec.(*ast.ValueSpec)
-			ident, ok := vs.Type.(*ast.Ident)
-			if carryType && ok {
-				carryType = false
-			}
-			if !carryType {
-				carryType = ok && ident.Name == *enum.Name
-			}
-			if !carryType {
-				continue
-				iotaVal = 0
-			}
 			for _, name := range vs.Names {
+				if t.info.TypeOf(name) != enumType {
+					continue
+				}
+				val := t.info.Defs[name].(*types.Const).Val()
+				ival, _ := constant.Int64Val(val)
 				enum.Value = append(enum.Value, &descriptor.EnumValueDescriptorProto{
 					Name:   &name.Name,
-					Number: proto.Int32(int32(iotaVal)),
+					Number: proto.Int32(int32(ival)),
 				})
-				iotaVal++
 			}
 		}
 	}

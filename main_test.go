@@ -3,21 +3,23 @@ package main
 import (
 	"io/ioutil"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
 func TestGunk(t *testing.T) {
-	matches, err := filepath.Glob(filepath.Join("testdata", "*.gunk"))
+	matches, err := filepath.Glob(filepath.Join("testdata", "*.pb.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, inPath := range matches {
-		outPath := strings.Replace(inPath, ".gunk", ".pb.go", 1)
-		want := readFile(t, outPath)
-		if err := runPaths(inPath); err != nil {
-			t.Fatal(err)
-		}
+	orig := make(map[string]string)
+	for _, outPath := range matches {
+		orig[outPath] = readFile(t, outPath)
+	}
+	if err := runPkg("./testdata"); err != nil {
+		t.Fatal(err)
+	}
+	for _, outPath := range matches {
+		want := orig[outPath]
 		got := readFile(t, outPath)
 		if got != want {
 			t.Fatalf("want:\n%s\ngot:\n%s", want, got)

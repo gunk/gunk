@@ -6,8 +6,10 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"io/ioutil"
 	"log"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -23,25 +25,30 @@ import (
 func main() {
 	flag.Parse()
 	for _, path := range flag.Args() {
-		if err := runDir(path); err != nil {
+		if err := runPkg(path); err != nil {
 			log.Fatal(err)
 		}
 	}
 }
 
-func runDir(path string) error {
+func runPkg(path string) error {
 	// TODO: we don't error if the dir does not exist
-	matches, err := filepath.Glob(filepath.Join(path, "*.gunk"))
+	files, err := filepath.Glob(filepath.Join(path, "*.gunk"))
 	if err != nil {
 		return err
 	}
-	return runPaths(matches...)
-}
-
-func runPaths(paths ...string) error {
-	t := translator{}
-	for _, path := range paths {
-		t.addFile(path, true)
+	t := translator{
+		fset:  token.NewFileSet(),
+		files: make(map[string]*ast.File),
+		tconfig: &types.Config{
+			Importer: dummyImporter{},
+		},
+	}
+	if err := t.addPkg(files...); err != nil {
+		return err
+	}
+	for _, path := range files {
+		t.genFile(path, true)
 	}
 	g := generator.New()
 	g.Request = t.request()
@@ -70,6 +77,12 @@ type translator struct {
 	gfile *ast.File
 	pfile *descriptor.FileDescriptorProto
 
+	fset    *token.FileSet
+	files   map[string]*ast.File
+	tconfig *types.Config
+	pkg     *types.Package
+	info    *types.Info
+
 	toGen  []string
 	pfiles []*descriptor.FileDescriptorProto
 
@@ -85,13 +98,41 @@ func (t *translator) request() *plugin.CodeGeneratorRequest {
 	}
 }
 
-func (t *translator) addFile(path string, toGenerate bool) error {
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, path, nil, parser.ParseComments)
-	if err != nil {
+func (t *translator) addPkg(paths ...string) error {
+	// TODO: support multiple packages
+	var list []*ast.File
+	name := "default"
+	for _, path := range paths {
+		file, err := parser.ParseFile(t.fset, path, nil, parser.ParseComments)
+		if err != nil {
+			return err
+		}
+		name = file.Name.Name
+		t.files[path] = file
+		list = append(list, file)
+	}
+	t.pkg = types.NewPackage(name, name)
+	t.info = &types.Info{
+		Types: make(map[ast.Expr]types.TypeAndValue),
+		Defs:  make(map[*ast.Ident]types.Object),
+		Uses:  make(map[*ast.Ident]types.Object),
+	}
+	check := types.NewChecker(t.tconfig, t.fset, t.pkg, t.info)
+	if err := check.Files(list); err != nil {
 		return err
 	}
-	t.gfile = file
+	return nil
+}
+
+type dummyImporter struct{}
+
+func (dummyImporter) Import(pkgPath string) (*types.Package, error) {
+	name := path.Base(pkgPath)
+	return types.NewPackage(pkgPath, name), nil
+}
+
+func (t *translator) genFile(path string, toGenerate bool) error {
+	t.gfile = t.files[path]
 	t.pfile = &descriptor.FileDescriptorProto{
 		Name:   &path,
 		Syntax: proto.String("proto3"),
@@ -102,12 +143,12 @@ func (t *translator) addFile(path string, toGenerate bool) error {
 		//},
 		//PublicDependency: []int32{0},
 	}
-	t.addDoc(file.Doc, packagePath)
+	t.addDoc(t.gfile.Doc, packagePath)
 	t.pfile.MessageType = append(t.pfile.MessageType, &descriptor.DescriptorProto{
 		Name: proto.String("Empty"),
 	})
 	t.msgIndex++
-	for _, decl := range file.Decls {
+	for _, decl := range t.gfile.Decls {
 		if err := t.decl(decl); err != nil {
 			return err
 		}

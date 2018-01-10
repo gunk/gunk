@@ -144,7 +144,7 @@ func (t *translator) genFile(path string, toGenerate bool) error {
 		//},
 		//PublicDependency: []int32{0},
 	}
-	t.addDoc(t.gfile.Doc, packagePath)
+	t.addDoc(t.gfile.Doc, "", packagePath)
 	t.pfile.MessageType = append(t.pfile.MessageType, &descriptor.DescriptorProto{
 		Name: proto.String("Empty"),
 	})
@@ -201,7 +201,7 @@ func (t *translator) decl(decl ast.Decl) error {
 	return nil
 }
 
-func (t *translator) addDoc(doc *ast.CommentGroup, path ...int32) {
+func (t *translator) addDoc(doc *ast.CommentGroup, prefix string, path ...int32) {
 	if doc == nil {
 		return
 	}
@@ -211,13 +211,13 @@ func (t *translator) addDoc(doc *ast.CommentGroup, path ...int32) {
 	t.pfile.SourceCodeInfo.Location = append(t.pfile.SourceCodeInfo.Location,
 		&descriptor.SourceCodeInfo_Location{
 			Path:            path,
-			LeadingComments: proto.String(doc.Text()),
+			LeadingComments: proto.String(prefix + doc.Text()),
 		},
 	)
 }
 
 func (t *translator) protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorProto, error) {
-	t.addDoc(tspec.Doc, messagePath, t.msgIndex)
+	t.addDoc(tspec.Doc, "", messagePath, t.msgIndex)
 	msg := &descriptor.DescriptorProto{
 		Name: &tspec.Name.Name,
 	}
@@ -226,7 +226,7 @@ func (t *translator) protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorPr
 		if len(field.Names) != 1 {
 			return nil, fmt.Errorf("need all fields to have one name")
 		}
-		t.addDoc(field.Doc, messagePath, t.msgIndex, messageFieldPath, int32(i))
+		t.addDoc(field.Doc, "", messagePath, t.msgIndex, messageFieldPath, int32(i))
 		pfield := &descriptor.FieldDescriptorProto{
 			Name:   &field.Names[0].Name,
 			Number: protoNumber(field.Tag),
@@ -290,7 +290,7 @@ func protoParamType(fields *ast.FieldList) (*string, error) {
 }
 
 func (t *translator) protoEnum(tspec *ast.TypeSpec) (*descriptor.EnumDescriptorProto, error) {
-	t.addDoc(tspec.Doc, enumPath, t.enumIndex)
+	t.addDoc(tspec.Doc, "", enumPath, t.enumIndex)
 	enum := &descriptor.EnumDescriptorProto{
 		Name: &tspec.Name.Name,
 	}
@@ -300,19 +300,26 @@ func (t *translator) protoEnum(tspec *ast.TypeSpec) (*descriptor.EnumDescriptorP
 		if !ok || gd.Tok != token.CONST {
 			continue
 		}
-		for _, spec := range gd.Specs {
+		for i, spec := range gd.Specs {
 			vs := spec.(*ast.ValueSpec)
-			for _, name := range vs.Names {
-				if t.info.TypeOf(name) != enumType {
-					continue
-				}
-				val := t.info.Defs[name].(*types.Const).Val()
-				ival, _ := constant.Int64Val(val)
-				enum.Value = append(enum.Value, &descriptor.EnumValueDescriptorProto{
-					Name:   &name.Name,
-					Number: proto.Int32(int32(ival)),
-				})
+			// .proto files have the same limitation, and it
+			// allows per-value godocs
+			if len(vs.Names) != 1 {
+				return nil, fmt.Errorf("need all value specs to define one name")
 			}
+			name := vs.Names[0]
+			if t.info.TypeOf(name) != enumType {
+				continue
+			}
+			// SomeVal will be exported as SomeType_SomeVal
+			t.addDoc(vs.Doc, tspec.Name.Name+"_",
+				enumPath, t.enumIndex, enumValuePath, int32(i))
+			val := t.info.Defs[name].(*types.Const).Val()
+			ival, _ := constant.Int64Val(val)
+			enum.Value = append(enum.Value, &descriptor.EnumValueDescriptorProto{
+				Name:   &name.Name,
+				Number: proto.Int32(int32(ival)),
+			})
 		}
 	}
 	t.enumIndex++

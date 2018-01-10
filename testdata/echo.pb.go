@@ -40,9 +40,12 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 type Status int32
 
 const (
+	// Status_Unknown is the default, unset status value.
 	Status_Unknown Status = 0
-	Status_Error   Status = 1
-	Status_OK      Status = 2
+	// Status_Error is a status value that implies something went wrong.
+	Status_Error Status = 1
+	// Status_OK is a status value used when all went well.
+	Status_OK Status = 2
 )
 
 var Status_name = map[int32]string{

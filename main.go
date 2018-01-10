@@ -8,8 +8,11 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
+	"html/template"
 	"io/ioutil"
 	"log"
+	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -51,6 +54,10 @@ func runPkg(path string) error {
 	for _, path := range files {
 		t.genFile(path, true)
 	}
+	if err := t.loadProtoDeps(); err != nil {
+		return err
+	}
+
 	g := generator.New()
 	g.Request = t.request()
 	g.CommandLineParameters(g.Request.GetParameter())
@@ -137,18 +144,8 @@ func (t *translator) genFile(path string, toGenerate bool) error {
 	t.pfile = &descriptor.FileDescriptorProto{
 		Name:   &path,
 		Syntax: proto.String("proto3"),
-		// TODO: replace our Empty copy with empty.proto
-		// (how do we load it?)
-		//Dependency: []string{
-		//        "google/protobuf/empty.proto",
-		//},
-		//PublicDependency: []int32{0},
 	}
 	t.addDoc(t.gfile.Doc, "", packagePath)
-	t.pfile.MessageType = append(t.pfile.MessageType, &descriptor.DescriptorProto{
-		Name: proto.String("Empty"),
-	})
-	t.msgIndex++
 	for _, decl := range t.gfile.Decls {
 		if err := t.decl(decl); err != nil {
 			return err
@@ -260,11 +257,11 @@ func (t *translator) protoService(tspec *ast.TypeSpec) (*descriptor.ServiceDescr
 		}
 		sign := method.Type.(*ast.FuncType)
 		var err error
-		pmethod.InputType, err = protoParamType(sign.Params)
+		pmethod.InputType, err = t.protoParamType(sign.Params)
 		if err != nil {
 			return nil, err
 		}
-		pmethod.OutputType, err = protoParamType(sign.Results)
+		pmethod.OutputType, err = t.protoParamType(sign.Results)
 		if err != nil {
 			return nil, err
 		}
@@ -273,10 +270,61 @@ func (t *translator) protoService(tspec *ast.TypeSpec) (*descriptor.ServiceDescr
 	return srv, nil
 }
 
-func protoParamType(fields *ast.FieldList) (*string, error) {
+func (t *translator) addProtoDep(path string) {
+	for _, dep := range t.pfile.Dependency {
+		if dep == path {
+			return // already in there
+		}
+	}
+	t.pfile.PublicDependency = append(t.pfile.PublicDependency,
+		int32(len(t.pfile.Dependency)))
+	t.pfile.Dependency = append(t.pfile.Dependency, path)
+}
+
+func (t *translator) loadProtoDeps() error {
+	missing := make(map[string]bool)
+	for _, pfile := range t.pfiles {
+		for _, dep := range pfile.Dependency {
+			missing[dep] = true
+		}
+	}
+	tmpl := template.Must(template.New("letter").Parse(`
+syntax = "proto3";
+
+{{ range $dep, $_ := . }}import "{{ $dep }}";
+{{ end }}
+`))
+	importsFile, err := os.Create("gunk-proto")
+	if err != nil {
+		return err
+	}
+	if err := tmpl.Execute(importsFile, missing); err != nil {
+		return err
+	}
+	if err := importsFile.Close(); err != nil {
+		return err
+	}
+	defer os.Remove("gunk-proto")
+	// TODO: any way to specify stdout while being portable?
+	cmd := exec.Command("protoc", "-o/dev/stdout", "--include_imports", "gunk-proto")
+	out, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+	var fset descriptor.FileDescriptorSet
+	if err := proto.Unmarshal(out, &fset); err != nil {
+		return err
+	}
+	for _, pfile := range fset.File {
+		t.pfiles = append(t.pfiles, pfile)
+	}
+	return nil
+}
+
+func (t *translator) protoParamType(fields *ast.FieldList) (*string, error) {
 	if fields == nil || len(fields.List) == 0 {
-		//return proto.String("google.protobuf.Empty"), nil
-		return proto.String(".Empty"), nil
+		t.addProtoDep("google/protobuf/empty.proto")
+		return proto.String(".google.protobuf.Empty"), nil
 	}
 	if len(fields.List) > 1 {
 		return nil, fmt.Errorf("need all methods to have <=1 results")

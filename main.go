@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/protoc-gen-go/descriptor"
+	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/golang/protobuf/protoc-gen-go/generator"
 	_ "github.com/golang/protobuf/protoc-gen-go/grpc"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
@@ -83,7 +83,7 @@ func runPkg(path string) error {
 
 type translator struct {
 	gfile *ast.File
-	pfile *descriptor.FileDescriptorProto
+	pfile *desc.FileDescriptorProto
 
 	fset    *token.FileSet
 	files   map[string]*ast.File
@@ -92,7 +92,7 @@ type translator struct {
 	info    *types.Info
 
 	toGen  []string
-	pfiles []*descriptor.FileDescriptorProto
+	pfiles []*desc.FileDescriptorProto
 
 	msgIndex  int32
 	srvIndex  int32
@@ -142,7 +142,7 @@ func (dummyImporter) Import(pkgPath string) (*types.Package, error) {
 
 func (t *translator) genFile(path string, toGenerate bool) error {
 	t.gfile = t.files[path]
-	t.pfile = &descriptor.FileDescriptorProto{
+	t.pfile = &desc.FileDescriptorProto{
 		Name:   &path,
 		Syntax: proto.String("proto3"),
 	}
@@ -163,6 +163,14 @@ func (t *translator) decl(decl ast.Decl) error {
 	gd, ok := decl.(*ast.GenDecl)
 	if !ok {
 		return fmt.Errorf("invalid declaration %T", decl)
+	}
+	switch gd.Tok {
+	case token.TYPE: // below
+	case token.CONST: // for enums
+		break
+	case token.IMPORT: // imports
+	default:
+		return fmt.Errorf("invalid declaration token %v", gd.Tok)
 	}
 	if gd.Tok != token.TYPE {
 		return nil
@@ -204,23 +212,23 @@ func (t *translator) addDoc(doc *ast.CommentGroup, f func(string) string, path .
 		return
 	}
 	if t.pfile.SourceCodeInfo == nil {
-		t.pfile.SourceCodeInfo = &descriptor.SourceCodeInfo{}
+		t.pfile.SourceCodeInfo = &desc.SourceCodeInfo{}
 	}
 	text := doc.Text()
 	if f != nil {
 		text = f(text)
 	}
 	t.pfile.SourceCodeInfo.Location = append(t.pfile.SourceCodeInfo.Location,
-		&descriptor.SourceCodeInfo_Location{
+		&desc.SourceCodeInfo_Location{
 			Path:            path,
 			LeadingComments: proto.String(text),
 		},
 	)
 }
 
-func (t *translator) protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorProto, error) {
+func (t *translator) protoMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, error) {
 	t.addDoc(tspec.Doc, nil, messagePath, t.msgIndex)
-	msg := &descriptor.DescriptorProto{
+	msg := &desc.DescriptorProto{
 		Name: &tspec.Name.Name,
 	}
 	stype := tspec.Type.(*ast.StructType)
@@ -229,14 +237,14 @@ func (t *translator) protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorPr
 			return nil, fmt.Errorf("need all fields to have one name")
 		}
 		t.addDoc(field.Doc, nil, messagePath, t.msgIndex, messageFieldPath, int32(i))
-		pfield := &descriptor.FieldDescriptorProto{
+		pfield := &desc.FieldDescriptorProto{
 			Name:   &field.Names[0].Name,
 			Number: protoNumber(field.Tag),
 		}
 		switch ptype, tname := protoType(field.Type); ptype {
 		case 0:
 			return nil, fmt.Errorf("unsupported field type: %v", field.Type)
-		case descriptor.FieldDescriptorProto_TYPE_ENUM:
+		case desc.FieldDescriptorProto_TYPE_ENUM:
 			pfield.Type = &ptype
 			pfield.TypeName = &tname
 		default:
@@ -248,8 +256,8 @@ func (t *translator) protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorPr
 	return msg, nil
 }
 
-func (t *translator) protoService(tspec *ast.TypeSpec) (*descriptor.ServiceDescriptorProto, error) {
-	srv := &descriptor.ServiceDescriptorProto{
+func (t *translator) protoService(tspec *ast.TypeSpec) (*desc.ServiceDescriptorProto, error) {
+	srv := &desc.ServiceDescriptorProto{
 		Name: &tspec.Name.Name,
 	}
 	itype := tspec.Type.(*ast.InterfaceType)
@@ -259,7 +267,7 @@ func (t *translator) protoService(tspec *ast.TypeSpec) (*descriptor.ServiceDescr
 		}
 		t.addDoc(method.Doc, stripGunkTags, servicePath, t.srvIndex,
 			serviceMethodPath, int32(i))
-		pmethod := &descriptor.MethodDescriptorProto{
+		pmethod := &desc.MethodDescriptorProto{
 			Name: &method.Names[0].Name,
 		}
 		sign := method.Type.(*ast.FuncType)
@@ -336,11 +344,14 @@ syntax = "proto3";
 	if err != nil {
 		return err
 	}
-	var fset descriptor.FileDescriptorSet
+	var fset desc.FileDescriptorSet
 	if err := proto.Unmarshal(out, &fset); err != nil {
 		return err
 	}
 	for _, pfile := range fset.File {
+		if *pfile.Name == "gunk-proto" {
+			continue
+		}
 		t.pfiles = append(t.pfiles, pfile)
 	}
 	return nil
@@ -362,9 +373,9 @@ func (t *translator) protoParamType(fields *ast.FieldList) (*string, error) {
 	return &tname, nil
 }
 
-func (t *translator) protoEnum(tspec *ast.TypeSpec) (*descriptor.EnumDescriptorProto, error) {
+func (t *translator) protoEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto, error) {
 	t.addDoc(tspec.Doc, nil, enumPath, t.enumIndex)
-	enum := &descriptor.EnumDescriptorProto{
+	enum := &desc.EnumDescriptorProto{
 		Name: &tspec.Name.Name,
 	}
 	enumType := t.info.TypeOf(tspec.Name)
@@ -389,7 +400,7 @@ func (t *translator) protoEnum(tspec *ast.TypeSpec) (*descriptor.EnumDescriptorP
 				enumPath, t.enumIndex, enumValuePath, int32(i))
 			val := t.info.Defs[name].(*types.Const).Val()
 			ival, _ := constant.Int64Val(val)
-			enum.Value = append(enum.Value, &descriptor.EnumValueDescriptorProto{
+			enum.Value = append(enum.Value, &desc.EnumValueDescriptorProto{
 				Name:   &name.Name,
 				Number: proto.Int32(int32(ival)),
 			})
@@ -409,14 +420,14 @@ func protoNumber(fieldTag *ast.BasicLit) *int32 {
 	return proto.Int32(int32(number))
 }
 
-func protoType(from ast.Expr) (descriptor.FieldDescriptorProto_Type, string) {
+func protoType(from ast.Expr) (desc.FieldDescriptorProto_Type, string) {
 	switch x := from.(type) {
 	case *ast.Ident:
 		switch x.Name {
 		case "string":
-			return descriptor.FieldDescriptorProto_TYPE_STRING, x.Name
+			return desc.FieldDescriptorProto_TYPE_STRING, x.Name
 		default:
-			return descriptor.FieldDescriptorProto_TYPE_ENUM, "." + x.Name
+			return desc.FieldDescriptorProto_TYPE_ENUM, "." + x.Name
 		}
 	}
 	return 0, ""

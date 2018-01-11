@@ -118,7 +118,9 @@ const _ = grpc.SupportPackageIsVersion4
 // Client API for Util service
 
 type UtilClient interface {
+	// Echo echoes a message.
 	Echo(ctx context.Context, in *Message, opts ...grpc.CallOption) (*Message, error)
+	// CheckStatus sends the server health status.
 	CheckStatus(ctx context.Context, in *google_protobuf.Empty, opts ...grpc.CallOption) (*CheckStatusResponse, error)
 }
 
@@ -151,7 +153,9 @@ func (c *utilClient) CheckStatus(ctx context.Context, in *google_protobuf.Empty,
 // Server API for Util service
 
 type UtilServer interface {
+	// Echo echoes a message.
 	Echo(context.Context, *Message) (*Message, error)
+	// CheckStatus sends the server health status.
 	CheckStatus(context.Context, *google_protobuf.Empty) (*CheckStatusResponse, error)
 }
 

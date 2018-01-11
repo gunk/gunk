@@ -95,6 +95,7 @@ type translator struct {
 	pfiles []*descriptor.FileDescriptorProto
 
 	msgIndex  int32
+	srvIndex  int32
 	enumIndex int32
 }
 
@@ -145,7 +146,7 @@ func (t *translator) genFile(path string, toGenerate bool) error {
 		Name:   &path,
 		Syntax: proto.String("proto3"),
 	}
-	t.addDoc(t.gfile.Doc, "", packagePath)
+	t.addDoc(t.gfile.Doc, nil, packagePath)
 	for _, decl := range t.gfile.Decls {
 		if err := t.decl(decl); err != nil {
 			return err
@@ -198,23 +199,27 @@ func (t *translator) decl(decl ast.Decl) error {
 	return nil
 }
 
-func (t *translator) addDoc(doc *ast.CommentGroup, prefix string, path ...int32) {
+func (t *translator) addDoc(doc *ast.CommentGroup, f func(string) string, path ...int32) {
 	if doc == nil {
 		return
 	}
 	if t.pfile.SourceCodeInfo == nil {
 		t.pfile.SourceCodeInfo = &descriptor.SourceCodeInfo{}
 	}
+	text := doc.Text()
+	if f != nil {
+		text = f(text)
+	}
 	t.pfile.SourceCodeInfo.Location = append(t.pfile.SourceCodeInfo.Location,
 		&descriptor.SourceCodeInfo_Location{
 			Path:            path,
-			LeadingComments: proto.String(prefix + doc.Text()),
+			LeadingComments: proto.String(text),
 		},
 	)
 }
 
 func (t *translator) protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorProto, error) {
-	t.addDoc(tspec.Doc, "", messagePath, t.msgIndex)
+	t.addDoc(tspec.Doc, nil, messagePath, t.msgIndex)
 	msg := &descriptor.DescriptorProto{
 		Name: &tspec.Name.Name,
 	}
@@ -223,7 +228,7 @@ func (t *translator) protoMessage(tspec *ast.TypeSpec) (*descriptor.DescriptorPr
 		if len(field.Names) != 1 {
 			return nil, fmt.Errorf("need all fields to have one name")
 		}
-		t.addDoc(field.Doc, "", messagePath, t.msgIndex, messageFieldPath, int32(i))
+		t.addDoc(field.Doc, nil, messagePath, t.msgIndex, messageFieldPath, int32(i))
 		pfield := &descriptor.FieldDescriptorProto{
 			Name:   &field.Names[0].Name,
 			Number: protoNumber(field.Tag),
@@ -248,10 +253,12 @@ func (t *translator) protoService(tspec *ast.TypeSpec) (*descriptor.ServiceDescr
 		Name: &tspec.Name.Name,
 	}
 	itype := tspec.Type.(*ast.InterfaceType)
-	for _, method := range itype.Methods.List {
+	for i, method := range itype.Methods.List {
 		if len(method.Names) != 1 {
 			return nil, fmt.Errorf("need all methods to have one name")
 		}
+		t.addDoc(method.Doc, stripGunkTags, servicePath, t.srvIndex,
+			serviceMethodPath, int32(i))
 		pmethod := &descriptor.MethodDescriptorProto{
 			Name: &method.Names[0].Name,
 		}
@@ -267,7 +274,25 @@ func (t *translator) protoService(tspec *ast.TypeSpec) (*descriptor.ServiceDescr
 		}
 		srv.Method = append(srv.Method, pmethod)
 	}
+	t.srvIndex++
 	return srv, nil
+}
+
+func namePrefix(name string) func(string) string {
+	return func(text string) string {
+		return name + "_" + text
+	}
+}
+
+func stripGunkTags(text string) string {
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		if strings.HasPrefix(line, "+gunk") {
+			lines = lines[:i]
+			break
+		}
+	}
+	return strings.TrimSpace(strings.Join(lines, "\n"))
 }
 
 func (t *translator) addProtoDep(path string) {
@@ -338,7 +363,7 @@ func (t *translator) protoParamType(fields *ast.FieldList) (*string, error) {
 }
 
 func (t *translator) protoEnum(tspec *ast.TypeSpec) (*descriptor.EnumDescriptorProto, error) {
-	t.addDoc(tspec.Doc, "", enumPath, t.enumIndex)
+	t.addDoc(tspec.Doc, nil, enumPath, t.enumIndex)
 	enum := &descriptor.EnumDescriptorProto{
 		Name: &tspec.Name.Name,
 	}
@@ -360,7 +385,7 @@ func (t *translator) protoEnum(tspec *ast.TypeSpec) (*descriptor.EnumDescriptorP
 				continue
 			}
 			// SomeVal will be exported as SomeType_SomeVal
-			t.addDoc(vs.Doc, tspec.Name.Name+"_",
+			t.addDoc(vs.Doc, namePrefix(tspec.Name.Name),
 				enumPath, t.enumIndex, enumValuePath, int32(i))
 			val := t.info.Defs[name].(*types.Const).Val()
 			ival, _ := constant.Int64Val(val)
@@ -398,15 +423,11 @@ func protoType(from ast.Expr) (descriptor.FieldDescriptorProto_Type, string) {
 }
 
 const (
-	// tag numbers in FileDescriptorProto
-	packagePath = 2 // package
-	messagePath = 4 // message_type
-	enumPath    = 5 // enum_type
-	// tag numbers in DescriptorProto
-	messageFieldPath   = 2 // field
-	messageMessagePath = 3 // nested_type
-	messageEnumPath    = 4 // enum_type
-	messageOneofPath   = 8 // oneof_decl
-	// tag numbers in EnumDescriptorProto
-	enumValuePath = 2 // value
+	packagePath       = 2 // FileDescriptorProto.Package
+	messagePath       = 4 // FileDescriptorProto.MessageType
+	enumPath          = 5 // FileDescriptorProto.EnumType
+	servicePath       = 6 // FileDescriptorProto.Service
+	messageFieldPath  = 2 // DescriptorProto.Field
+	enumValuePath     = 2 // EnumDescriptorProto.Value
+	serviceMethodPath = 2 // ServiceDescriptorProto.Method
 )

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"go/ast"
+	"go/build"
 	"go/constant"
 	"go/parser"
 	"go/token"
@@ -16,6 +17,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -36,22 +38,16 @@ func main() {
 }
 
 func runPkg(path string) error {
-	// TODO: we don't error if the dir does not exist
-	files, err := filepath.Glob(filepath.Join(path, "*.gunk"))
-	if err != nil {
-		return err
-	}
 	t := translator{
-		fset:  token.NewFileSet(),
-		files: make(map[string]*ast.File),
+		fset: token.NewFileSet(),
 		tconfig: &types.Config{
 			Importer: dummyImporter{},
 		},
 	}
-	if err := t.addPkg(files...); err != nil {
+	if err := t.addPkg(path); err != nil {
 		return err
 	}
-	for _, path := range files {
+	for path := range t.files {
 		t.genFile(path, true)
 	}
 	if err := t.loadProtoDeps(); err != nil {
@@ -88,7 +84,8 @@ type translator struct {
 	fset    *token.FileSet
 	files   map[string]*ast.File
 	tconfig *types.Config
-	pkg     *types.Package
+	gpkg    *types.Package
+	pname   string
 	info    *types.Info
 
 	toGen  []string
@@ -100,6 +97,9 @@ type translator struct {
 }
 
 func (t *translator) request() *plugin.CodeGeneratorRequest {
+	// For deterministic output, as the first file in each package
+	// gets an extra package godoc.
+	sort.Strings(t.toGen)
 	return &plugin.CodeGeneratorRequest{
 		Parameter:      proto.String("plugins=grpc"),
 		FileToGenerate: t.toGen,
@@ -107,30 +107,56 @@ func (t *translator) request() *plugin.CodeGeneratorRequest {
 	}
 }
 
-func (t *translator) addPkg(paths ...string) error {
+func (t *translator) addPkg(dir string) error {
+	t.files = make(map[string]*ast.File)
+	// TODO: we don't error if the dir does not exist
+	matches, err := filepath.Glob(filepath.Join(dir, "*.gunk"))
+	if err != nil {
+		return err
+	}
 	// TODO: support multiple packages
 	var list []*ast.File
 	name := "default"
-	for _, path := range paths {
-		file, err := parser.ParseFile(t.fset, path, nil, parser.ParseComments)
+	for _, match := range matches {
+		file, err := parser.ParseFile(t.fset, match, nil, parser.ParseComments)
 		if err != nil {
 			return err
 		}
 		name = file.Name.Name
-		t.files[path] = file
+		t.files[match] = file
 		list = append(list, file)
 	}
-	t.pkg = types.NewPackage(name, name)
+	t.gpkg = types.NewPackage(pkgPath(dir), name)
+	t.pname = strings.Replace(t.gpkg.Path(), "/", ".", -1)
 	t.info = &types.Info{
 		Types: make(map[ast.Expr]types.TypeAndValue),
 		Defs:  make(map[*ast.Ident]types.Object),
 		Uses:  make(map[*ast.Ident]types.Object),
 	}
-	check := types.NewChecker(t.tconfig, t.fset, t.pkg, t.info)
+	check := types.NewChecker(t.tconfig, t.fset, t.gpkg, t.info)
 	if err := check.Files(list); err != nil {
 		return err
 	}
 	return nil
+}
+
+func pkgPath(dir string) string {
+	// not very robust nor portable, ok for now
+	dir, err := filepath.Abs(dir)
+	if err != nil {
+		panic(err)
+	}
+	for _, gopath := range filepath.SplitList(build.Default.GOPATH) {
+		src := filepath.Join(gopath, "src")
+		if strings.HasPrefix(dir, src) {
+			rel, err := filepath.Rel(src, dir)
+			if err != nil {
+				panic(err)
+			}
+			return rel
+		}
+	}
+	return filepath.Base(dir)
 }
 
 type dummyImporter struct{}
@@ -140,11 +166,15 @@ func (dummyImporter) Import(pkgPath string) (*types.Package, error) {
 	return types.NewPackage(pkgPath, name), nil
 }
 
-func (t *translator) genFile(path string, toGenerate bool) error {
-	t.gfile = t.files[path]
+func (t *translator) genFile(file string, toGenerate bool) error {
+	t.gfile = t.files[file]
 	t.pfile = &desc.FileDescriptorProto{
-		Name:   &path,
-		Syntax: proto.String("proto3"),
+		Syntax:  proto.String("proto3"),
+		Name:    &file,
+		Package: proto.String(t.pname),
+		Options: &desc.FileOptions{
+			GoPackage: proto.String(path.Base(t.gpkg.Path())),
+		},
 	}
 	t.addDoc(t.gfile.Doc, nil, packagePath)
 	for _, decl := range t.gfile.Decls {
@@ -153,7 +183,7 @@ func (t *translator) genFile(path string, toGenerate bool) error {
 		}
 	}
 	if toGenerate {
-		t.toGen = append(t.toGen, path)
+		t.toGen = append(t.toGen, file)
 	}
 	t.pfiles = append(t.pfiles, t.pfile)
 	return nil
@@ -241,7 +271,7 @@ func (t *translator) protoMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, e
 			Name:   &field.Names[0].Name,
 			Number: protoNumber(field.Tag),
 		}
-		switch ptype, tname := protoType(field.Type); ptype {
+		switch ptype, tname := t.protoType(field.Type); ptype {
 		case 0:
 			return nil, fmt.Errorf("unsupported field type: %v", field.Type)
 		case desc.FieldDescriptorProto_TYPE_ENUM:
@@ -366,7 +396,7 @@ func (t *translator) protoParamType(fields *ast.FieldList) (*string, error) {
 		return nil, fmt.Errorf("need all methods to have <=1 results")
 	}
 	field := fields.List[0]
-	_, tname := protoType(field.Type)
+	_, tname := t.protoType(field.Type)
 	if tname == "" {
 		return nil, fmt.Errorf("could not get type for %v", field.Type)
 	}
@@ -420,14 +450,15 @@ func protoNumber(fieldTag *ast.BasicLit) *int32 {
 	return proto.Int32(int32(number))
 }
 
-func protoType(from ast.Expr) (desc.FieldDescriptorProto_Type, string) {
+func (t *translator) protoType(from ast.Expr) (desc.FieldDescriptorProto_Type, string) {
 	switch x := from.(type) {
 	case *ast.Ident:
 		switch x.Name {
 		case "string":
 			return desc.FieldDescriptorProto_TYPE_STRING, x.Name
 		default:
-			return desc.FieldDescriptorProto_TYPE_ENUM, "." + x.Name
+			fullName := "." + t.pname + "." + x.Name
+			return desc.FieldDescriptorProto_TYPE_ENUM, fullName
 		}
 	}
 	return 0, ""

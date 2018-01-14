@@ -1,1 +1,14 @@
 package util
+
+// Status is a server health status.
+type Status int
+
+// Status values.
+const (
+	// Unknown is the default, unset status value.
+	Unknown Status = iota
+	// Error is a status value that implies something went wrong.
+	Error
+	// OK is a status value used when all went well.
+	OK
+)

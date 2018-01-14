@@ -39,7 +39,8 @@ func main() {
 
 func runPkg(path string) error {
 	t := translator{
-		fset: token.NewFileSet(),
+		fset:     token.NewFileSet(),
+		allProto: make(map[string]*desc.FileDescriptorProto),
 		tconfig: &types.Config{
 			Importer: dummyImporter{},
 		},
@@ -47,8 +48,8 @@ func runPkg(path string) error {
 	if err := t.addPkg(path); err != nil {
 		return err
 	}
-	for path := range t.files {
-		t.genFile(path, true)
+	if err := t.genPkg(); err != nil {
+		return err
 	}
 	if err := t.loadProtoDeps(); err != nil {
 		return err
@@ -81,15 +82,15 @@ type translator struct {
 	gfile *ast.File
 	pfile *desc.FileDescriptorProto
 
-	fset    *token.FileSet
-	files   map[string]*ast.File
-	tconfig *types.Config
-	gpkg    *types.Package
-	pname   string
-	info    *types.Info
+	fset     *token.FileSet
+	pkgFiles map[string]*ast.File
+	tconfig  *types.Config
+	gpkg     *types.Package
+	pname    string
+	info     *types.Info
 
-	toGen  []string
-	pfiles []*desc.FileDescriptorProto
+	toGen    []string
+	allProto map[string]*desc.FileDescriptorProto
 
 	msgIndex  int32
 	srvIndex  int32
@@ -100,15 +101,19 @@ func (t *translator) request() *plugin.CodeGeneratorRequest {
 	// For deterministic output, as the first file in each package
 	// gets an extra package godoc.
 	sort.Strings(t.toGen)
+	protoList := make([]*desc.FileDescriptorProto, 0, len(t.allProto))
+	for _, pfile := range t.allProto {
+		protoList = append(protoList, pfile)
+	}
 	return &plugin.CodeGeneratorRequest{
 		Parameter:      proto.String("plugins=grpc"),
 		FileToGenerate: t.toGen,
-		ProtoFile:      t.pfiles,
+		ProtoFile:      protoList,
 	}
 }
 
 func (t *translator) addPkg(dir string) error {
-	t.files = make(map[string]*ast.File)
+	t.pkgFiles = make(map[string]*ast.File)
 	// TODO: we don't error if the dir does not exist
 	matches, err := filepath.Glob(filepath.Join(dir, "*.gunk"))
 	if err != nil {
@@ -123,7 +128,7 @@ func (t *translator) addPkg(dir string) error {
 			return err
 		}
 		name = file.Name.Name
-		t.files[match] = file
+		t.pkgFiles[match] = file
 		list = append(list, file)
 	}
 	t.gpkg = types.NewPackage(pkgPath(dir), name)
@@ -166,8 +171,25 @@ func (dummyImporter) Import(pkgPath string) (*types.Package, error) {
 	return types.NewPackage(pkgPath, name), nil
 }
 
+func (t *translator) genPkg() error {
+	for path := range t.pkgFiles {
+		if err := t.genFile(path, true); err != nil {
+			return err
+		}
+	}
+	for name := range t.pkgFiles {
+		pfile := t.allProto[name]
+		for oname := range t.pkgFiles {
+			if name != oname {
+				pfile.Dependency = append(pfile.Dependency, oname)
+			}
+		}
+	}
+	return nil
+}
+
 func (t *translator) genFile(file string, toGenerate bool) error {
-	t.gfile = t.files[file]
+	t.gfile = t.pkgFiles[file]
 	t.pfile = &desc.FileDescriptorProto{
 		Syntax:  proto.String("proto3"),
 		Name:    proto.String(file),
@@ -185,7 +207,7 @@ func (t *translator) genFile(file string, toGenerate bool) error {
 	if toGenerate {
 		t.toGen = append(t.toGen, file)
 	}
-	t.pfiles = append(t.pfiles, t.pfile)
+	t.allProto[file] = t.pfile
 	return nil
 }
 
@@ -346,9 +368,11 @@ func (t *translator) addProtoDep(path string) {
 
 func (t *translator) loadProtoDeps() error {
 	missing := make(map[string]bool)
-	for _, pfile := range t.pfiles {
+	for _, pfile := range t.allProto {
 		for _, dep := range pfile.Dependency {
-			missing[dep] = true
+			if _, e := t.allProto[dep]; !e {
+				missing[dep] = true
+			}
 		}
 	}
 	tmpl := template.Must(template.New("letter").Parse(`
@@ -382,7 +406,7 @@ syntax = "proto3";
 		if *pfile.Name == "gunk-proto" {
 			continue
 		}
-		t.pfiles = append(t.pfiles, pfile)
+		t.allProto[*pfile.Name] = pfile
 	}
 	return nil
 }

@@ -170,7 +170,7 @@ func (t *translator) genFile(file string, toGenerate bool) error {
 	t.gfile = t.files[file]
 	t.pfile = &desc.FileDescriptorProto{
 		Syntax:  proto.String("proto3"),
-		Name:    &file,
+		Name:    proto.String(file),
 		Package: proto.String(t.pname),
 		Options: &desc.FileOptions{
 			GoPackage: proto.String(path.Base(t.gpkg.Path())),
@@ -259,7 +259,7 @@ func (t *translator) addDoc(doc *ast.CommentGroup, f func(string) string, path .
 func (t *translator) protoMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, error) {
 	t.addDoc(tspec.Doc, nil, messagePath, t.msgIndex)
 	msg := &desc.DescriptorProto{
-		Name: &tspec.Name.Name,
+		Name: proto.String(tspec.Name.Name),
 	}
 	stype := tspec.Type.(*ast.StructType)
 	for i, field := range stype.Fields.List {
@@ -268,7 +268,7 @@ func (t *translator) protoMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, e
 		}
 		t.addDoc(field.Doc, nil, messagePath, t.msgIndex, messageFieldPath, int32(i))
 		pfield := &desc.FieldDescriptorProto{
-			Name:   &field.Names[0].Name,
+			Name:   proto.String(field.Names[0].Name),
 			Number: protoNumber(field.Tag),
 		}
 		switch ptype, tname := t.protoType(field.Type); ptype {
@@ -288,7 +288,7 @@ func (t *translator) protoMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, e
 
 func (t *translator) protoService(tspec *ast.TypeSpec) (*desc.ServiceDescriptorProto, error) {
 	srv := &desc.ServiceDescriptorProto{
-		Name: &tspec.Name.Name,
+		Name: proto.String(tspec.Name.Name),
 	}
 	itype := tspec.Type.(*ast.InterfaceType)
 	for i, method := range itype.Methods.List {
@@ -298,7 +298,7 @@ func (t *translator) protoService(tspec *ast.TypeSpec) (*desc.ServiceDescriptorP
 		t.addDoc(method.Doc, stripGunkTags, servicePath, t.srvIndex,
 			serviceMethodPath, int32(i))
 		pmethod := &desc.MethodDescriptorProto{
-			Name: &method.Names[0].Name,
+			Name: proto.String(method.Names[0].Name),
 		}
 		sign := method.Type.(*ast.FuncType)
 		var err error
@@ -406,7 +406,7 @@ func (t *translator) protoParamType(fields *ast.FieldList) (*string, error) {
 func (t *translator) protoEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto, error) {
 	t.addDoc(tspec.Doc, nil, enumPath, t.enumIndex)
 	enum := &desc.EnumDescriptorProto{
-		Name: &tspec.Name.Name,
+		Name: proto.String(tspec.Name.Name),
 	}
 	enumType := t.info.TypeOf(tspec.Name)
 	for _, decl := range t.gfile.Decls {
@@ -431,7 +431,7 @@ func (t *translator) protoEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto, 
 			val := t.info.Defs[name].(*types.Const).Val()
 			ival, _ := constant.Int64Val(val)
 			enum.Value = append(enum.Value, &desc.EnumValueDescriptorProto{
-				Name:   &name.Name,
+				Name:   proto.String(name.Name),
 				Number: proto.Int32(int32(ival)),
 			})
 		}

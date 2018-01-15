@@ -2,20 +2,19 @@ package main
 
 import (
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 )
 
 func TestGunk(t *testing.T) {
-	matches, err := filepath.Glob(filepath.Join("testdata", "*.pb.go"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	matches, _ := filepath.Glob(filepath.Join("testdata", "src", "util", "*.pb.go"))
 	orig := make(map[string]string)
 	for _, outPath := range matches {
 		orig[outPath] = readFile(t, outPath)
+		os.Remove(outPath)
 	}
-	if err := runPkg("./testdata"); err != nil {
+	if err := runPkg("util", "testdata"); err != nil {
 		t.Fatal(err)
 	}
 	for _, outPath := range matches {

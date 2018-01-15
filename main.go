@@ -31,19 +31,28 @@ import (
 func main() {
 	flag.Parse()
 	for _, path := range flag.Args() {
-		if err := runPkg(path); err != nil {
+		if err := runPkg(path, ""); err != nil {
 			log.Fatal(err)
 		}
 	}
 }
 
-func runPkg(path string) error {
+func runPkg(path, gopath string) error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
 	t := translator{
+		wd:       wd,
 		fset:     token.NewFileSet(),
 		allProto: make(map[string]*desc.FileDescriptorProto),
 		tconfig: &types.Config{
 			Importer: dummyImporter{},
 		},
+	}
+	t.bctx = build.Default
+	if gopath != "" {
+		t.bctx.GOPATH = gopath
 	}
 	if err := t.addPkg(path); err != nil {
 		return err
@@ -79,6 +88,9 @@ func runPkg(path string) error {
 }
 
 type translator struct {
+	bctx build.Context
+	wd   string
+
 	gfile *ast.File
 	pfile *desc.FileDescriptorProto
 
@@ -105,6 +117,10 @@ func (t *translator) request() *plugin.CodeGeneratorRequest {
 	for _, pfile := range t.allProto {
 		protoList = append(protoList, pfile)
 	}
+	sort.Slice(protoList, func(i, j int) bool {
+		f1, f2 := protoList[i], protoList[j]
+		return *f1.Name < *f2.Name
+	})
 	return &plugin.CodeGeneratorRequest{
 		Parameter:      proto.String("plugins=grpc"),
 		FileToGenerate: t.toGen,
@@ -112,10 +128,14 @@ func (t *translator) request() *plugin.CodeGeneratorRequest {
 	}
 }
 
-func (t *translator) addPkg(dir string) error {
+func (t *translator) addPkg(path string) error {
+	bpkg, err := t.bctx.Import(path, t.wd, build.FindOnly)
+	if err != nil {
+		return err
+	}
 	t.pkgFiles = make(map[string]*ast.File)
 	// TODO: we don't error if the dir does not exist
-	matches, err := filepath.Glob(filepath.Join(dir, "*.gunk"))
+	matches, err := filepath.Glob(filepath.Join(bpkg.Dir, "*.gunk"))
 	if err != nil {
 		return err
 	}
@@ -131,7 +151,7 @@ func (t *translator) addPkg(dir string) error {
 		t.pkgFiles[match] = file
 		list = append(list, file)
 	}
-	t.gpkg = types.NewPackage(pkgPath(dir), name)
+	t.gpkg = types.NewPackage(bpkg.ImportPath, name)
 	t.pname = strings.Replace(t.gpkg.Path(), "/", ".", -1)
 	t.info = &types.Info{
 		Types: make(map[ast.Expr]types.TypeAndValue),
@@ -143,25 +163,6 @@ func (t *translator) addPkg(dir string) error {
 		return err
 	}
 	return nil
-}
-
-func pkgPath(dir string) string {
-	// not very robust nor portable, ok for now
-	dir, err := filepath.Abs(dir)
-	if err != nil {
-		panic(err)
-	}
-	for _, gopath := range filepath.SplitList(build.Default.GOPATH) {
-		src := filepath.Join(gopath, "src")
-		if strings.HasPrefix(dir, src) {
-			rel, err := filepath.Rel(src, dir)
-			if err != nil {
-				panic(err)
-			}
-			return rel
-		}
-	}
-	return filepath.Base(dir)
 }
 
 type dummyImporter struct{}

@@ -8,13 +8,18 @@ import (
 )
 
 func TestGunk(t *testing.T) {
-	matches, _ := filepath.Glob(filepath.Join("testdata", "src", "util", "*.pb.go"))
+	pkgs := []string{"util", "util/imp"}
+	var matches []string
+	for _, path := range pkgs {
+		glob, _ := filepath.Glob(filepath.Join("testdata", "src", path, "*.pb.go"))
+		matches = append(matches, glob...)
+	}
 	orig := make(map[string]string)
 	for _, outPath := range matches {
 		orig[outPath] = readFile(t, outPath)
 		os.Remove(outPath)
 	}
-	if err := runPkg("util", "testdata"); err != nil {
+	if err := runPkg(pkgs[0], "testdata"); err != nil {
 		t.Fatal(err)
 	}
 	for _, outPath := range matches {

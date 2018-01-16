@@ -14,7 +14,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -46,10 +45,17 @@ func runPkg(path, gopath string) error {
 		wd:       wd,
 		fset:     token.NewFileSet(),
 		allProto: make(map[string]*desc.FileDescriptorProto),
-		tconfig: &types.Config{
-			Importer: dummyImporter{},
+		tconfig:  &types.Config{},
+		info: &types.Info{
+			Types: make(map[ast.Expr]types.TypeAndValue),
+			Defs:  make(map[*ast.Ident]types.Object),
+			Uses:  make(map[*ast.Ident]types.Object),
 		},
+		bldPkgs: make(map[string]*build.Package),
+		typPkgs: make(map[string]*types.Package),
+		astPkgs: make(map[string]map[string]*ast.File),
 	}
+	t.tconfig.Importer = &t
 	t.bctx = build.Default
 	if gopath != "" {
 		t.bctx.GOPATH = gopath
@@ -57,7 +63,7 @@ func runPkg(path, gopath string) error {
 	if err := t.addPkg(path); err != nil {
 		return err
 	}
-	if err := t.genPkg(); err != nil {
+	if err := t.genPkg(path); err != nil {
 		return err
 	}
 	if err := t.loadProtoDeps(); err != nil {
@@ -93,13 +99,15 @@ type translator struct {
 
 	gfile *ast.File
 	pfile *desc.FileDescriptorProto
+	tpkg  *types.Package
 
-	fset     *token.FileSet
-	pkgFiles map[string]*ast.File
-	tconfig  *types.Config
-	gpkg     *types.Package
-	pname    string
-	info     *types.Info
+	fset    *token.FileSet
+	tconfig *types.Config
+	info    *types.Info
+
+	astPkgs map[string]map[string]*ast.File
+	bldPkgs map[string]*build.Package
+	typPkgs map[string]*types.Package
 
 	toGen    []string
 	allProto map[string]*desc.FileDescriptorProto
@@ -133,7 +141,6 @@ func (t *translator) addPkg(path string) error {
 	if err != nil {
 		return err
 	}
-	t.pkgFiles = make(map[string]*ast.File)
 	// TODO: we don't error if the dir does not exist
 	matches, err := filepath.Glob(filepath.Join(bpkg.Dir, "*.gunk"))
 	if err != nil {
@@ -142,61 +149,76 @@ func (t *translator) addPkg(path string) error {
 	// TODO: support multiple packages
 	var list []*ast.File
 	name := "default"
+	astFiles := make(map[string]*ast.File)
 	for _, match := range matches {
 		file, err := parser.ParseFile(t.fset, match, nil, parser.ParseComments)
 		if err != nil {
 			return err
 		}
 		name = file.Name.Name
-		t.pkgFiles[match] = file
+		astFiles[match] = file
 		list = append(list, file)
 	}
-	t.gpkg = types.NewPackage(bpkg.ImportPath, name)
-	t.pname = strings.Replace(t.gpkg.Path(), "/", ".", -1)
-	t.info = &types.Info{
-		Types: make(map[ast.Expr]types.TypeAndValue),
-		Defs:  make(map[*ast.Ident]types.Object),
-		Uses:  make(map[*ast.Ident]types.Object),
-	}
-	check := types.NewChecker(t.tconfig, t.fset, t.gpkg, t.info)
+	tpkg := types.NewPackage(bpkg.ImportPath, name)
+	check := types.NewChecker(t.tconfig, t.fset, tpkg, t.info)
 	if err := check.Files(list); err != nil {
 		return err
 	}
+	t.bldPkgs[path] = bpkg
+	t.typPkgs[tpkg.Path()] = tpkg
+	t.astPkgs[tpkg.Path()] = astFiles
 	return nil
 }
 
-type dummyImporter struct{}
-
-func (dummyImporter) Import(pkgPath string) (*types.Package, error) {
-	name := path.Base(pkgPath)
-	return types.NewPackage(pkgPath, name), nil
+func (t *translator) Import(path string) (*types.Package, error) {
+	if tpkg := t.typPkgs[path]; tpkg != nil {
+		return tpkg, nil
+	}
+	if err := t.addPkg(path); err != nil {
+		return nil, err
+	}
+	return t.typPkgs[path], nil
 }
 
-func (t *translator) genPkg() error {
-	for path := range t.pkgFiles {
-		if err := t.genFile(path, true); err != nil {
+func (t *translator) genPkg(path string) error {
+	t.tpkg = t.typPkgs[path]
+	astFiles := t.astPkgs[path]
+	for file := range astFiles {
+		if err := t.genFile(path, file, true); err != nil {
 			return err
 		}
 	}
-	for name := range t.pkgFiles {
+	for name, gfile := range astFiles {
 		pfile := t.allProto[name]
-		for oname := range t.pkgFiles {
+		for oname := range astFiles {
 			if name != oname {
 				pfile.Dependency = append(pfile.Dependency, oname)
+			}
+		}
+		for _, imp := range gfile.Imports {
+			opath, _ := strconv.Unquote(imp.Path.Value)
+			for oname := range t.astPkgs[opath] {
+				pfile.Dependency = append(pfile.Dependency, oname)
+				t.genFile(opath, oname, false)
 			}
 		}
 	}
 	return nil
 }
 
-func (t *translator) genFile(file string, toGenerate bool) error {
-	t.gfile = t.pkgFiles[file]
+func (t *translator) genFile(path, file string, toGenerate bool) error {
+	if _, ok := t.allProto[file]; ok {
+		return nil
+	}
+	bpkg := t.bldPkgs[path]
+	astFiles := t.astPkgs[path]
+	t.gfile = astFiles[file]
 	t.pfile = &desc.FileDescriptorProto{
 		Syntax:  proto.String("proto3"),
 		Name:    proto.String(file),
-		Package: proto.String(t.pname),
+		Package: proto.String(bpkg.ImportPath),
 		Options: &desc.FileOptions{
-			GoPackage: proto.String(path.Base(t.gpkg.Path())),
+			GoPackage: proto.String(bpkg.Name),
 		},
 	}
 	t.addDoc(t.gfile.Doc, nil, packagePath)
@@ -294,7 +316,7 @@ func (t *translator) protoMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, e
 			Name:   proto.String(field.Names[0].Name),
 			Number: protoNumber(field.Tag),
 		}
-		switch ptype, tname := t.protoType(field.Type); ptype {
+		switch ptype, tname := t.protoType(field.Type, nil); ptype {
 		case 0:
 			return nil, fmt.Errorf("unsupported field type: %v", field.Type)
 		case desc.FieldDescriptorProto_TYPE_ENUM:
@@ -397,6 +419,9 @@ syntax = "proto3";
 	cmd := exec.Command("protoc", "-o/dev/stdout", "--include_imports", "gunk-proto")
 	out, err := cmd.Output()
 	if err != nil {
+		if e, ok := err.(*exec.ExitError); ok {
+			return fmt.Errorf("%s", e.Stderr)
+		}
 		return err
 	}
 	var fset desc.FileDescriptorSet
@@ -421,7 +446,7 @@ func (t *translator) protoParamType(fields *ast.FieldList) (*string, error) {
 		return nil, fmt.Errorf("need all methods to have <=1 results")
 	}
 	field := fields.List[0]
-	_, tname := t.protoType(field.Type)
+	_, tname := t.protoType(field.Type, nil)
 	if tname == "" {
 		return nil, fmt.Errorf("could not get type for %v", field.Type)
 	}
@@ -475,16 +500,26 @@ func protoNumber(fieldTag *ast.BasicLit) *int32 {
 	return proto.Int32(int32(number))
 }
 
-func (t *translator) protoType(from ast.Expr) (desc.FieldDescriptorProto_Type, string) {
-	switch x := from.(type) {
+func (t *translator) protoType(expr ast.Expr, pkg *types.Package) (desc.FieldDescriptorProto_Type, string) {
+	if pkg == nil {
+		pkg = t.tpkg
+	}
+	switch x := expr.(type) {
 	case *ast.Ident:
 		switch x.Name {
 		case "string":
 			return desc.FieldDescriptorProto_TYPE_STRING, x.Name
 		default:
-			fullName := "." + t.pname + "." + x.Name
+			fullName := "." + pkg.Path() + "." + x.Name
 			return desc.FieldDescriptorProto_TYPE_ENUM, fullName
 		}
+	case *ast.SelectorExpr:
+		id, ok := x.X.(*ast.Ident)
+		if !ok {
+			break
+		}
+		pkg := t.info.ObjectOf(id).(*types.PkgName).Imported()
+		return t.protoType(x.Sel, pkg)
 	}
 	return 0, ""
 }

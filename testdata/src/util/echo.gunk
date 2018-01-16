@@ -2,15 +2,8 @@
 package util
 
 import (
-	"github.com/gunk/opt/http"
-	"github.com/gunk/opt"
+	"util/imp"
 )
-
-// Message is a Echo message.
-type Message struct {
-	// Msg holds a message.
-	Msg string `pb:1`
-}
 
 // CheckStatusResponse is the response for a check status.
 type CheckStatusResponse struct {
@@ -26,7 +19,7 @@ type Util interface {
 	//		Path:	"/",
 	//		Body:	"*",
 	//	}
-	Echo(Message) Message
+	Echo(imp.Message) imp.Message
 
 	// CheckStatus sends the server health status.
 	//

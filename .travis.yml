@@ -1,5 +1,19 @@
 language: go
 
 go:
-  - 1.8.x
   - 1.9.x
+
+sudo: false
+
+cache:
+  directories:
+  - $HOME/protobuf-3.5.1
+
+env:
+  global:
+  - PATH=$HOME/protobuf-3.5.1/bin:$PATH
+
+before_install:
+  - ./install-protobuf.sh
+
+install: true

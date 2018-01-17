@@ -48,11 +48,12 @@ func runPaths(gopath string, paths ...string) error {
 			Defs:  make(map[*ast.Ident]types.Object),
 			Uses:  make(map[*ast.Ident]types.Object),
 		},
-		bldPkgs:  make(map[string]*build.Package),
-		typPkgs:  make(map[string]*types.Package),
-		astPkgs:  make(map[string]map[string]*ast.File),
-		toGen:    make(map[string]map[string]bool),
-		allProto: make(map[string]*desc.FileDescriptorProto),
+		bldPkgs:   make(map[string]*build.Package),
+		typPkgs:   make(map[string]*types.Package),
+		astPkgs:   make(map[string]map[string]*ast.File),
+		toGen:     make(map[string]map[string]bool),
+		allProto:  make(map[string]*desc.FileDescriptorProto),
+		importMap: make(map[string]string),
 	}
 	t.tconfig.Importer = &t
 	t.bctx = build.Default
@@ -94,8 +95,9 @@ type translator struct {
 	bldPkgs map[string]*build.Package
 	typPkgs map[string]*types.Package
 
-	toGen    map[string]map[string]bool
-	allProto map[string]*desc.FileDescriptorProto
+	toGen     map[string]map[string]bool
+	allProto  map[string]*desc.FileDescriptorProto
+	importMap map[string]string
 
 	msgIndex  int32
 	srvIndex  int32
@@ -126,6 +128,7 @@ func (t *translator) genPkg(path string) error {
 	g := generator.New()
 	g.Request = t.requestForPkg(path)
 	g.CommandLineParameters(g.Request.GetParameter())
+	g.ImportMap = t.importMap
 
 	g.WrapTypes()
 	g.SetPackageNames()
@@ -194,7 +197,7 @@ func (t *translator) translatePkg(path string) error {
 	t.tpkg = t.typPkgs[path]
 	astFiles := t.astPkgs[path]
 	for file := range astFiles {
-		if err := t.transFile(path, file, true); err != nil {
+		if err := t.transFile(path, file); err != nil {
 			return err
 		}
 	}
@@ -215,13 +218,9 @@ func (t *translator) translatePkg(path string) error {
 	return nil
 }
 
-func (t *translator) transFile(path, file string, toGenerate bool) error {
+func (t *translator) transFile(path, file string) error {
+	t.toGen[path][file] = true
 	if _, ok := t.allProto[file]; ok {
-		if toGenerate {
-			// if it was a dependency first and passed as an
-			// argument later, do generate it
-			t.toGen[path][file] = true
-		}
 		return nil
 	}
 	bpkg := t.bldPkgs[path]
@@ -241,8 +240,8 @@ func (t *translator) transFile(path, file string, toGenerate bool) error {
 			return err
 		}
 	}
-	t.toGen[path][file] = toGenerate
 	t.allProto[file] = t.pfile
+	t.importMap[file] = path
 	return nil
 }
 

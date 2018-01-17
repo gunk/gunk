@@ -1,0 +1,5 @@
+package imp
+
+type ShouldNotBeGenerated struct {
+	Field string `pb:1`
+}

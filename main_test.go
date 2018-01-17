@@ -3,30 +3,49 @@ package main
 import (
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"testing"
 )
 
 func TestGunk(t *testing.T) {
-	pkgs := []string{"util", "util/imp"}
+	// TODO: this test likely won't pass on windows
+	pkgs := []string{"util", "util/imp-arg"}
 	outPaths := []string{
 		"testdata/src/util/echo.pb.go",
 		"testdata/src/util/types.pb.go",
-		"testdata/src/util/imp/imp.pb.go",
+		"testdata/src/util/imp-arg/imp.pb.go",
+		"testdata/src/util/imp-noarg/imp.pb.go",
 	}
 	orig := make(map[string]string)
 	for _, outPath := range outPaths {
 		orig[outPath] = mayReadFile(t, outPath)
 		os.Remove(outPath)
 	}
-	if err := runPaths("testdata", pkgs...); err != nil {
+	gopath, err := filepath.Abs("testdata")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := runPaths(gopath, pkgs...); err != nil {
 		t.Fatal(err)
 	}
 	for _, outPath := range outPaths {
 		want := orig[outPath]
 		got := mayReadFile(t, outPath)
 		if got != want {
-			t.Fatalf("want:\n%s\ngot:\n%s", want, got)
+			t.Fatalf("%s was modified", outPath)
 		}
+	}
+	if testing.Short() {
+		t.Skip(`skipping "go build" check in short mode`)
+	}
+	cmd := exec.Command("go", append([]string{"build"}, pkgs...)...)
+	cmd.Env = []string{"GOPATH=" + gopath + ":" + os.Getenv("GOPATH")}
+	if _, err := cmd.Output(); err != nil {
+		if e, ok := err.(*exec.ExitError); ok {
+			t.Fatalf("%s", e.Stderr)
+		}
+		t.Fatalf("%v", err)
 	}
 }
 

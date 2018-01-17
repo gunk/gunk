@@ -2,7 +2,8 @@
 package util
 
 import (
-	"util/imp"
+	imp "util/imp-arg"
+	_ "util/imp-noarg"
 )
 
 // CheckStatusResponse is the response for a check status.

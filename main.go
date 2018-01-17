@@ -29,64 +29,49 @@ import (
 
 func main() {
 	flag.Parse()
-	for _, path := range flag.Args() {
-		if err := runPkg(path, ""); err != nil {
-			log.Fatal(err)
-		}
+	if err := runPaths("", flag.Args()...); err != nil {
+		log.Fatal(err)
 	}
 }
 
-func runPkg(path, gopath string) error {
+func runPaths(gopath string, paths ...string) error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 	t := translator{
-		wd:       wd,
-		fset:     token.NewFileSet(),
-		allProto: make(map[string]*desc.FileDescriptorProto),
-		tconfig:  &types.Config{},
+		wd:      wd,
+		fset:    token.NewFileSet(),
+		tconfig: &types.Config{},
 		info: &types.Info{
 			Types: make(map[ast.Expr]types.TypeAndValue),
 			Defs:  make(map[*ast.Ident]types.Object),
 			Uses:  make(map[*ast.Ident]types.Object),
 		},
-		bldPkgs: make(map[string]*build.Package),
-		typPkgs: make(map[string]*types.Package),
-		astPkgs: make(map[string]map[string]*ast.File),
+		bldPkgs:  make(map[string]*build.Package),
+		typPkgs:  make(map[string]*types.Package),
+		astPkgs:  make(map[string]map[string]*ast.File),
+		toGen:    make(map[string]map[string]bool),
+		allProto: make(map[string]*desc.FileDescriptorProto),
 	}
 	t.tconfig.Importer = &t
 	t.bctx = build.Default
 	if gopath != "" {
 		t.bctx.GOPATH = gopath
 	}
-	if err := t.addPkg(path); err != nil {
-		return err
-	}
-	if err := t.genPkg(path); err != nil {
-		return err
+	for _, path := range paths {
+		if err := t.addPkg(path); err != nil {
+			return err
+		}
+		if err := t.transPkg(path); err != nil {
+			return err
+		}
 	}
 	if err := t.loadProtoDeps(); err != nil {
 		return err
 	}
-
-	g := generator.New()
-	g.Request = t.request()
-	g.CommandLineParameters(g.Request.GetParameter())
-
-	// Create a wrapped version of the Descriptors and EnumDescriptors that
-	// point to the file that defines them.
-	g.WrapTypes()
-
-	g.SetPackageNames()
-	g.BuildTypeNameMap()
-
-	g.GenerateAllFiles()
-	for _, rf := range g.Response.File {
-		// to turn foo.gunk.pb.go into foo.pb.go
-		name := strings.Replace(*rf.Name, ".gunk", "", 1)
-		data := []byte(*rf.Content)
-		if err := ioutil.WriteFile(name, data, 0644); err != nil {
+	for _, path := range paths {
+		if err := t.genPkg(path); err != nil {
 			return err
 		}
 	}
@@ -109,7 +94,7 @@ type translator struct {
 	bldPkgs map[string]*build.Package
 	typPkgs map[string]*types.Package
 
-	toGen    []string
+	toGen    map[string]map[string]bool
 	allProto map[string]*desc.FileDescriptorProto
 
 	msgIndex  int32
@@ -117,23 +102,45 @@ type translator struct {
 	enumIndex int32
 }
 
-func (t *translator) request() *plugin.CodeGeneratorRequest {
+func (t *translator) requestForPkg(path string) *plugin.CodeGeneratorRequest {
 	// For deterministic output, as the first file in each package
 	// gets an extra package godoc.
-	sort.Strings(t.toGen)
-	protoList := make([]*desc.FileDescriptorProto, 0, len(t.allProto))
-	for _, pfile := range t.allProto {
-		protoList = append(protoList, pfile)
+	req := &plugin.CodeGeneratorRequest{
+		Parameter: proto.String("plugins=grpc"),
 	}
-	sort.Slice(protoList, func(i, j int) bool {
-		f1, f2 := protoList[i], protoList[j]
+	for file := range t.toGen[path] {
+		req.FileToGenerate = append(req.FileToGenerate, file)
+	}
+	sort.Strings(req.FileToGenerate)
+	for _, pfile := range t.allProto {
+		req.ProtoFile = append(req.ProtoFile, pfile)
+	}
+	sort.Slice(req.ProtoFile, func(i, j int) bool {
+		f1, f2 := req.ProtoFile[i], req.ProtoFile[j]
 		return *f1.Name < *f2.Name
 	})
-	return &plugin.CodeGeneratorRequest{
-		Parameter:      proto.String("plugins=grpc"),
-		FileToGenerate: t.toGen,
-		ProtoFile:      protoList,
+	return req
+}
+
+func (t *translator) genPkg(path string) error {
+	g := generator.New()
+	g.Request = t.requestForPkg(path)
+	g.CommandLineParameters(g.Request.GetParameter())
+
+	g.WrapTypes()
+	g.SetPackageNames()
+	g.BuildTypeNameMap()
+
+	g.GenerateAllFiles()
+	for _, rf := range g.Response.File {
+		// to turn foo.gunk.pb.go into foo.pb.go
+		name := strings.Replace(*rf.Name, ".gunk", "", 1)
+		data := []byte(*rf.Content)
+		if err := ioutil.WriteFile(name, data, 0644); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (t *translator) addPkg(path string) error {
@@ -148,18 +155,18 @@ func (t *translator) addPkg(path string) error {
 	}
 	// TODO: support multiple packages
 	var list []*ast.File
-	name := "default"
+	bpkg.Name = "default"
 	astFiles := make(map[string]*ast.File)
 	for _, match := range matches {
 		file, err := parser.ParseFile(t.fset, match, nil, parser.ParseComments)
 		if err != nil {
 			return err
 		}
-		name = file.Name.Name
+		bpkg.Name = file.Name.Name
 		astFiles[match] = file
 		list = append(list, file)
 	}
-	tpkg := types.NewPackage(bpkg.ImportPath, name)
+	tpkg := types.NewPackage(bpkg.ImportPath, bpkg.Name)
 	check := types.NewChecker(t.tconfig, t.fset, tpkg, t.info)
 	if err := check.Files(list); err != nil {
 		return err
@@ -167,6 +174,7 @@ func (t *translator) addPkg(path string) error {
 	t.bldPkgs[path] = bpkg
 	t.typPkgs[tpkg.Path()] = tpkg
 	t.astPkgs[tpkg.Path()] = astFiles
+	t.toGen[path] = make(map[string]bool)
 	return nil
 }
 
@@ -180,11 +188,11 @@ func (t *translator) Import(path string) (*types.Package, error) {
 	return t.typPkgs[path], nil
 }
 
-func (t *translator) genPkg(path string) error {
+func (t *translator) transPkg(path string) error {
 	t.tpkg = t.typPkgs[path]
 	astFiles := t.astPkgs[path]
 	for file := range astFiles {
-		if err := t.genFile(path, file, true); err != nil {
+		if err := t.transFile(path, file, true); err != nil {
 			return err
 		}
 	}
@@ -199,15 +207,20 @@ func (t *translator) genPkg(path string) error {
 			opath, _ := strconv.Unquote(imp.Path.Value)
 			for oname := range t.astPkgs[opath] {
 				pfile.Dependency = append(pfile.Dependency, oname)
-				t.genFile(opath, oname, false)
+				t.transFile(opath, oname, false)
 			}
 		}
 	}
 	return nil
 }
 
-func (t *translator) genFile(path, file string, toGenerate bool) error {
+func (t *translator) transFile(path, file string, toGenerate bool) error {
 	if _, ok := t.allProto[file]; ok {
+		if toGenerate {
+			// if it was a dependency first and passed as an
+			// argument later, do generate it
+			t.toGen[path][file] = true
+		}
 		return nil
 	}
 	bpkg := t.bldPkgs[path]
@@ -227,9 +240,7 @@ func (t *translator) genFile(path, file string, toGenerate bool) error {
 			return err
 		}
 	}
-	if toGenerate {
-		t.toGen = append(t.toGen, file)
-	}
+	t.toGen[path][file] = toGenerate
 	t.allProto[file] = t.pfile
 	return nil
 }

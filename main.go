@@ -63,7 +63,7 @@ func runPaths(gopath string, paths ...string) error {
 		if err := t.addPkg(path); err != nil {
 			return err
 		}
-		if err := t.transPkg(path); err != nil {
+		if err := t.translatePkg(path); err != nil {
 			return err
 		}
 	}
@@ -148,7 +148,6 @@ func (t *translator) addPkg(path string) error {
 	if err != nil {
 		return err
 	}
-	// TODO: we don't error if the dir does not exist
 	matches, err := filepath.Glob(filepath.Join(bpkg.Dir, "*.gunk"))
 	if err != nil {
 		return err
@@ -185,10 +184,13 @@ func (t *translator) Import(path string) (*types.Package, error) {
 	if err := t.addPkg(path); err != nil {
 		return nil, err
 	}
+	if err := t.translatePkg(path); err != nil {
+		return nil, err
+	}
 	return t.typPkgs[path], nil
 }
 
-func (t *translator) transPkg(path string) error {
+func (t *translator) translatePkg(path string) error {
 	t.tpkg = t.typPkgs[path]
 	astFiles := t.astPkgs[path]
 	for file := range astFiles {
@@ -207,7 +209,6 @@ func (t *translator) transPkg(path string) error {
 			opath, _ := strconv.Unquote(imp.Path.Value)
 			for oname := range t.astPkgs[opath] {
 				pfile.Dependency = append(pfile.Dependency, oname)
-				t.transFile(opath, oname, false)
 			}
 		}
 	}
@@ -395,8 +396,6 @@ func (t *translator) addProtoDep(path string) {
 			return // already in there
 		}
 	}
-	t.pfile.PublicDependency = append(t.pfile.PublicDependency,
-		int32(len(t.pfile.Dependency)))
 	t.pfile.Dependency = append(t.pfile.Dependency, path)
 }
 

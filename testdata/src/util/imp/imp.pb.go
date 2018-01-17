@@ -27,7 +27,9 @@ var _ = math1.Inf
 // proto package needs to be updated.
 const _ = proto1.ProtoPackageIsVersion2 // please upgrade the proto package
 
+// Message is a Echo message.
 type Message struct {
+	// Msg holds a message.
 	Msg string `protobuf:"bytes,0,,name=Msg" json:"Msg,omitempty"`
 }
 

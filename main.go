@@ -54,6 +54,7 @@ func runPaths(gopath string, paths ...string) error {
 		toGen:     make(map[string]map[string]bool),
 		allProto:  make(map[string]*desc.FileDescriptorProto),
 		importMap: make(map[string]string),
+		origPaths: make(map[string]string),
 	}
 	t.tconfig.Importer = &t
 	t.bctx = build.Default
@@ -98,6 +99,7 @@ type translator struct {
 	toGen     map[string]map[string]bool
 	allProto  map[string]*desc.FileDescriptorProto
 	importMap map[string]string
+	origPaths map[string]string
 
 	msgIndex  int32
 	srvIndex  int32
@@ -137,9 +139,11 @@ func (t *translator) genPkg(path string) error {
 	g.GenerateAllFiles()
 	for _, rf := range g.Response.File {
 		// to turn foo.gunk.pb.go into foo.pb.go
-		name := strings.Replace(*rf.Name, ".gunk", "", 1)
+		inPath := strings.Replace(*rf.Name, ".pb.go", "", 1)
+		outPath := t.origPaths[inPath]
+		outPath = strings.Replace(outPath, ".gunk", ".pb.go", 1)
 		data := []byte(*rf.Content)
-		if err := ioutil.WriteFile(name, data, 0644); err != nil {
+		if err := ioutil.WriteFile(outPath, data, 0644); err != nil {
 			return err
 		}
 	}
@@ -165,7 +169,11 @@ func (t *translator) addPkg(path string) error {
 			return err
 		}
 		bpkg.Name = file.Name.Name
-		astFiles[match] = file
+		// to make the generated code independent of the current
+		// directory when running gunk
+		relPath := bpkg.ImportPath + "/" + filepath.Base(match)
+		astFiles[relPath] = file
+		t.origPaths[relPath] = match
 		list = append(list, file)
 	}
 	tpkg := types.NewPackage(bpkg.ImportPath, bpkg.Name)

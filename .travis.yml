@@ -17,3 +17,7 @@ before_install:
   - ./install-protobuf.sh
 
 install: true
+
+script:
+  # use -short to skip the "go build" tests
+  - go test -v -short ./...

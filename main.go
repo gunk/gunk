@@ -230,6 +230,9 @@ func (t *translator) translatePkg(path string) error {
 }
 
 func (t *translator) transFile(path, file string) error {
+	t.msgIndex = 0
+	t.srvIndex = 0
+	t.enumIndex = 0
 	t.toGen[path][file] = true
 	if _, ok := t.allProto[file]; ok {
 		return nil

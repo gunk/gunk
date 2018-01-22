@@ -37,6 +37,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
+// CheckStatusResponse is the response for a check status.
 type CheckStatusResponse struct {
 	Status Status `protobuf:"varint,1,,name=Status,enum=util.Status" json:"Status,omitempty"`
 }

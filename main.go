@@ -217,6 +217,9 @@ func (t *translator) translatePkg(path string) error {
 			}
 		}
 		for _, imp := range gfile.Imports {
+			if imp.Name != nil && imp.Name.Name == "_" {
+				continue
+			}
 			opath, _ := strconv.Unquote(imp.Path.Value)
 			for oname := range t.astPkgs[opath] {
 				pfile.Dependency = append(pfile.Dependency, oname)

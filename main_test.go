@@ -11,12 +11,18 @@ import (
 
 func TestGunk(t *testing.T) {
 	// TODO: this test likely won't pass on windows
-	pkgs := []string{"util", "util/imp-arg"}
+	pkgs := []string{
+		"util", "util/imp-arg",
+		"github.com/gunk/opt", "github.com/gunk/opt/http",
+	}
 	outPaths := []string{
 		"testdata/src/util/echo.pb.go",
 		"testdata/src/util/types.pb.go",
 		"testdata/src/util/imp-arg/imp.pb.go",
 		"testdata/src/util/imp-noarg/imp.pb.go",
+		"testdata/src/util/imp-noarg/imp.pb.go",
+		"testdata/src/github.com/gunk/opt/opt.pb.go",
+		"testdata/src/github.com/gunk/opt/http/http.pb.go",
 	}
 	orig := make(map[string]string)
 	for _, outPath := range outPaths {

@@ -40,9 +40,11 @@ func runPaths(gopath string, paths ...string) error {
 		return err
 	}
 	t := translator{
-		wd:      wd,
-		fset:    token.NewFileSet(),
-		tconfig: &types.Config{},
+		wd:   wd,
+		fset: token.NewFileSet(),
+		tconfig: &types.Config{
+			DisableUnusedImportCheck: true,
+		},
 		info: &types.Info{
 			Types: make(map[ast.Expr]types.TypeAndValue),
 			Defs:  make(map[*ast.Ident]types.Object),
@@ -365,7 +367,12 @@ func (t *translator) protoService(tspec *ast.TypeSpec) (*desc.ServiceDescriptorP
 		if len(method.Names) != 1 {
 			return nil, fmt.Errorf("need all methods to have one name")
 		}
-		t.addDoc(method.Doc, stripGunkTags, servicePath, t.srvIndex,
+		tag := ""
+		fn := func(text string) string {
+			text, tag = splitGunkTag(text)
+			return text
+		}
+		t.addDoc(method.Doc, fn, servicePath, t.srvIndex,
 			serviceMethodPath, int32(i))
 		pmethod := &desc.MethodDescriptorProto{
 			Name: proto.String(method.Names[0].Name),
@@ -392,15 +399,20 @@ func namePrefix(name string) func(string) string {
 	}
 }
 
-func stripGunkTags(text string) string {
+func splitGunkTag(text string) (doc, tag string) {
 	lines := strings.Split(text, "\n")
+	var tagLines []string
 	for i, line := range lines {
-		if strings.HasPrefix(line, "+gunk") {
+		if strings.HasPrefix(line, "+gunk ") {
+			tagLines = lines[i:]
+			tagLines[0] = strings.TrimPrefix(tagLines[0], "+gunk ")
 			lines = lines[:i]
 			break
 		}
 	}
-	return strings.TrimSpace(strings.Join(lines, "\n"))
+	doc = strings.TrimSpace(strings.Join(lines, "\n"))
+	tag = strings.TrimSpace(strings.Join(tagLines, "\n"))
+	return
 }
 
 func (t *translator) addProtoDep(path string) {

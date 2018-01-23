@@ -15,20 +15,20 @@ It has these top-level messages:
 */
 package opt
 
-import proto2 "github.com/golang/protobuf/proto"
-import fmt2 "fmt"
-import math2 "math"
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ = proto2.Marshal
-var _ = fmt2.Errorf
-var _ = math2.Inf
+var _ = proto.Marshal
+var _ = fmt.Errorf
+var _ = math.Inf
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto2.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // Deprecated is the deprecated option.
 type Deprecated int32
@@ -39,7 +39,7 @@ var Deprecated_name = map[int32]string{}
 var Deprecated_value = map[string]int32{}
 
 func (x Deprecated) String() string {
-	return proto2.EnumName(Deprecated_name, int32(x))
+	return proto.EnumName(Deprecated_name, int32(x))
 }
 func (Deprecated) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
@@ -52,7 +52,7 @@ var JavaPackage_name = map[int32]string{}
 var JavaPackage_value = map[string]int32{}
 
 func (x JavaPackage) String() string {
-	return proto2.EnumName(JavaPackage_name, int32(x))
+	return proto.EnumName(JavaPackage_name, int32(x))
 }
 func (JavaPackage) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{1} }
 
@@ -65,17 +65,17 @@ var JavaMultipleFiles_name = map[int32]string{}
 var JavaMultipleFiles_value = map[string]int32{}
 
 func (x JavaMultipleFiles) String() string {
-	return proto2.EnumName(JavaMultipleFiles_name, int32(x))
+	return proto.EnumName(JavaMultipleFiles_name, int32(x))
 }
 func (JavaMultipleFiles) EnumDescriptor() ([]byte, []int) { return fileDescriptor0, []int{2} }
 
 func init() {
-	proto2.RegisterEnum("github.com/gunk/opt.Deprecated", Deprecated_name, Deprecated_value)
-	proto2.RegisterEnum("github.com/gunk/opt.JavaPackage", JavaPackage_name, JavaPackage_value)
-	proto2.RegisterEnum("github.com/gunk/opt.JavaMultipleFiles", JavaMultipleFiles_name, JavaMultipleFiles_value)
+	proto.RegisterEnum("github.com/gunk/opt.Deprecated", Deprecated_name, Deprecated_value)
+	proto.RegisterEnum("github.com/gunk/opt.JavaPackage", JavaPackage_name, JavaPackage_value)
+	proto.RegisterEnum("github.com/gunk/opt.JavaMultipleFiles", JavaMultipleFiles_name, JavaMultipleFiles_value)
 }
 
-func init() { proto2.RegisterFile("github.com/gunk/opt/opt.gunk", fileDescriptor0) }
+func init() { proto.RegisterFile("github.com/gunk/opt/opt.gunk", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
 	// 116 bytes of a gzipped FileDescriptorProto

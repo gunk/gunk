@@ -12,20 +12,20 @@ It has these top-level messages:
 */
 package imp
 
-import proto1 "github.com/golang/protobuf/proto"
-import fmt1 "fmt"
-import math1 "math"
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ = proto1.Marshal
-var _ = fmt1.Errorf
-var _ = math1.Inf
+var _ = proto.Marshal
+var _ = fmt.Errorf
+var _ = math.Inf
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto1.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // Message is a Echo message.
 type Message struct {
@@ -34,7 +34,7 @@ type Message struct {
 }
 
 func (m *Message) Reset()                    { *m = Message{} }
-func (m *Message) String() string            { return proto1.CompactTextString(m) }
+func (m *Message) String() string            { return proto.CompactTextString(m) }
 func (*Message) ProtoMessage()               {}
 func (*Message) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
@@ -46,10 +46,10 @@ func (m *Message) GetMsg() string {
 }
 
 func init() {
-	proto1.RegisterType((*Message)(nil), "util/imp-arg.Message")
+	proto.RegisterType((*Message)(nil), "util/imp-arg.Message")
 }
 
-func init() { proto1.RegisterFile("util/imp-arg/imp.gunk", fileDescriptor0) }
+func init() { proto.RegisterFile("util/imp-arg/imp.gunk", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
 	// 86 bytes of a gzipped FileDescriptorProto

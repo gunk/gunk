@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -22,7 +23,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
-	"github.com/golang/protobuf/protoc-gen-go/generator"
 	_ "github.com/golang/protobuf/protoc-gen-go/grpc"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 )
@@ -123,16 +123,22 @@ func (t *translator) requestForPkg(path string) *plugin.CodeGeneratorRequest {
 }
 
 func (t *translator) genPkg(path string) error {
-	g := generator.New()
-	g.Request = t.requestForPkg(path)
-	g.CommandLineParameters(g.Request.GetParameter())
-
-	g.WrapTypes()
-	g.SetPackageNames()
-	g.BuildTypeNameMap()
-
-	g.GenerateAllFiles()
-	for _, rf := range g.Response.File {
+	req := t.requestForPkg(path)
+	bs, err := proto.Marshal(req)
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command("protoc-gen-go")
+	cmd.Stdin = bytes.NewReader(bs)
+	out, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+	var resp plugin.CodeGeneratorResponse
+	if err := proto.Unmarshal(out, &resp); err != nil {
+		return err
+	}
+	for _, rf := range resp.File {
 		// to turn foo.gunk.pb.go into foo.pb.go
 		inPath := strings.Replace(*rf.Name, ".pb.go", "", 1)
 		outPath := t.origPaths[inPath]

@@ -19,5 +19,6 @@ before_install:
 install: true
 
 script:
+  - go install ./vendor/github.com/golang/protobuf/protoc-gen-go
   # use -short to skip the "go build" tests
   - go test -v -short ./...

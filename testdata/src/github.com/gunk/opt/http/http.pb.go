@@ -14,20 +14,20 @@ It has these top-level messages:
 */
 package http
 
-import proto3 "github.com/golang/protobuf/proto"
-import fmt3 "fmt"
-import math3 "math"
+import proto "github.com/golang/protobuf/proto"
+import fmt "fmt"
+import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ = proto3.Marshal
-var _ = fmt3.Errorf
-var _ = math3.Inf
+var _ = proto.Marshal
+var _ = fmt.Errorf
+var _ = math.Inf
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto3.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // Match is the http matching option.
 type Match struct {
@@ -37,7 +37,7 @@ type Match struct {
 }
 
 func (m *Match) Reset()                    { *m = Match{} }
-func (m *Match) String() string            { return proto3.CompactTextString(m) }
+func (m *Match) String() string            { return proto.CompactTextString(m) }
 func (*Match) ProtoMessage()               {}
 func (*Match) Descriptor() ([]byte, []int) { return fileDescriptor0, []int{0} }
 
@@ -63,10 +63,10 @@ func (m *Match) GetBody() string {
 }
 
 func init() {
-	proto3.RegisterType((*Match)(nil), "github.com/gunk/opt/http.Match")
+	proto.RegisterType((*Match)(nil), "github.com/gunk/opt/http.Match")
 }
 
-func init() { proto3.RegisterFile("github.com/gunk/opt/http/http.gunk", fileDescriptor0) }
+func init() { proto.RegisterFile("github.com/gunk/opt/http/http.gunk", fileDescriptor0) }
 
 var fileDescriptor0 = []byte{
 	// 110 bytes of a gzipped FileDescriptorProto

@@ -55,7 +55,6 @@ func runPaths(gopath string, paths ...string) error {
 		astPkgs:   make(map[string]map[string]*ast.File),
 		toGen:     make(map[string]map[string]bool),
 		allProto:  make(map[string]*desc.FileDescriptorProto),
-		importMap: make(map[string]string),
 		origPaths: make(map[string]string),
 	}
 	t.tconfig.Importer = &t
@@ -100,7 +99,6 @@ type translator struct {
 
 	toGen     map[string]map[string]bool
 	allProto  map[string]*desc.FileDescriptorProto
-	importMap map[string]string
 	origPaths map[string]string
 
 	msgIndex  int32
@@ -128,7 +126,6 @@ func (t *translator) genPkg(path string) error {
 	g := generator.New()
 	g.Request = t.requestForPkg(path)
 	g.CommandLineParameters(g.Request.GetParameter())
-	g.ImportMap = t.importMap
 
 	g.WrapTypes()
 	g.SetPackageNames()
@@ -253,7 +250,6 @@ func (t *translator) transFile(path, file string) error {
 		}
 	}
 	t.allProto[file] = t.pfile
-	t.importMap[file] = path
 	return nil
 }
 

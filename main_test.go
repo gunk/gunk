@@ -26,7 +26,7 @@ func TestGunk(t *testing.T) {
 	}
 	orig := make(map[string]string)
 	for _, outPath := range outPaths {
-		orig[outPath] = mayReadFile(t, outPath)
+		orig[outPath] = mayReadFile(outPath)
 		os.Remove(outPath)
 	}
 	gopath, err := filepath.Abs("testdata")
@@ -38,7 +38,7 @@ func TestGunk(t *testing.T) {
 	}
 	for _, outPath := range outPaths {
 		want := orig[outPath]
-		got := mayReadFile(t, outPath)
+		got := mayReadFile(outPath)
 		if got != want {
 			t.Fatalf("%s was modified", outPath)
 		}
@@ -56,7 +56,7 @@ func TestGunk(t *testing.T) {
 	}
 }
 
-func mayReadFile(t *testing.T, path string) string {
+func mayReadFile(path string) string {
 	bs, err := ioutil.ReadFile(path)
 	if err != nil {
 		return ""

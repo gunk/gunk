@@ -121,10 +121,6 @@ func (t *translator) requestForPkg(path string) *plugin.CodeGeneratorRequest {
 	for _, pfile := range t.allProto {
 		req.ProtoFile = append(req.ProtoFile, pfile)
 	}
-	sort.Slice(req.ProtoFile, func(i, j int) bool {
-		f1, f2 := req.ProtoFile[i], req.ProtoFile[j]
-		return *f1.Name < *f2.Name
-	})
 	return req
 }
 

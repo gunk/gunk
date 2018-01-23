@@ -3,7 +3,7 @@ package http
 
 // Match is the http matching option.
 type Match struct {
-    Method string
-    Path string
-    Body string
+	Method string
+	Path string
+	Body string
 }

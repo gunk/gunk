@@ -9,7 +9,6 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
-	"html/template"
 	"io/ioutil"
 	"log"
 	"os"
@@ -19,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/golang/protobuf/proto"
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
@@ -387,6 +387,21 @@ func (t *translator) protoService(tspec *ast.TypeSpec) (*desc.ServiceDescriptorP
 		if err != nil {
 			return nil, err
 		}
+		if tag != "" {
+			edesc, val, err := t.interpretTagValue(tag)
+			if err != nil {
+				return nil, err
+			}
+			if pmethod.Options == nil {
+				pmethod.Options = &desc.MethodOptions{}
+			}
+			// TODO: actually use the
+			// protoc-gen-grpc-gateway to make this do
+			// something
+			if err := proto.SetExtension(pmethod.Options, edesc, val); err != nil {
+				return nil, err
+			}
+		}
 		srv.Method = append(srv.Method, pmethod)
 	}
 	t.srvIndex++
@@ -415,6 +430,54 @@ func splitGunkTag(text string) (doc, tag string) {
 	return
 }
 
+func (t *translator) interpretTagValue(tag string) (*proto.ExtensionDesc, interface{}, error) {
+	// use Eval to resolve the type, and check for any errors in the
+	// value expression
+	tv, err := types.Eval(t.fset, t.tpkg, t.gfile.End(), tag)
+	if err != nil {
+		return nil, nil, err
+	}
+	switch s := tv.Type.String(); s {
+	case "github.com/gunk/opt/http.Match":
+		// an error would be caught in Eval
+		expr, _ := parser.ParseExpr(tag)
+		rule := &httpRule{}
+		for _, elt := range expr.(*ast.CompositeLit).Elts {
+			kv := elt.(*ast.KeyValueExpr)
+			val, _ := strconv.Unquote(kv.Value.(*ast.BasicLit).Value)
+			method := "GET"
+			switch name := kv.Key.(*ast.Ident).Name; name {
+			case "Method":
+				method = val
+			case "Path":
+				switch method {
+				case "GET":
+					rule.Get = val
+				case "POST":
+					rule.Post = val
+				}
+			case "Body":
+				rule.Body = val
+			}
+		}
+		edesc := &proto.ExtensionDesc{
+			Field:         72295728,
+			Tag:           "varint,72295728",
+			ExtendedType:  (*desc.MethodOptions)(nil),
+			ExtensionType: (*httpRule)(nil),
+		}
+		return edesc, rule, nil
+	default:
+		return nil, nil, fmt.Errorf("unknown option type: %s", s)
+	}
+}
+
+type httpRule struct {
+	Get  string `protobuf:"bytes,2"`
+	Post string `protobuf:"bytes,3"`
+	Body string `protobuf:"bytes,7"`
+}
+
 func (t *translator) addProtoDep(path string) {
 	for _, dep := range t.pfile.Dependency {
 		if dep == path {
@@ -436,8 +499,8 @@ func (t *translator) loadProtoDeps() error {
 	tmpl := template.Must(template.New("letter").Parse(`
 syntax = "proto3";
 
-{{ range $dep, $_ := . }}import "{{ $dep }}";
-{{ end }}
+{{range $dep, $_ := .}}import "{{$dep}}";
+{{end}}
 `))
 	importsFile, err := os.Create("gunk-proto")
 	if err != nil {

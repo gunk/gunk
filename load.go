@@ -15,6 +15,9 @@ import (
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
 )
 
+// addPkg sets up a gunk package to be translated and generated. It is
+// parsed from the gunk files on disk and type-checked, gathering all
+// the info needed later on.
 func (t *translator) addPkg(path string) error {
 	bpkg, err := t.bctx.Import(path, t.wd, build.FindOnly)
 	if err != nil {
@@ -52,6 +55,14 @@ func (t *translator) addPkg(path string) error {
 	t.toGen[path] = make(map[string]bool)
 	return nil
 }
+
+// Import is our own implementation of types.Importer. Unlike standard
+// Go ones like go/importer and x/tools/go/loader, this one uses our own
+// addPkg to instead load gunk packages.
+//
+// Aside from that, it is very similar to standard Go importers that
+// load from source. It too uses a cache to avoid loading packages
+// multiple times.
 func (t *translator) Import(path string) (*types.Package, error) {
 	if tpkg := t.typPkgs[path]; tpkg != nil {
 		return tpkg, nil
@@ -65,15 +76,21 @@ func (t *translator) Import(path string) (*types.Package, error) {
 	return t.typPkgs[path], nil
 }
 
-func (t *translator) addProtoDep(path string) {
+// addProtoDep is called when a gunk file is known to require importing
+// of a proto file, such as when using google.protobuf.Empty.
+func (t *translator) addProtoDep(protoPath string) {
 	for _, dep := range t.pfile.Dependency {
-		if dep == path {
+		if dep == protoPath {
 			return // already in there
 		}
 	}
-	t.pfile.Dependency = append(t.pfile.Dependency, path)
+	t.pfile.Dependency = append(t.pfile.Dependency, protoPath)
 }
 
+// loadProtoDeps loads all the proto dependencies added with
+// addProtoDep. It does so with protoc, to leverage its features like
+// locating the files, and its parser to get a FileDescriptorProto out
+// of the proto file content.
 func (t *translator) loadProtoDeps() error {
 	missing := make(map[string]bool)
 	for _, pfile := range t.allProto {

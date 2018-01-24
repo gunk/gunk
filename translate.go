@@ -15,11 +15,15 @@ import (
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
 )
 
+// translatePkg translates all the gunk files in a gunk package to the
+// proto language. All the files within the package, including all the
+// files for its transitive dependencies, must already be loaded via
+// addPkg.
 func (t *translator) translatePkg(path string) error {
 	t.tpkg = t.typPkgs[path]
 	astFiles := t.astPkgs[path]
 	for file := range astFiles {
-		if err := t.transFile(path, file); err != nil {
+		if err := t.translateFile(path, file); err != nil {
 			return err
 		}
 	}
@@ -43,7 +47,8 @@ func (t *translator) translatePkg(path string) error {
 	return nil
 }
 
-func (t *translator) transFile(path, file string) error {
+// translateFile translates a single gunk file to a proto file.
+func (t *translator) translateFile(path, file string) error {
 	t.msgIndex = 0
 	t.srvIndex = 0
 	t.enumIndex = 0
@@ -64,7 +69,7 @@ func (t *translator) transFile(path, file string) error {
 	}
 	t.addDoc(t.gfile.Doc, nil, packagePath)
 	for _, decl := range t.gfile.Decls {
-		if err := t.decl(decl); err != nil {
+		if err := t.translateDecl(decl); err != nil {
 			return err
 		}
 	}
@@ -72,21 +77,23 @@ func (t *translator) transFile(path, file string) error {
 	return nil
 }
 
-func (t *translator) decl(decl ast.Decl) error {
+// translateDecl translates a top-level declaration in a gunk file. It
+// only acts on type declarations; struct types become proto messages,
+// interfaces become services, and basic integer types become enums.
+func (t *translator) translateDecl(decl ast.Decl) error {
 	gd, ok := decl.(*ast.GenDecl)
 	if !ok {
 		return fmt.Errorf("invalid declaration %T", decl)
 	}
 	switch gd.Tok {
-	case token.TYPE: // below
-	case token.CONST: // for enums
-		break
-	case token.IMPORT: // imports
+	case token.TYPE:
+		// continue below
+	case token.CONST:
+		return nil // used for enums
+	case token.IMPORT:
+		return nil // imports; ignore
 	default:
 		return fmt.Errorf("invalid declaration token %v", gd.Tok)
-	}
-	if gd.Tok != token.TYPE {
-		return nil
 	}
 	for _, spec := range gd.Specs {
 		ts := spec.(*ast.TypeSpec)

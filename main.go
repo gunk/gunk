@@ -27,6 +27,11 @@ func main() {
 	}
 }
 
+// runPaths runs gunk on the gunk packages located at the given import
+// paths. Just like most Go tools, if a path beings with ".", it is
+// interpreted as a file system path where a package is located.
+//
+// If gopath is empty, the default is used.
 func runPaths(gopath string, paths ...string) error {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -67,7 +72,7 @@ func runPaths(gopath string, paths ...string) error {
 		return err
 	}
 	for _, path := range paths {
-		if err := t.genPkg(path); err != nil {
+		if err := t.generatePkg(path); err != nil {
 			return err
 		}
 	}
@@ -99,23 +104,13 @@ type translator struct {
 	enumIndex int32
 }
 
-func (t *translator) requestForPkg(path string) *plugin.CodeGeneratorRequest {
-	// For deterministic output, as the first file in each package
-	// gets an extra package godoc.
-	req := &plugin.CodeGeneratorRequest{
-		Parameter: proto.String("plugins=grpc"),
-	}
-	for file := range t.toGen[path] {
-		req.FileToGenerate = append(req.FileToGenerate, file)
-	}
-	sort.Strings(req.FileToGenerate)
-	for _, pfile := range t.allProto {
-		req.ProtoFile = append(req.ProtoFile, pfile)
-	}
-	return req
-}
-
-func (t *translator) genPkg(path string) error {
+// generatePkg runs the proto files resulting from translating gunk
+// packages through a code generator, such as protoc-gen-go to generate
+// Go packages.
+//
+// The resulting files are written alongside the original gunk files in
+// the directory of each gunk package.
+func (t *translator) generatePkg(path string) error {
 	req := t.requestForPkg(path)
 	bs, err := proto.Marshal(req)
 	if err != nil {
@@ -142,4 +137,20 @@ func (t *translator) genPkg(path string) error {
 		}
 	}
 	return nil
+}
+
+func (t *translator) requestForPkg(path string) *plugin.CodeGeneratorRequest {
+	// For deterministic output, as the first file in each package
+	// gets an extra package godoc.
+	req := &plugin.CodeGeneratorRequest{
+		Parameter: proto.String("plugins=grpc"),
+	}
+	for file := range t.toGen[path] {
+		req.FileToGenerate = append(req.FileToGenerate, file)
+	}
+	sort.Strings(req.FileToGenerate)
+	for _, pfile := range t.allProto {
+		req.ProtoFile = append(req.ProtoFile, pfile)
+	}
+	return req
 }

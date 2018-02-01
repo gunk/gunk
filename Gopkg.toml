@@ -21,5 +21,5 @@
 
 
 [[constraint]]
-  branch = "master"
   name = "github.com/golang/protobuf"
+  version = "v1.0.0"

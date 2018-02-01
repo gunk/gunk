@@ -2,7 +2,6 @@
 
 
 [[projects]]
-  branch = "master"
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
@@ -11,11 +10,12 @@
     "protoc-gen-go/grpc",
     "protoc-gen-go/plugin"
   ]
-  revision = "1e59b77b52bf8e4b449a57e6f79f21226d571845"
+  revision = "925541529c1fa6821df4e44ce2723319eb2be768"
+  version = "v1.0.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1465ad6a7464be943d94534094fddb47120d1674f450e4b290935f96f384c54b"
+  inputs-digest = "8902f9c2a7618addaa19dbb324b821db2d70d055eac1bfbe643ec4ab73cff105"
   solver-name = "gps-cdcl"
   solver-version = 1

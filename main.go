@@ -22,7 +22,7 @@ import (
 
 func main() {
 	flag.Parse()
-	if err := runPaths("", flag.Args()...); err != nil {
+	if err := runPaths(flag.Args()...); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -30,9 +30,7 @@ func main() {
 // runPaths runs gunk on the gunk packages located at the given import
 // paths. Just like most Go tools, if a path beings with ".", it is
 // interpreted as a file system path where a package is located.
-//
-// If gopath is empty, the default is used.
-func runPaths(gopath string, paths ...string) error {
+func runPaths(paths ...string) error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -56,10 +54,6 @@ func runPaths(gopath string, paths ...string) error {
 		origPaths: make(map[string]string),
 	}
 	t.tconfig.Importer = &t
-	t.bctx = build.Default
-	if gopath != "" {
-		t.bctx.GOPATH = gopath
-	}
 	for _, path := range paths {
 		if err := t.addPkg(path); err != nil {
 			return err
@@ -80,8 +74,7 @@ func runPaths(gopath string, paths ...string) error {
 }
 
 type translator struct {
-	bctx build.Context
-	wd   string
+	wd string
 
 	gfile *ast.File
 	pfile *desc.FileDescriptorProto

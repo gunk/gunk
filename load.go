@@ -19,7 +19,7 @@ import (
 // parsed from the gunk files on disk and type-checked, gathering all
 // the info needed later on.
 func (t *translator) addPkg(path string) error {
-	bpkg, err := t.bctx.Import(path, t.wd, build.FindOnly)
+	bpkg, err := build.Import(path, t.wd, build.FindOnly)
 	if err != nil {
 		return err
 	}

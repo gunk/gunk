@@ -33,7 +33,9 @@ func TestGunk(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := runPaths(gopath, pkgs...); err != nil {
+	origGopath := build.Default.GOPATH
+	build.Default.GOPATH = gopath
+	if err := runPaths(pkgs...); err != nil {
 		t.Fatal(err)
 	}
 	for _, outPath := range outPaths {
@@ -47,7 +49,7 @@ func TestGunk(t *testing.T) {
 		t.Skip(`skipping "go build" check in short mode`)
 	}
 	cmd := exec.Command("go", append([]string{"build"}, pkgs...)...)
-	cmd.Env = []string{"GOPATH=" + gopath + ":" + build.Default.GOPATH}
+	cmd.Env = []string{"GOPATH=" + gopath + ":" + origGopath}
 	if _, err := cmd.Output(); err != nil {
 		if e, ok := err.(*exec.ExitError); ok {
 			t.Fatalf("%s", e.Stderr)

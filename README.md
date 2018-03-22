@@ -7,23 +7,23 @@ aims is to provide a way to work with `protobuf` files / projects in the same
 way as the Go programming language's toolchain allows for working with Go
 projects.
 
-Gunk provides an alternative Go-derived syntax for defining `protobufs`, that
-is simpler and easier to work with. Additionally, for developers building Go
-projects, the syntax will be instantly recognizable and require almost no
-learning curve.
+Gunk provides an alternative Go-derived syntax for defining `protobuf`'s, that
+is simpler and easier to work with. Additionally, for developers familar with
+the Go programming language will be instantly comfortable with Gunk files and
+syntax.
 
 ## Installing
 
 Gunk can be installed in the usual Go fashion:
 
 ```sh
-$ go get -u github.com/gunk/gunk/cmd/gunk
+$ go get -u github.com/gunk/gunk
 ```
 
 ## Syntax
 
 The aim of Gunk is to provide Go-compatible syntax that can be natively read
-and handled by the `go/ast` package. As such, Gunk definitions are a subset of
+and handled by the `go/*` package. As such, Gunk definitions are a subset of
 the Go programming language:
 
 ```go

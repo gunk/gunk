@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/gunk/gunk/loader"
 )
 
 func TestGunk(t *testing.T) {
@@ -35,7 +37,7 @@ func TestGunk(t *testing.T) {
 	}
 	origGopath := build.Default.GOPATH
 	build.Default.GOPATH = gopath
-	if err := runPaths(pkgs...); err != nil {
+	if err := loader.Load(pkgs...); err != nil {
 		t.Fatal(err)
 	}
 	for _, outPath := range outPaths {

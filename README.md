@@ -36,7 +36,7 @@ Working with the `gunk` command line tool should be instantly recognizable to
 experienced Go developers:
 
 ```sh
-$ gunk
+$ gunk github.com/gunk/gunk/examples/util
 ```
 
 ## Overview

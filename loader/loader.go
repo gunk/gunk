@@ -17,11 +17,13 @@ import (
 	"strconv"
 	"strings"
 
+	"golang.org/x/tools/go/packages"
+
 	"github.com/golang/protobuf/proto"
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	_ "github.com/golang/protobuf/protoc-gen-go/grpc"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
-	"golang.org/x/tools/go/packages"
+	"google.golang.org/genproto/googleapis/api/annotations"
 )
 
 // Load loads the Gunk packages on the provided patterns, and generates the
@@ -399,7 +401,7 @@ func (l *Loader) interpretTagValue(tag string) (*proto.ExtensionDesc, interface{
 	case "github.com/gunk/opt/http.Match":
 		// an error would be caught in Eval
 		expr, _ := parser.ParseExpr(tag)
-		rule := &httpRule{}
+		rule := &annotations.HttpRule{}
 		for _, elt := range expr.(*ast.CompositeLit).Elts {
 			kv := elt.(*ast.KeyValueExpr)
 			val, _ := strconv.Unquote(kv.Value.(*ast.BasicLit).Value)
@@ -410,30 +412,18 @@ func (l *Loader) interpretTagValue(tag string) (*proto.ExtensionDesc, interface{
 			case "Path":
 				switch method {
 				case "GET":
-					rule.Get = val
+					rule.Pattern = &annotations.HttpRule_Get{Get: val}
 				case "POST":
-					rule.Post = val
+					rule.Pattern = &annotations.HttpRule_Post{Post: val}
 				}
 			case "Body":
 				rule.Body = val
 			}
 		}
-		edesc := &proto.ExtensionDesc{
-			Field:         72295728,
-			Tag:           "varint,72295728",
-			ExtendedType:  (*desc.MethodOptions)(nil),
-			ExtensionType: (*httpRule)(nil),
-		}
-		return edesc, rule, nil
+		return annotations.E_Http, rule, nil
 	default:
 		return nil, nil, fmt.Errorf("unknown option type: %s", s)
 	}
-}
-
-type httpRule struct {
-	Get  string `protobuf:"bytes,2"`
-	Post string `protobuf:"bytes,3"`
-	Body string `protobuf:"bytes,7"`
 }
 
 func (l *Loader) protoParamType(fields *ast.FieldList) (*string, error) {

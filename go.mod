@@ -6,4 +6,5 @@ require (
 	golang.org/x/net v0.0.0-20181023162649-9b4f9f5ad519 // indirect
 	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f // indirect
 	golang.org/x/tools v0.0.0-20181026183834-f60e5f99f081
+	google.golang.org/genproto v0.0.0-20181029155118-b69ba1387ce2
 )

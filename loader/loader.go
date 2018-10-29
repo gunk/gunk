@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"go/ast"
-	"go/build"
 	"go/constant"
 	"go/parser"
 	"go/token"
@@ -22,25 +21,37 @@ import (
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	_ "github.com/golang/protobuf/protoc-gen-go/grpc"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
+	"golang.org/x/tools/go/packages"
 )
 
-// Load loads the Gunk packages on the provided paths, and generates the
+// Load loads the Gunk packages on the provided patterns, and generates the
 // corresponding proto files. Similar to Go, if a path begins with ".", it is
-// interpreted as a file system path where a package is located.
-func Load(paths ...string) error {
+// interpreted as a file system path where a package is located, and "..."
+// patterns are supported.
+func Load(patterns ...string) error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 
-	l, err := New(wd, paths...)
+	// First, translate the patterns to package paths.
+	cfg := &packages.Config{Mode: packages.LoadFiles}
+	pkgs, err := packages.Load(cfg, patterns...)
+	if err != nil {
+		return err
+	}
+	pkgPaths := make([]string, len(pkgs))
+	for i, pkg := range pkgs {
+		pkgPaths[i] = pkg.PkgPath
+	}
+
+	l, err := New(wd, pkgPaths...)
 	if err != nil {
 		return err
 	}
 
-	for _, path := range paths {
-		err = l.GeneratePkg(path)
-		if err != nil {
+	for _, path := range pkgPaths {
+		if err := l.GeneratePkg(path); err != nil {
 			return err
 		}
 	}
@@ -60,9 +71,10 @@ type Loader struct {
 	tconfig *types.Config
 	info    *types.Info
 
-	astPkgs map[string]map[string]*ast.File
-	bldPkgs map[string]*build.Package
-	typPkgs map[string]*types.Package
+	// Maps from package import path to package information.
+	loadPkgs map[string]*packages.Package
+	astPkgs  map[string]map[string]*ast.File
+	typePkgs map[string]*types.Package
 
 	toGen     map[string]map[string]bool
 	allProto  map[string]*desc.FileDescriptorProto
@@ -75,9 +87,7 @@ type Loader struct {
 
 // New creates a Gunk loader for the specified working directory.
 func New(wd string, paths ...string) (*Loader, error) {
-	var err error
-
-	l := Loader{
+	l := &Loader{
 		wd:   wd,
 		fset: token.NewFileSet(),
 		tconfig: &types.Config{
@@ -88,32 +98,29 @@ func New(wd string, paths ...string) (*Loader, error) {
 			Defs:  make(map[*ast.Ident]types.Object),
 			Uses:  make(map[*ast.Ident]types.Object),
 		},
-		bldPkgs:   make(map[string]*build.Package),
-		typPkgs:   make(map[string]*types.Package),
+
+		loadPkgs:  make(map[string]*packages.Package),
+		typePkgs:  make(map[string]*types.Package),
 		astPkgs:   make(map[string]map[string]*ast.File),
 		toGen:     make(map[string]map[string]bool),
 		allProto:  make(map[string]*desc.FileDescriptorProto),
 		origPaths: make(map[string]string),
 	}
-	l.tconfig.Importer = &l
+	l.tconfig.Importer = l
 
 	for _, path := range paths {
-		err = l.addPkg(path)
-		if err != nil {
+		if err := l.addPkg(path); err != nil {
 			return nil, err
 		}
-		err = l.translatePkg(path)
-		if err != nil {
+		if err := l.translatePkg(path); err != nil {
 			return nil, err
 		}
 	}
-
-	err = l.loadProtoDeps()
-	if err != nil {
+	if err := l.loadProtoDeps(); err != nil {
 		return nil, err
 	}
 
-	return &l, nil
+	return l, nil
 }
 
 // GeneratePkg runs the proto files resulting from translating gunk packages
@@ -172,7 +179,7 @@ func (l *Loader) requestForPkg(path string) *plugin.CodeGeneratorRequest {
 // files for its transitive dependencies, must already be loaded via
 // addPkg.
 func (l *Loader) translatePkg(path string) error {
-	l.tpkg = l.typPkgs[path]
+	l.tpkg = l.typePkgs[path]
 	astFiles := l.astPkgs[path]
 	for file := range astFiles {
 		if err := l.translateFile(path, file); err != nil {
@@ -209,15 +216,15 @@ func (l *Loader) translateFile(path, file string) error {
 	if _, ok := l.allProto[file]; ok {
 		return nil
 	}
-	bpkg := l.bldPkgs[path]
+	lpkg := l.loadPkgs[path]
 	astFiles := l.astPkgs[path]
 	l.gfile = astFiles[file]
 	l.pfile = &desc.FileDescriptorProto{
 		Syntax:  proto.String("proto3"),
 		Name:    proto.String(file),
-		Package: proto.String(bpkg.ImportPath),
+		Package: proto.String(lpkg.PkgPath),
 		Options: &desc.FileOptions{
-			GoPackage: proto.String(bpkg.Name),
+			GoPackage: proto.String(lpkg.Name),
 		},
 	}
 	l.addDoc(l.gfile.Doc, nil, packagePath)
@@ -552,53 +559,76 @@ func (l *Loader) protoType(expr ast.Expr, pkg *types.Package) (desc.FieldDescrip
 // addPkg sets up a gunk package to be translated and generated. It is
 // parsed from the gunk files on disk and type-checked, gathering all
 // the info needed later on.
-func (l *Loader) addPkg(path string) error {
-	bpkg, err := build.Import(path, l.wd, build.FindOnly)
+func (l *Loader) addPkg(pkgPath string) error {
+	// First, translate the patterns to package paths.
+	cfg := &packages.Config{
+		Mode: packages.LoadFiles,
+	}
+	pkgs, err := packages.Load(cfg, pkgPath)
 	if err != nil {
 		return err
 	}
-	matches, err := filepath.Glob(filepath.Join(bpkg.Dir, "*.gunk"))
+	if len(pkgs) != 1 {
+		panic("expected go/packages.Load to return exactly one package")
+	}
+	lpkg := pkgs[0]
+	if len(lpkg.Errors) > 0 {
+		return lpkg.Errors[0]
+	}
+
+	pkgDir := ""
+	for _, gofile := range lpkg.GoFiles {
+		dir := filepath.Dir(gofile)
+		if pkgDir == "" {
+			pkgDir = dir
+		} else if dir != pkgDir {
+			return fmt.Errorf("multiple dirs for %s: %s %s",
+				pkgPath, pkgDir, dir)
+		}
+	}
+
+	matches, err := filepath.Glob(filepath.Join(pkgDir, "*.gunk"))
 	if err != nil {
 		return err
 	}
 	// TODO: support multiple packages
 	var list []*ast.File
-	bpkg.Name = "default"
+	pkgName := "default"
 	astFiles := make(map[string]*ast.File)
 	for _, match := range matches {
 		file, err := parser.ParseFile(l.fset, match, nil, parser.ParseComments)
 		if err != nil {
 			return err
 		}
-		bpkg.Name = file.Name.Name
+		pkgName = file.Name.Name
 		// to make the generated code independent of the current
 		// directory when running gunk
-		relPath := bpkg.ImportPath + "/" + filepath.Base(match)
+		relPath := pkgPath + "/" + filepath.Base(match)
 		astFiles[relPath] = file
 		l.origPaths[relPath] = match
 		list = append(list, file)
 	}
-	tpkg := types.NewPackage(bpkg.ImportPath, bpkg.Name)
+	tpkg := types.NewPackage(pkgPath, pkgName)
 	check := types.NewChecker(l.tconfig, l.fset, tpkg, l.info)
 	if err := check.Files(list); err != nil {
 		return err
 	}
-	l.bldPkgs[path] = bpkg
-	l.typPkgs[tpkg.Path()] = tpkg
-	l.astPkgs[tpkg.Path()] = astFiles
-	l.toGen[path] = make(map[string]bool)
+	l.loadPkgs[pkgPath] = lpkg
+	l.typePkgs[pkgPath] = tpkg
+	l.astPkgs[pkgPath] = astFiles
+	l.toGen[pkgPath] = make(map[string]bool)
 	return nil
 }
 
 // Import satisfies the go/types.Importer interface.
 //
-// Unlike standard Go ones like go/importer and x/tools/go/loader, this one
+// Unlike standard Go ones like go/importer and x/tools/go/packages, this one
 // uses our own addPkg to instead load gunk packages.
 //
 // Aside from that, it is very similar to standard Go importers that load from
 // source. It too uses a cache to avoid loading packages multiple times.
 func (l *Loader) Import(path string) (*types.Package, error) {
-	if tpkg := l.typPkgs[path]; tpkg != nil {
+	if tpkg := l.typePkgs[path]; tpkg != nil {
 		return tpkg, nil
 	}
 	if err := l.addPkg(path); err != nil {
@@ -607,7 +637,7 @@ func (l *Loader) Import(path string) (*types.Package, error) {
 	if err := l.translatePkg(path); err != nil {
 		return nil, err
 	}
-	return l.typPkgs[path], nil
+	return l.typePkgs[path], nil
 }
 
 // addProtoDep is called when a gunk file is known to require importing of a

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/gunk/gunk/loader"
+	_ "github.com/gunk/opt" // include it in go.mod for the tests
 )
 
 func main() {

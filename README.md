@@ -16,9 +16,7 @@ syntax.
 
 Gunk can be installed in the usual Go fashion:
 
-```sh
-$ go get -u github.com/gunk/gunk
-```
+	go get -u github.com/gunk/gunk
 
 ## Syntax
 
@@ -26,18 +24,14 @@ The aim of Gunk is to provide Go-compatible syntax that can be natively read
 and handled by the `go/*` package. As such, Gunk definitions are a subset of
 the Go programming language:
 
-```go
-// examples/echo/echo.gunk
-```
+	// examples/util/echo.gunk
 
 ## Working with `*.gunk` files
 
 Working with the `gunk` command line tool should be instantly recognizable to
 experienced Go developers:
 
-```sh
-$ gunk github.com/gunk/gunk/examples/util
-```
+	gunk ./examples/util
 
 ## Overview
 

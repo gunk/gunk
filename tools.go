@@ -1,0 +1,8 @@
+// +build tools
+
+package tools
+
+import (
+	// required by the tests
+	_ "github.com/golang/protobuf/protoc-gen-go"
+)

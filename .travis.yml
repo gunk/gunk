@@ -1,13 +1,18 @@
-language: go
-go:
-  - 1.10.x
-  - 1.11.x
-  - tip
 sudo: false
+
+language: go
+
+go:
+  - 1.11.x
+
+env:
+  - GO111MODULE=on
+
 addons:
   apt:
     packages:
       - unzip
+
 before_install:
   - mkdir -p $PWD/protoc /tmp/protobuf
   - wget -O $PWD/protoc/protoc https://repo1.maven.org/maven2/com/google/protobuf/protoc/3.6.1/protoc-3.6.1-linux-x86_64.exe
@@ -15,7 +20,9 @@ before_install:
   - unzip -qq /tmp/protobuf/protobuf.jar -d /tmp/protobuf && mv /tmp/protobuf/google $PWD
   - chmod +x $PWD/protoc/protoc
   - export PATH=$PWD/protoc/:$PATH
+
 install: true
+
 script:
-  - go install ./vendor/github.com/golang/protobuf/protoc-gen-go
-  - go test -v -short ./...
+  - go install github.com/golang/protobuf/protoc-gen-go
+  - go test -v ./...

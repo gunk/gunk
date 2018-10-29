@@ -21,7 +21,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
-	_ "github.com/golang/protobuf/protoc-gen-go/grpc"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 	"google.golang.org/genproto/googleapis/api/annotations"
 )

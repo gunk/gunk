@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"testing"
 
 	"github.com/gunk/gunk/loader"
@@ -40,19 +41,15 @@ func TestGunk(t *testing.T) {
 	pkgs := []string{
 		".", "./imported",
 	}
-	outPaths := []string{
-		"testdata/echo.pb.go",
-		"testdata/types.pb.go",
-		"testdata/imp-arg/imp.pb.go",
-		"testdata/imp-noarg/imp.pb.go",
-		"testdata/imp-noarg/imp.pb.go",
+	wantFiles, err := generatedFiles(t, "testdata")
+	if err != nil {
+		t.Fatal(err)
 	}
-	orig := make(map[string]string)
-	for _, outPath := range outPaths {
-		orig[outPath] = mayReadFile(outPath)
+	for path := range wantFiles {
 		// make sure we're writing the files
-		os.Remove(outPath)
+		os.Remove(path)
 	}
+
 	if err := loader.Load("testdata", pkgs...); err != nil {
 		t.Fatal(err)
 	}
@@ -60,12 +57,20 @@ func TestGunk(t *testing.T) {
 		// don't check that the output files match
 		return
 	}
-	for _, outPath := range outPaths {
-		want := orig[outPath]
-		got := mayReadFile(outPath)
+
+	gotFiles, err := generatedFiles(t, "testdata")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, got := range gotFiles {
+		want := wantFiles[path]
 		if got != want {
-			t.Fatalf("%s was modified", outPath)
+			t.Errorf("%s was modified", path)
 		}
+		delete(wantFiles, path)
+	}
+	for path := range wantFiles {
+		t.Errorf("%s was not generated", path)
 	}
 	cmd := exec.Command("go", append([]string{"build"}, pkgs...)...)
 	cmd.Dir = "testdata"
@@ -77,10 +82,26 @@ func TestGunk(t *testing.T) {
 	}
 }
 
-func mayReadFile(path string) string {
-	bs, err := ioutil.ReadFile(path)
-	if err != nil {
-		return ""
-	}
-	return string(bs)
+var rxGeneratedFile = regexp.MustCompile(`\.pb.*\.go$`)
+
+func generatedFiles(t *testing.T, dir string) (map[string]string, error) {
+	files := make(map[string]string)
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if !rxGeneratedFile.MatchString(info.Name()) {
+			return nil
+		}
+		bs, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		files[path] = string(bs)
+		return nil
+	})
+	return files, err
 }

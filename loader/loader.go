@@ -127,12 +127,29 @@ func New(dir string, paths ...string) (*Loader, error) {
 //
 // Generated files are written to the same directory, next to the source gunk
 // files.
+//
+// It is fine to pass every 'plugin.CodeGeneratorRequest' to every protoc
+// generator unaltered; this is what protoc does when calling out to the
+// generators and the generators should already handle the case where
+// they have nothing to do.
 func (l *Loader) GeneratePkg(path string) error {
 	req := l.requestForPkg(path)
-	bs, err := proto.Marshal(req)
+	if err := l.generatePluginGo(*req); err != nil {
+		return fmt.Errorf("error generating plugin go: %v", err)
+	}
+	if err := l.generatePluginGrpcGateway(*req); err != nil {
+		return fmt.Errorf("error generating plugin grpc-gateway: %v", err)
+	}
+	return nil
+}
+
+func (l *Loader) generatePluginGo(req plugin.CodeGeneratorRequest) error {
+	req.Parameter = proto.String("plugins=grpc")
+	bs, err := proto.Marshal(&req)
 	if err != nil {
 		return err
 	}
+
 	cmd := exec.Command("protoc-gen-go")
 	cmd.Stdin = bytes.NewReader(bs)
 	cmd.Stderr = os.Stderr
@@ -151,7 +168,40 @@ func (l *Loader) GeneratePkg(path string) error {
 		outPath = strings.Replace(outPath, ".gunk", ".pb.go", 1)
 		data := []byte(*rf.Content)
 		if err := ioutil.WriteFile(outPath, data, 0644); err != nil {
-			return err
+			return fmt.Errorf("unable to write to file %q: %v", outPath, err)
+		}
+	}
+	return nil
+}
+
+func (l *Loader) generatePluginGrpcGateway(req plugin.CodeGeneratorRequest) error {
+	bs, err := proto.Marshal(&req)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command("protoc-gen-grpc-gateway")
+	cmd.Stdin = bytes.NewReader(bs)
+	cmd.Stderr = os.Stderr
+	out, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("error executing 'protoc-gen-grpc-gateway': %s, %v", out, err)
+	}
+	var resp plugin.CodeGeneratorResponse
+	if err := proto.Unmarshal(out, &resp); err != nil {
+		return err
+	}
+	if rerr := resp.GetError(); rerr != "" {
+		return fmt.Errorf("error executing `protoc-gen-grpc-gateway': %v", rerr)
+	}
+	for _, rf := range resp.File {
+		// to turn foo.gunk.pb.gw.go into foo.pb.gw.go
+		inPath := strings.Replace(*rf.Name, ".pb.gw.go", ".gunk", 1)
+		outPath := l.origPaths[inPath]
+		outPath = strings.Replace(outPath, ".gunk", ".pb.gw.go", 1)
+		data := []byte(*rf.Content)
+		if err := ioutil.WriteFile(outPath, data, 0644); err != nil {
+			return fmt.Errorf("unable to write to file %q: %v", outPath, err)
 		}
 	}
 	return nil
@@ -160,9 +210,7 @@ func (l *Loader) GeneratePkg(path string) error {
 func (l *Loader) requestForPkg(path string) *plugin.CodeGeneratorRequest {
 	// For deterministic output, as the first file in each package
 	// gets an extra package godoc.
-	req := &plugin.CodeGeneratorRequest{
-		Parameter: proto.String("plugins=grpc"),
-	}
+	req := &plugin.CodeGeneratorRequest{}
 	for file := range l.toGen[path] {
 		req.FileToGenerate = append(req.FileToGenerate, file)
 	}
@@ -374,9 +422,6 @@ func (l *Loader) protoService(tspec *ast.TypeSpec) (*desc.ServiceDescriptorProto
 			if pmethod.Options == nil {
 				pmethod.Options = &desc.MethodOptions{}
 			}
-			// TODO: actually use the
-			// protoc-gen-grpc-gateway to make this do
-			// something
 			if err := proto.SetExtension(pmethod.Options, edesc, val); err != nil {
 				return nil, err
 			}
@@ -398,25 +443,49 @@ func (l *Loader) interpretTagValue(tag string) (*proto.ExtensionDesc, interface{
 	case "github.com/gunk/opt/http.Match":
 		// an error would be caught in Eval
 		expr, _ := parser.ParseExpr(tag)
-		rule := &annotations.HttpRule{}
+
+		// Capture the values required to use in 'annotations.HttpRule'.
+		// We need to evaluate the entire expression, and then we can
+		// create an `annotations.HttpRule'.
+		var path string
+		var body string
+		method := "GET"
 		for _, elt := range expr.(*ast.CompositeLit).Elts {
 			kv := elt.(*ast.KeyValueExpr)
 			val, _ := strconv.Unquote(kv.Value.(*ast.BasicLit).Value)
-			method := "GET"
 			switch name := kv.Key.(*ast.Ident).Name; name {
 			case "Method":
 				method = val
 			case "Path":
-				switch method {
-				case "GET":
-					rule.Pattern = &annotations.HttpRule_Get{Get: val}
-				case "POST":
-					rule.Pattern = &annotations.HttpRule_Post{Post: val}
-				}
+				path = val
+				// TODO: grpc-gateway doesn't allow paths with a trailing '/', should
+				// we return an error here, because the error from grpc-gateway is very
+				// cryptic and unhelpful?
+				// https://github.com/grpc-ecosystem/grpc-gateway/issues/472
 			case "Body":
-				rule.Body = val
+				body = val
+			default:
+				return nil, nil, fmt.Errorf("unknown expression key %q", name)
 			}
 		}
+		rule := &annotations.HttpRule{
+			Body: body,
+		}
+		switch method {
+		case "GET":
+			rule.Pattern = &annotations.HttpRule_Get{Get: path}
+		case "POST":
+			rule.Pattern = &annotations.HttpRule_Post{Post: path}
+		case "DELETE":
+			rule.Pattern = &annotations.HttpRule_Delete{Delete: path}
+		case "PUT":
+			rule.Pattern = &annotations.HttpRule_Put{Put: path}
+		case "PATCH":
+			rule.Pattern = &annotations.HttpRule_Patch{Patch: path}
+		default:
+			return nil, nil, fmt.Errorf("unknown method type: %q", method)
+		}
+		// TODO: Add support for custom rules - HttpRule_Custom?
 		return annotations.E_Http, rule, nil
 	default:
 		return nil, nil, fmt.Errorf("unknown option type: %s", s)

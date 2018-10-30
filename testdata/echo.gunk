@@ -19,7 +19,7 @@ type Util interface {
 	//
 	// +gunk http.Match{
 	//		Method:	"POST",
-	//		Path:	"/",
+	//		Path:	"/v1/echo",
 	//		Body:	"*",
 	//	}
 	Echo(imp.Message) imp.Message
@@ -28,7 +28,7 @@ type Util interface {
 	//
 	// +gunk http.Match{
 	//		Method:	"GET",
-	//		Path:	"/",
+	//		Path:	"/v1/echo",
 	//	}
 	CheckStatus() CheckStatusResponse
 }

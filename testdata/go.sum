@@ -5,6 +5,8 @@ github.com/golang/lint v0.0.0-20180702182130-06c8688daad7/go.mod h1:tluoj9z5200j
 github.com/golang/mock v1.1.1/go.mod h1:oTYuIxOrZwtPieC+H1uAHpcLFnEyAGVDL/k47Jfbm0A=
 github.com/golang/protobuf v1.2.0 h1:P3YflyNX/ehuJFLhxviNdFxQPkGK5cDcApsge1SqnvM=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
+github.com/grpc-ecosystem/grpc-gateway v1.5.1 h1:3scN4iuXkNOyP98jF55Lv8a9j1o/IwvnDIZ0LHJK1nk=
+github.com/grpc-ecosystem/grpc-gateway v1.5.1/go.mod h1:RSKVYQBd5MCa4OVpNdGskqpgL2+G+NZTnrVHpWWfpdw=
 github.com/gunk/opt v0.0.0-20181029164041-e949491322fc h1:umNRpEqsNXn2Eyij8H+swabaT5AckjyzdfOE20g+9Go=
 github.com/gunk/opt v0.0.0-20181029164041-e949491322fc/go.mod h1:mwnDF6IXLCA4xXLUMmG7usTLB6Mk+KGQelNF1u390gc=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=

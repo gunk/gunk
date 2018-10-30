@@ -1,4 +1,4 @@
-package imp
+package imported
 
 // Message is a Echo message.
 type Message struct {

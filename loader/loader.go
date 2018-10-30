@@ -25,18 +25,16 @@ import (
 	"google.golang.org/genproto/googleapis/api/annotations"
 )
 
-// Load loads the Gunk packages on the provided patterns, and generates the
-// corresponding proto files. Similar to Go, if a path begins with ".", it is
-// interpreted as a file system path where a package is located, and "..."
-// patterns are supported.
-func Load(patterns ...string) error {
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
+// Load loads the Gunk packages on the provided patterns from the given dir, and
+// generates the corresponding proto files. Similar to Go, if a path begins with
+// ".", it is interpreted as a file system path where a package is located, and
+// "..." patterns are supported.
+func Load(dir string, patterns ...string) error {
 	// First, translate the patterns to package paths.
-	cfg := &packages.Config{Mode: packages.LoadFiles}
+	cfg := &packages.Config{
+		Dir:  dir,
+		Mode: packages.LoadFiles,
+	}
 	pkgs, err := packages.Load(cfg, patterns...)
 	if err != nil {
 		return err
@@ -46,7 +44,7 @@ func Load(patterns ...string) error {
 		pkgPaths[i] = pkg.PkgPath
 	}
 
-	l, err := New(wd, pkgPaths...)
+	l, err := New(dir, pkgPaths...)
 	if err != nil {
 		return err
 	}
@@ -62,7 +60,7 @@ func Load(patterns ...string) error {
 
 // Loader
 type Loader struct {
-	wd string
+	dir string // if empty, uses the current directory
 
 	gfile *ast.File
 	pfile *desc.FileDescriptorProto
@@ -87,9 +85,9 @@ type Loader struct {
 }
 
 // New creates a Gunk loader for the specified working directory.
-func New(wd string, paths ...string) (*Loader, error) {
+func New(dir string, paths ...string) (*Loader, error) {
 	l := &Loader{
-		wd:   wd,
+		dir:  dir,
 		fset: token.NewFileSet(),
 		tconfig: &types.Config{
 			DisableUnusedImportCheck: true,
@@ -551,6 +549,7 @@ func (l *Loader) protoType(expr ast.Expr, pkg *types.Package) (desc.FieldDescrip
 func (l *Loader) addPkg(pkgPath string) error {
 	// First, translate the patterns to package paths.
 	cfg := &packages.Config{
+		Dir:  l.dir,
 		Mode: packages.LoadFiles,
 	}
 	pkgs, err := packages.Load(cfg, pkgPath)

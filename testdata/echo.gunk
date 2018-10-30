@@ -32,3 +32,14 @@ type Util interface {
 	//	}
 	CheckStatus() CheckStatusResponse
 }
+
+type UtilTestRequest struct {
+	Ints    []int         `pb:"1"`
+	Structs []imp.Message `pb:"2"`
+	Bool    bool          `pb:"3"`
+}
+
+// UtilTests contains a variety of types.
+type UtilTests interface {
+	UtilTest(UtilTestRequest) CheckStatusResponse
+}

@@ -368,9 +368,11 @@ func (l *Loader) protoMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, error
 			Name:   proto.String(field.Names[0].Name),
 			Number: protoNumber(field.Tag),
 		}
-		switch ptype, plabel, tname := l.protoType(field.Type, nil); ptype {
+		ftype := l.info.TypeOf(field.Type)
+		ptype, plabel, tname := l.protoType(ftype)
+		switch ptype {
 		case 0:
-			return nil, fmt.Errorf("unsupported field type: (%T)%v", field.Type, field.Type)
+			return nil, fmt.Errorf("unsupported field type: %v", ftype)
 		case desc.FieldDescriptorProto_TYPE_ENUM, desc.FieldDescriptorProto_TYPE_MESSAGE:
 			pfield.Type = &ptype
 			pfield.TypeName = &tname
@@ -501,7 +503,7 @@ func (l *Loader) protoParamType(fields *ast.FieldList) (*string, error) {
 		return nil, fmt.Errorf("need all methods to have <=1 results")
 	}
 	field := fields.List[0]
-	_, _, tname := l.protoType(field.Type, nil)
+	_, _, tname := l.protoType(l.info.TypeOf(field.Type))
 	if tname == "" {
 		return nil, fmt.Errorf("could not get type for %v", field.Type)
 	}
@@ -545,69 +547,36 @@ func (l *Loader) protoEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto, erro
 	return enum, nil
 }
 
-func (l *Loader) protoType(expr ast.Expr, pkg *types.Package) (desc.FieldDescriptorProto_Type, desc.FieldDescriptorProto_Label, string) {
-	if pkg == nil {
-		pkg = l.tpkg
-	}
-	switch x := expr.(type) {
-	case *ast.Ident:
+func (l *Loader) protoType(typ types.Type) (desc.FieldDescriptorProto_Type, desc.FieldDescriptorProto_Label, string) {
+	switch typ := typ.(type) {
+	case *types.Basic:
 		// Map Go types to proto types
 		// https://developers.google.com/protocol-buffers/docs/proto3#scalar
-		switch x.Name {
-		case "string":
-			return desc.FieldDescriptorProto_TYPE_STRING, 0, x.Name
-		case "int", "int32":
-			return desc.FieldDescriptorProto_TYPE_INT32, 0, x.Name
-		case "bool":
-			return desc.FieldDescriptorProto_TYPE_BOOL, 0, x.Name
-		default:
-			fullName := "." + pkg.Path() + "." + x.Name
-			// Check if the identifier is an already known 'message' or 'enum.
-			// NOTE: This checks all of the parsed gunk packages for the type.
-			// TODO: There is likely a much more robust way to handle this.
-			for _, p := range l.astPkgs[pkg.Path()] {
-				for _, decl := range p.Decls {
-					gd, ok := decl.(*ast.GenDecl)
-					if !ok {
-						continue
-					}
-					for _, spec := range gd.Specs {
-						ts, ok := spec.(*ast.TypeSpec)
-						if !ok {
-							continue
-						}
-						switch ts.Type.(type) {
-						case *ast.StructType:
-							if ts.Name.Name == x.Name {
-								return desc.FieldDescriptorProto_TYPE_MESSAGE, 0, fullName
-							}
-						case *ast.Ident:
-							if ts.Name.Name == x.Name {
-								return desc.FieldDescriptorProto_TYPE_ENUM, 0, fullName
-							}
-						}
-					}
-				}
+		switch typ.Kind() {
+		case types.String:
+			return desc.FieldDescriptorProto_TYPE_STRING, 0, typ.Name()
+		case types.Int, types.Int32:
+			return desc.FieldDescriptorProto_TYPE_INT32, 0, typ.Name()
+		case types.Bool:
+			return desc.FieldDescriptorProto_TYPE_BOOL, 0, typ.Name()
+		}
+	case *types.Named:
+		fullName := "." + typ.String()
+		switch u := typ.Underlying().(type) {
+		case *types.Basic:
+			switch u.Kind() {
+			case types.Int, types.Int32:
+				return desc.FieldDescriptorProto_TYPE_ENUM, 0, fullName
 			}
+		case *types.Struct:
+			return desc.FieldDescriptorProto_TYPE_MESSAGE, 0, fullName
+		}
+	case *types.Slice:
+		dtyp, _, name := l.protoType(typ.Elem())
+		if dtyp == 0 {
 			return 0, 0, ""
 		}
-	case *ast.SelectorExpr:
-		id, ok := x.X.(*ast.Ident)
-		if !ok {
-			break
-		}
-		pkg := l.info.ObjectOf(id).(*types.PkgName).Imported()
-		return l.protoType(x.Sel, pkg)
-	case *ast.ArrayType:
-		// Array's arent handled, only slices. Check if this is an array.
-		if x.Len != nil {
-			return 0, 0, ""
-		}
-		typ, _, name := l.protoType(x.Elt, pkg)
-		if typ == 0 {
-			return 0, 0, ""
-		}
-		return typ, desc.FieldDescriptorProto_LABEL_REPEATED, name
+		return dtyp, desc.FieldDescriptorProto_LABEL_REPEATED, name
 	}
 	return 0, 0, ""
 }

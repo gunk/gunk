@@ -1,44 +1,32 @@
 package main
 
 import (
-	"go/build"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"testing"
 
 	"github.com/gunk/gunk/loader"
 )
 
 func TestGunk(t *testing.T) {
-	t.Skip("TODO: reenable")
-	// TODO: this test likely won't pass on windows
 	pkgs := []string{
-		"util", "util/imp-arg",
-		"github.com/gunk/opt", "github.com/gunk/opt/http",
+		".", "./imported",
 	}
 	outPaths := []string{
-		"testdata/src/util/echo.pb.go",
-		"testdata/src/util/types.pb.go",
-		"testdata/src/util/imp-arg/imp.pb.go",
-		"testdata/src/util/imp-noarg/imp.pb.go",
-		"testdata/src/util/imp-noarg/imp.pb.go",
-		"testdata/src/github.com/gunk/opt/opt.pb.go",
-		"testdata/src/github.com/gunk/opt/http/http.pb.go",
+		"testdata/echo.pb.go",
+		"testdata/types.pb.go",
+		"testdata/imp-arg/imp.pb.go",
+		"testdata/imp-noarg/imp.pb.go",
+		"testdata/imp-noarg/imp.pb.go",
 	}
 	orig := make(map[string]string)
 	for _, outPath := range outPaths {
 		orig[outPath] = mayReadFile(outPath)
+		// make sure we're writing the files
 		os.Remove(outPath)
 	}
-	gopath, err := filepath.Abs("testdata")
-	if err != nil {
-		t.Fatal(err)
-	}
-	origGopath := build.Default.GOPATH
-	build.Default.GOPATH = gopath
-	if err := loader.Load(pkgs...); err != nil {
+	if err := loader.Load("testdata", pkgs...); err != nil {
 		t.Fatal(err)
 	}
 	for _, outPath := range outPaths {
@@ -48,11 +36,8 @@ func TestGunk(t *testing.T) {
 			t.Fatalf("%s was modified", outPath)
 		}
 	}
-	if testing.Short() {
-		t.Skip(`skipping "go build" check in short mode`)
-	}
 	cmd := exec.Command("go", append([]string{"build"}, pkgs...)...)
-	cmd.Env = []string{"GOPATH=" + gopath + ":" + origGopath}
+	cmd.Dir = "testdata"
 	if _, err := cmd.Output(); err != nil {
 		if e, ok := err.(*exec.ExitError); ok {
 			t.Fatalf("%s", e.Stderr)

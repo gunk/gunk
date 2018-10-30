@@ -4,8 +4,8 @@ package util
 import (
 	"github.com/gunk/opt/http"
 
-	imp "util/imp-arg"
-	_ "util/imp-noarg"
+	imp "testdata.tld/util/imported"
+	_ "testdata.tld/util/imported-notarg"
 )
 
 // CheckStatusResponse is the response for a check status.

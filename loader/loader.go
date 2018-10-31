@@ -365,32 +365,33 @@ func (l *Loader) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, err
 		l.addDoc(field.Doc, nil, messagePath, l.messageIndex, messageFieldPath, int32(i))
 		// TODO: We aren't currently setting the JsonName field, not sure what we want
 		// to set them to? Possibly pull out a json tag or something?
-		pfield := &desc.FieldDescriptorProto{
-			Name:   proto.String(field.Names[0].Name),
-			Number: protoNumber(field.Tag),
-		}
 		ftype := l.info.TypeOf(field.Type)
+
 		var ptype desc.FieldDescriptorProto_Type
 		var plabel desc.FieldDescriptorProto_Label
 		var tname string
 		var msgNestedType *desc.DescriptorProto
+
 		// Check to see if the type is a map. Maps need to be made into a
-		// nested message containing key and value fields.
-		if typ, ok := ftype.(*types.Map); ok {
-			ptype, plabel, tname, msgNestedType = l.convertMap(tspec.Name.Name, field.Names[0].Name, typ)
+		// repeated nested message containing key and value fields.
+		if mtype, ok := ftype.(*types.Map); ok {
+			ptype = desc.FieldDescriptorProto_TYPE_MESSAGE
+			plabel = desc.FieldDescriptorProto_LABEL_REPEATED
+			tname, msgNestedType = l.convertMap(tspec.Name.Name, field.Names[0].Name, mtype)
+			msg.NestedType = append(msg.NestedType, msgNestedType)
 		} else {
 			ptype, plabel, tname = l.convertType(ftype)
 		}
 		if ptype == 0 {
 			return nil, fmt.Errorf("unsupported field type: %v", ftype)
 		}
-		pfield.TypeName = &tname
-		pfield.Type = &ptype
-		pfield.Label = &plabel
-		msg.Field = append(msg.Field, pfield)
-		if msgNestedType != nil {
-			msg.NestedType = append(msg.NestedType, msgNestedType)
-		}
+		msg.Field = append(msg.Field, &desc.FieldDescriptorProto{
+			Name:     proto.String(field.Names[0].Name),
+			Number:   protoNumber(field.Tag),
+			TypeName: &tname,
+			Type:     &ptype,
+			Label:    &plabel,
+		})
 	}
 	l.messageIndex++
 	return msg, nil
@@ -443,23 +444,25 @@ func (l *Loader) convertService(tspec *ast.TypeSpec) (*desc.ServiceDescriptorPro
 	return srv, nil
 }
 
-// convertMap will translate a Go map to a Protobuf respresentation of a map.
+// convertMap will translate a Go map to a Protobuf respresentation of a map,
+// returning the nested type name and definition.
+//
 // Protobuf represents a map as a nested message on the parent message. This
 // nested message contains two fields; key and value (map[key]value), and has
 // the MapEntry option set to true.
 //
 // https://developers.google.com/protocol-buffers/docs/proto#maps
-func (l *Loader) convertMap(parentName, fieldName string, mapTyp *types.Map) (desc.FieldDescriptorProto_Type, desc.FieldDescriptorProto_Label, string, *desc.DescriptorProto) {
+func (l *Loader) convertMap(parentName, fieldName string, mapTyp *types.Map) (string, *desc.DescriptorProto) {
 	mapName := fieldName + "Entry"
 	typeName := "." + l.tpkg.Path() + "." + parentName + "." + mapName
 
 	keyType, _, keyTypeName := l.convertType(mapTyp.Key())
 	if keyType == 0 {
-		return 0, 0, "", nil
+		return "", nil
 	}
 	elemType, _, elemTypeName := l.convertType(mapTyp.Elem())
 	if elemType == 0 {
-		return 0, 0, "", nil
+		return "", nil
 	}
 
 	fieldLabel := desc.FieldDescriptorProto_LABEL_OPTIONAL
@@ -485,7 +488,7 @@ func (l *Loader) convertMap(parentName, fieldName string, mapTyp *types.Map) (de
 			},
 		},
 	}
-	return desc.FieldDescriptorProto_TYPE_MESSAGE, desc.FieldDescriptorProto_LABEL_REPEATED, typeName, nestedType
+	return typeName, nestedType
 }
 
 func (l *Loader) interpretTagValue(tag string) (*proto.ExtensionDesc, interface{}, error) {

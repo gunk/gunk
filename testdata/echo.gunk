@@ -2,6 +2,8 @@
 package util
 
 import (
+	"time"
+
 	"github.com/gunk/opt/http"
 
 	imp "testdata.tld/util/imported"
@@ -37,6 +39,9 @@ type UtilTestRequest struct {
 	Ints    []int         `pb:"1"`
 	Structs []imp.Message `pb:"2"`
 	Bool    bool          `pb:"3"`
+
+	Timestamp time.Time     `pb:"4"`
+	Duration  time.Duration `pb:"5"`
 }
 
 // UtilTests contains a variety of types.

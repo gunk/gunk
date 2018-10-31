@@ -561,6 +561,14 @@ func (l *Loader) protoType(typ types.Type) (desc.FieldDescriptorProto_Type, desc
 			return desc.FieldDescriptorProto_TYPE_BOOL, 0, typ.Name()
 		}
 	case *types.Named:
+		switch typ.String() {
+		case "time.Time":
+			l.addProtoDep("google/protobuf/timestamp.proto")
+			return desc.FieldDescriptorProto_TYPE_MESSAGE, 0, ".google.protobuf.Timestamp"
+		case "time.Duration":
+			l.addProtoDep("google/protobuf/duration.proto")
+			return desc.FieldDescriptorProto_TYPE_MESSAGE, 0, ".google.protobuf.Duration"
+		}
 		fullName := "." + typ.String()
 		switch u := typ.Underlying().(type) {
 		case *types.Basic:
@@ -654,16 +662,39 @@ func (l *Loader) addPkg(pkgPath string) error {
 // Aside from that, it is very similar to standard Go importers that load from
 // source. It too uses a cache to avoid loading packages multiple times.
 func (l *Loader) Import(path string) (*types.Package, error) {
+	// Has it been imported and loaded before?
 	if tpkg := l.typePkgs[path]; tpkg != nil {
 		return tpkg, nil
 	}
+
+	// Loading a standard library package for the first time.
+	if !strings.Contains(path, ".") {
+		cfg := &packages.Config{Mode: packages.LoadTypes}
+		pkgs, err := packages.Load(cfg, path)
+		if err != nil {
+			return nil, err
+		}
+		if len(pkgs) != 1 {
+			panic("expected go/packages.Load to return exactly one package")
+		}
+		tpkg := pkgs[0].Types
+		l.typePkgs[path] = tpkg
+		return tpkg, nil
+	}
+
+	// Loading a Gunk package for the first time.
 	if err := l.addPkg(path); err != nil {
 		return nil, err
 	}
 	if err := l.translatePkg(path); err != nil {
 		return nil, err
 	}
-	return l.typePkgs[path], nil
+	if tpkg := l.typePkgs[path]; tpkg != nil {
+		return tpkg, nil
+	}
+
+	// Not found.
+	return nil, nil
 }
 
 // addProtoDep is called when a gunk file is known to require importing of a

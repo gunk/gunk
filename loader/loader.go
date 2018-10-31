@@ -79,9 +79,9 @@ type Loader struct {
 	allProto  map[string]*desc.FileDescriptorProto
 	origPaths map[string]string
 
-	msgIndex  int32
-	srvIndex  int32
-	enumIndex int32
+	messageIndex int32
+	serviceIndex int32
+	enumIndex    int32
 }
 
 // New creates a Gunk loader for the specified working directory.
@@ -128,10 +128,9 @@ func New(dir string, paths ...string) (*Loader, error) {
 // Generated files are written to the same directory, next to the source gunk
 // files.
 //
-// It is fine to pass every 'plugin.CodeGeneratorRequest' to every protoc
-// generator unaltered; this is what protoc does when calling out to the
-// generators and the generators should already handle the case where
-// they have nothing to do.
+// It is fine to pass the plugin.CodeGeneratorRequest to every protoc generator
+// unaltered; this is what protoc does when calling out to the generators and
+// the generators should already handle the case where they have nothing to do.
 func (l *Loader) GeneratePkg(path string) error {
 	req := l.requestForPkg(path)
 	if err := l.generatePluginGo(*req); err != nil {
@@ -155,7 +154,7 @@ func (l *Loader) generatePluginGo(req plugin.CodeGeneratorRequest) error {
 	cmd.Stderr = os.Stderr
 	out, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("error executing 'protoc-gen-go': %s, %v", out, err)
+		return fmt.Errorf("error executing protoc-gen-go: %s, %v", out, err)
 	}
 	var resp plugin.CodeGeneratorResponse
 	if err := proto.Unmarshal(out, &resp); err != nil {
@@ -185,14 +184,14 @@ func (l *Loader) generatePluginGrpcGateway(req plugin.CodeGeneratorRequest) erro
 	cmd.Stderr = os.Stderr
 	out, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("error executing 'protoc-gen-grpc-gateway': %s, %v", out, err)
+		return fmt.Errorf("error executing protoc-gen-grpc-gateway: %s, %v", out, err)
 	}
 	var resp plugin.CodeGeneratorResponse
 	if err := proto.Unmarshal(out, &resp); err != nil {
 		return err
 	}
 	if rerr := resp.GetError(); rerr != "" {
-		return fmt.Errorf("error executing `protoc-gen-grpc-gateway': %v", rerr)
+		return fmt.Errorf("error executing protoc-gen-grpc-gateway: %v", rerr)
 	}
 	for _, rf := range resp.File {
 		// to turn foo.gunk.pb.gw.go into foo.pb.gw.go
@@ -256,8 +255,8 @@ func (l *Loader) translatePkg(path string) error {
 
 // translateFile translates a single gunk file to a proto file.
 func (l *Loader) translateFile(path, file string) error {
-	l.msgIndex = 0
-	l.srvIndex = 0
+	l.messageIndex = 0
+	l.serviceIndex = 0
 	l.enumIndex = 0
 	l.toGen[path][file] = true
 	if _, ok := l.allProto[file]; ok {
@@ -310,19 +309,19 @@ func (l *Loader) translateDecl(decl ast.Decl) error {
 		}
 		switch ts.Type.(type) {
 		case *ast.StructType:
-			msg, err := l.protoMessage(ts)
+			msg, err := l.convertMessage(ts)
 			if err != nil {
 				return err
 			}
 			l.pfile.MessageType = append(l.pfile.MessageType, msg)
 		case *ast.InterfaceType:
-			srv, err := l.protoService(ts)
+			srv, err := l.convertService(ts)
 			if err != nil {
 				return err
 			}
 			l.pfile.Service = append(l.pfile.Service, srv)
 		case *ast.Ident:
-			enum, err := l.protoEnum(ts)
+			enum, err := l.convertEnum(ts)
 			if err != nil {
 				return err
 			}
@@ -334,7 +333,7 @@ func (l *Loader) translateDecl(decl ast.Decl) error {
 	return nil
 }
 
-func (l *Loader) addDoc(doc *ast.CommentGroup, f func(string) string, path ...int32) {
+func (l *Loader) addDoc(doc *ast.CommentGroup, transform func(string) string, path ...int32) {
 	if doc == nil {
 		return
 	}
@@ -342,8 +341,8 @@ func (l *Loader) addDoc(doc *ast.CommentGroup, f func(string) string, path ...in
 		l.pfile.SourceCodeInfo = &desc.SourceCodeInfo{}
 	}
 	text := doc.Text()
-	if f != nil {
-		text = f(text)
+	if transform != nil {
+		text = transform(text)
 	}
 	l.pfile.SourceCodeInfo.Location = append(l.pfile.SourceCodeInfo.Location,
 		&desc.SourceCodeInfo_Location{
@@ -353,8 +352,8 @@ func (l *Loader) addDoc(doc *ast.CommentGroup, f func(string) string, path ...in
 	)
 }
 
-func (l *Loader) protoMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, error) {
-	l.addDoc(tspec.Doc, nil, messagePath, l.msgIndex)
+func (l *Loader) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, error) {
+	l.addDoc(tspec.Doc, nil, messagePath, l.messageIndex)
 	msg := &desc.DescriptorProto{
 		Name: proto.String(tspec.Name.Name),
 	}
@@ -363,13 +362,13 @@ func (l *Loader) protoMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, error
 		if len(field.Names) != 1 {
 			return nil, fmt.Errorf("need all fields to have one name")
 		}
-		l.addDoc(field.Doc, nil, messagePath, l.msgIndex, messageFieldPath, int32(i))
+		l.addDoc(field.Doc, nil, messagePath, l.messageIndex, messageFieldPath, int32(i))
 		pfield := &desc.FieldDescriptorProto{
 			Name:   proto.String(field.Names[0].Name),
 			Number: protoNumber(field.Tag),
 		}
 		ftype := l.info.TypeOf(field.Type)
-		ptype, plabel, tname := l.protoType(ftype)
+		ptype, plabel, tname := l.convertType(ftype)
 		switch ptype {
 		case 0:
 			return nil, fmt.Errorf("unsupported field type: %v", ftype)
@@ -383,11 +382,11 @@ func (l *Loader) protoMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, error
 		}
 		msg.Field = append(msg.Field, pfield)
 	}
-	l.msgIndex++
+	l.messageIndex++
 	return msg, nil
 }
 
-func (l *Loader) protoService(tspec *ast.TypeSpec) (*desc.ServiceDescriptorProto, error) {
+func (l *Loader) convertService(tspec *ast.TypeSpec) (*desc.ServiceDescriptorProto, error) {
 	srv := &desc.ServiceDescriptorProto{
 		Name: proto.String(tspec.Name.Name),
 	}
@@ -397,22 +396,22 @@ func (l *Loader) protoService(tspec *ast.TypeSpec) (*desc.ServiceDescriptorProto
 			return nil, fmt.Errorf("need all methods to have one name")
 		}
 		tag := ""
-		fn := func(text string) string {
+		stripTag := func(text string) string {
 			text, tag = splitGunkTag(text)
 			return text
 		}
-		l.addDoc(method.Doc, fn, servicePath, l.srvIndex,
+		l.addDoc(method.Doc, stripTag, servicePath, l.serviceIndex,
 			serviceMethodPath, int32(i))
 		pmethod := &desc.MethodDescriptorProto{
 			Name: proto.String(method.Names[0].Name),
 		}
-		sign := method.Type.(*ast.FuncType)
+		sign := l.info.TypeOf(method.Type).(*types.Signature)
 		var err error
-		pmethod.InputType, err = l.protoParamType(sign.Params)
+		pmethod.InputType, err = l.convertParameter(sign.Params())
 		if err != nil {
 			return nil, err
 		}
-		pmethod.OutputType, err = l.protoParamType(sign.Results)
+		pmethod.OutputType, err = l.convertParameter(sign.Results())
 		if err != nil {
 			return nil, err
 		}
@@ -430,7 +429,7 @@ func (l *Loader) protoService(tspec *ast.TypeSpec) (*desc.ServiceDescriptorProto
 		}
 		srv.Method = append(srv.Method, pmethod)
 	}
-	l.srvIndex++
+	l.serviceIndex++
 	return srv, nil
 }
 
@@ -446,9 +445,9 @@ func (l *Loader) interpretTagValue(tag string) (*proto.ExtensionDesc, interface{
 		// an error would be caught in Eval
 		expr, _ := parser.ParseExpr(tag)
 
-		// Capture the values required to use in 'annotations.HttpRule'.
+		// Capture the values required to use in annotations.HttpRule.
 		// We need to evaluate the entire expression, and then we can
-		// create an `annotations.HttpRule'.
+		// create an annotations.HttpRule.
 		var path string
 		var body string
 		method := "GET"
@@ -460,7 +459,7 @@ func (l *Loader) interpretTagValue(tag string) (*proto.ExtensionDesc, interface{
 				method = val
 			case "Path":
 				path = val
-				// TODO: grpc-gateway doesn't allow paths with a trailing '/', should
+				// TODO: grpc-gateway doesn't allow paths with a trailing "/", should
 				// we return an error here, because the error from grpc-gateway is very
 				// cryptic and unhelpful?
 				// https://github.com/grpc-ecosystem/grpc-gateway/issues/472
@@ -494,23 +493,25 @@ func (l *Loader) interpretTagValue(tag string) (*proto.ExtensionDesc, interface{
 	}
 }
 
-func (l *Loader) protoParamType(fields *ast.FieldList) (*string, error) {
-	if fields == nil || len(fields.List) == 0 {
+func (l *Loader) convertParameter(tuple *types.Tuple) (*string, error) {
+	switch tuple.Len() {
+	case 0:
 		l.addProtoDep("google/protobuf/empty.proto")
 		return proto.String(".google.protobuf.Empty"), nil
+	case 1:
+		// below
+	default:
+		return nil, fmt.Errorf("multiple parameters are not supported")
 	}
-	if len(fields.List) > 1 {
-		return nil, fmt.Errorf("need all methods to have <=1 results")
-	}
-	field := fields.List[0]
-	_, _, tname := l.protoType(l.info.TypeOf(field.Type))
+	param := tuple.At(0).Type()
+	_, _, tname := l.convertType(param)
 	if tname == "" {
-		return nil, fmt.Errorf("could not get type for %v", field.Type)
+		return nil, fmt.Errorf("unsupported parameter type: %v", param)
 	}
 	return &tname, nil
 }
 
-func (l *Loader) protoEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto, error) {
+func (l *Loader) convertEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto, error) {
 	l.addDoc(tspec.Doc, nil, enumPath, l.enumIndex)
 	enum := &desc.EnumDescriptorProto{
 		Name: proto.String(tspec.Name.Name),
@@ -547,7 +548,7 @@ func (l *Loader) protoEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto, erro
 	return enum, nil
 }
 
-func (l *Loader) protoType(typ types.Type) (desc.FieldDescriptorProto_Type, desc.FieldDescriptorProto_Label, string) {
+func (l *Loader) convertType(typ types.Type) (desc.FieldDescriptorProto_Type, desc.FieldDescriptorProto_Label, string) {
 	switch typ := typ.(type) {
 	case *types.Basic:
 		// Map Go types to proto types
@@ -580,7 +581,7 @@ func (l *Loader) protoType(typ types.Type) (desc.FieldDescriptorProto_Type, desc
 			return desc.FieldDescriptorProto_TYPE_MESSAGE, 0, fullName
 		}
 	case *types.Slice:
-		dtyp, _, name := l.protoType(typ.Elem())
+		dtyp, _, name := l.convertType(typ.Elem())
 		if dtyp == 0 {
 			return 0, 0, ""
 		}

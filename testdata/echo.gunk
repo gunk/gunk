@@ -43,6 +43,9 @@ type UtilTestRequest struct {
 
 	Timestamp time.Time     `pb:"5"`
 	Duration  time.Duration `pb:"6"`
+
+	MapSimple map[string]int `pb:"7"`
+	MapComplex map[int]CheckStatusResponse `pb:"8"`
 }
 
 // UtilTests contains a variety of types.

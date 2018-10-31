@@ -548,18 +548,21 @@ func (l *Loader) convertEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto, er
 	return enum, nil
 }
 
+// convertType converts a Go field or parameter type to Protobuf, returning its
+// type descriptor, a label such as "repeated", and a name, if the final type is
+// an enum or a message.
 func (l *Loader) convertType(typ types.Type) (desc.FieldDescriptorProto_Type, desc.FieldDescriptorProto_Label, string) {
 	switch typ := typ.(type) {
 	case *types.Basic:
-		// Map Go types to proto types
+		// Map Go types to proto types via
 		// https://developers.google.com/protocol-buffers/docs/proto3#scalar
 		switch typ.Kind() {
 		case types.String:
-			return desc.FieldDescriptorProto_TYPE_STRING, 0, typ.Name()
+			return desc.FieldDescriptorProto_TYPE_STRING, 0, ""
 		case types.Int, types.Int32:
-			return desc.FieldDescriptorProto_TYPE_INT32, 0, typ.Name()
+			return desc.FieldDescriptorProto_TYPE_INT32, 0, ""
 		case types.Bool:
-			return desc.FieldDescriptorProto_TYPE_BOOL, 0, typ.Name()
+			return desc.FieldDescriptorProto_TYPE_BOOL, 0, ""
 		}
 	case *types.Named:
 		switch typ.String() {

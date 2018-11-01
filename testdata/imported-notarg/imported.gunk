@@ -1,5 +1,5 @@
 package imported
 
 type ShouldNotBeGenerated struct {
-	Field string `pb:1`
+	Field string `pb:"1"`
 }

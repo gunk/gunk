@@ -3,5 +3,5 @@ package imported
 // Message is a Echo message.
 type Message struct {
 	// Msg holds a message.
-	Msg string `pb:1`
+	Msg string `pb:"1"`
 }

@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -362,9 +363,8 @@ func (l *Loader) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, err
 		if len(field.Names) != 1 {
 			return nil, fmt.Errorf("need all fields to have one name")
 		}
+		fieldName := field.Names[0].Name
 		l.addDoc(field.Doc, nil, messagePath, l.messageIndex, messageFieldPath, int32(i))
-		// TODO: We aren't currently setting the JsonName field, not sure what we want
-		// to set them to? Possibly pull out a json tag or something?
 		ftype := l.info.TypeOf(field.Type)
 
 		var ptype desc.FieldDescriptorProto_Type
@@ -377,7 +377,7 @@ func (l *Loader) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, err
 		if mtype, ok := ftype.(*types.Map); ok {
 			ptype = desc.FieldDescriptorProto_TYPE_MESSAGE
 			plabel = desc.FieldDescriptorProto_LABEL_REPEATED
-			tname, msgNestedType = l.convertMap(tspec.Name.Name, field.Names[0].Name, mtype)
+			tname, msgNestedType = l.convertMap(tspec.Name.Name, fieldName, mtype)
 			msg.NestedType = append(msg.NestedType, msgNestedType)
 		} else {
 			ptype, plabel, tname = l.convertType(ftype)
@@ -385,9 +385,30 @@ func (l *Loader) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, err
 		if ptype == 0 {
 			return nil, fmt.Errorf("unsupported field type: %v", ftype)
 		}
+
+		// Check that the struct field has a tag. We currently
+		// require all struct fields to have a tag; this is used
+		// to assign the position number for a field, ie: `pb:"1"`
+		if field.Tag == nil {
+			return nil, fmt.Errorf("missing required tag on %s", fieldName)
+		}
+		// Can skip the error here because we've already parsed the file.
+		str, _ := strconv.Unquote(field.Tag.Value)
+		tag := reflect.StructTag(str)
+		// TODO: record the position numbers used so we can return an
+		// error if position number is used more than once? This would
+		// also allow us to automatically assign fields a position
+		// number if it is missing one.
+		num, err := protoNumber(tag)
+		if err != nil {
+			return nil, fmt.Errorf("unable to convert tag to number on %s: %v", fieldName, err)
+		}
+
+		// TODO: We aren't currently setting the JsonName field, not sure what we want
+		// to set them to? Possibly pull out a json tag or something?
 		msg.Field = append(msg.Field, &desc.FieldDescriptorProto{
-			Name:     proto.String(field.Names[0].Name),
-			Number:   protoNumber(field.Tag),
+			Name:     proto.String(fieldName),
+			Number:   num,
 			TypeName: &tname,
 			Type:     &ptype,
 			Label:    &plabel,

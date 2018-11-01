@@ -8,7 +8,8 @@ import (
 // Message is a Echo message.
 type Message struct {
 	// Msg holds a message.
-	Msg string `pb:"1"`
+	Msg  string `pb:"1"`
+	Code int    `pb:"2"`
 }
 
 // Status is a server health status.
@@ -26,7 +27,7 @@ type CheckStatusResponse struct {
 	Status Status `pb:"1"`
 
 	// +gunk opt.Deprecated(true)
-	OldField int
+	OldField int `pb:"2"`
 }
 
 // Util is a utility service.

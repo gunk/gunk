@@ -1,7 +1,7 @@
 package loader
 
 import (
-	"go/ast"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -43,12 +43,14 @@ func splitGunkTag(text string) (doc, tag string) {
 	return
 }
 
-func protoNumber(fieldTag *ast.BasicLit) *int32 {
-	if fieldTag == nil {
-		return nil
+func protoNumber(tag reflect.StructTag) (*int32, error) {
+	pbTag := tag.Get("pb")
+	if pbTag == "" {
+		return nil, fmt.Errorf("pb tag must be set")
 	}
-	str, _ := strconv.Unquote(fieldTag.Value)
-	tag := reflect.StructTag(str)
-	number, _ := strconv.Atoi(tag.Get("pb"))
-	return proto.Int32(int32(number))
+	number, err := strconv.Atoi(pbTag)
+	if err != nil {
+		return nil, err
+	}
+	return proto.Int32(int32(number)), nil
 }

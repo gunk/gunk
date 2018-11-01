@@ -207,16 +207,23 @@ func (l *Loader) generatePluginGrpcGateway(req plugin.CodeGeneratorRequest) erro
 }
 
 func (l *Loader) requestForPkg(path string) *plugin.CodeGeneratorRequest {
-	// For deterministic output, as the first file in each package
-	// gets an extra package godoc.
 	req := &plugin.CodeGeneratorRequest{}
 	for file := range l.toGen[path] {
 		req.FileToGenerate = append(req.FileToGenerate, file)
 	}
-	sort.Strings(req.FileToGenerate)
 	for _, pfile := range l.allProto {
 		req.ProtoFile = append(req.ProtoFile, pfile)
 	}
+
+	// Sort all the files by name to get deterministic output. For example,
+	// the first file in each package gets an extra package godoc from
+	// protoc-gen-go. And protoc-gen-grpc-gateway cares about the order of
+	// the ProtoFile list.
+	sort.Strings(req.FileToGenerate)
+	sort.Slice(req.ProtoFile, func(i, j int) bool {
+		return *req.ProtoFile[i].Name < *req.ProtoFile[j].Name
+	})
+
 	return req
 }
 

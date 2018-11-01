@@ -644,30 +644,30 @@ func (l *Loader) convertType(typ types.Type) (desc.FieldDescriptorProto_Type, de
 		// https://developers.google.com/protocol-buffers/docs/proto3#scalar
 		switch typ.Kind() {
 		case types.String:
-			return desc.FieldDescriptorProto_TYPE_STRING, 0, ""
+			return desc.FieldDescriptorProto_TYPE_STRING, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
 		case types.Int, types.Int32:
-			return desc.FieldDescriptorProto_TYPE_INT32, 0, ""
+			return desc.FieldDescriptorProto_TYPE_INT32, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
 		case types.Bool:
-			return desc.FieldDescriptorProto_TYPE_BOOL, 0, ""
+			return desc.FieldDescriptorProto_TYPE_BOOL, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
 		}
 	case *types.Named:
 		switch typ.String() {
 		case "time.Time":
 			l.addProtoDep("google/protobuf/timestamp.proto")
-			return desc.FieldDescriptorProto_TYPE_MESSAGE, 0, ".google.protobuf.Timestamp"
+			return desc.FieldDescriptorProto_TYPE_MESSAGE, desc.FieldDescriptorProto_LABEL_OPTIONAL, ".google.protobuf.Timestamp"
 		case "time.Duration":
 			l.addProtoDep("google/protobuf/duration.proto")
-			return desc.FieldDescriptorProto_TYPE_MESSAGE, 0, ".google.protobuf.Duration"
+			return desc.FieldDescriptorProto_TYPE_MESSAGE, desc.FieldDescriptorProto_LABEL_OPTIONAL, ".google.protobuf.Duration"
 		}
 		fullName := "." + typ.String()
 		switch u := typ.Underlying().(type) {
 		case *types.Basic:
 			switch u.Kind() {
 			case types.Int, types.Int32:
-				return desc.FieldDescriptorProto_TYPE_ENUM, 0, fullName
+				return desc.FieldDescriptorProto_TYPE_ENUM, desc.FieldDescriptorProto_LABEL_OPTIONAL, fullName
 			}
 		case *types.Struct:
-			return desc.FieldDescriptorProto_TYPE_MESSAGE, 0, fullName
+			return desc.FieldDescriptorProto_TYPE_MESSAGE, desc.FieldDescriptorProto_LABEL_OPTIONAL, fullName
 		}
 	case *types.Slice:
 		dtyp, _, name := l.convertType(typ.Elem())

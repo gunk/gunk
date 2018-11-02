@@ -276,9 +276,10 @@ func (l *Loader) translateFile(path, file string) error {
 	l.pfile = &desc.FileDescriptorProto{
 		Syntax:  proto.String("proto3"),
 		Name:    proto.String(file),
-		Package: proto.String(lpkg.PkgPath),
+		Package: proto.String(lpkg.Name),
 		Options: &desc.FileOptions{
 			GoPackage: proto.String(lpkg.Name),
+			// TODO: Add other package options
 		},
 	}
 	l.addDoc(l.gfile.Doc, nil, packagePath)
@@ -480,7 +481,7 @@ func (l *Loader) convertService(tspec *ast.TypeSpec) (*desc.ServiceDescriptorPro
 // https://developers.google.com/protocol-buffers/docs/proto#maps
 func (l *Loader) convertMap(parentName, fieldName string, mapTyp *types.Map) (string, *desc.DescriptorProto) {
 	mapName := fieldName + "Entry"
-	typeName := "." + l.tpkg.Path() + "." + parentName + "." + mapName
+	typeName := l.qualifiedTypeName(parentName+"."+mapName, nil)
 
 	keyType, _, keyTypeName := l.convertType(mapTyp.Key())
 	if keyType == 0 {
@@ -632,6 +633,19 @@ func (l *Loader) convertEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto, er
 	return enum, nil
 }
 
+// qualifiedTypeName will format the type name for that package. If the
+// package is nil, it will format the type for the current package that is
+// being processed.
+//
+// Currently we format the type as ".<pkg_name>.<type_name>"
+func (l *Loader) qualifiedTypeName(typeName string, pkg *types.Package) string {
+	// If pkg is nil, we should format the type for the current package.
+	if pkg == nil {
+		return "." + *l.pfile.Package + "." + typeName
+	}
+	return "." + pkg.Name() + "." + typeName
+}
+
 // convertType converts a Go field or parameter type to Protobuf, returning its
 // type descriptor, a label such as "repeated", and a name, if the final type is
 // an enum or a message.
@@ -657,7 +671,7 @@ func (l *Loader) convertType(typ types.Type) (desc.FieldDescriptorProto_Type, de
 			l.addProtoDep("google/protobuf/duration.proto")
 			return desc.FieldDescriptorProto_TYPE_MESSAGE, desc.FieldDescriptorProto_LABEL_OPTIONAL, ".google.protobuf.Duration"
 		}
-		fullName := "." + typ.String()
+		fullName := l.qualifiedTypeName(typ.Obj().Name(), typ.Obj().Pkg())
 		switch u := typ.Underlying().(type) {
 		case *types.Basic:
 			switch u.Kind() {

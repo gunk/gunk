@@ -410,15 +410,13 @@ func (l *Loader) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, err
 		if err != nil {
 			return nil, fmt.Errorf("unable to convert tag to number on %s: %v", fieldName, err)
 		}
-
-		// TODO: We aren't currently setting the JsonName field, not sure what we want
-		// to set them to? Possibly pull out a json tag or something?
 		msg.Field = append(msg.Field, &desc.FieldDescriptorProto{
 			Name:     proto.String(fieldName),
 			Number:   num,
 			TypeName: &tname,
 			Type:     &ptype,
 			Label:    &plabel,
+			JsonName: jsonName(tag),
 		})
 	}
 	l.messageIndex++

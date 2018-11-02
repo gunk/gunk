@@ -54,3 +54,11 @@ func protoNumber(tag reflect.StructTag) (*int32, error) {
 	}
 	return proto.Int32(int32(number)), nil
 }
+
+func jsonName(tag reflect.StructTag) *string {
+	jsonTag := tag.Get("json")
+	if jsonTag == "" {
+		return nil
+	}
+	return proto.String(jsonTag)
+}

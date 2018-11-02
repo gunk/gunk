@@ -12,7 +12,7 @@ import (
 
 // CheckStatusResponse is the response for a check status.
 type CheckStatusResponse struct {
-	Status Status `pb:"1"`
+	Status Status `pb:"1" json:"status"`
 }
 
 // Util is a utility service.

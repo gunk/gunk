@@ -8,8 +8,8 @@ import (
 // Message is a Echo message.
 type Message struct {
 	// Msg holds a message.
-	Msg  string `pb:"1"`
-	Code int    `pb:"2"`
+	Msg  string `pb:"1" json:"msg"`
+	Code int    `pb:"2" json:"code"`
 }
 
 // Status is a server health status.

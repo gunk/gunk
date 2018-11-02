@@ -1,0 +1,10 @@
+# empty Gunk package
+env HOME=$WORK/home
+! exec gunk .
+
+-- go.mod --
+module testdata.tld/util
+-- doc.go --
+package util
+
+// make this directory a Go package

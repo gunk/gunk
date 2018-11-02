@@ -6,14 +6,18 @@ import (
 	"os"
 
 	"github.com/gunk/gunk/loader"
-	_ "github.com/gunk/opt" // include it in go.mod for the tests
 )
 
 func main() {
+	os.Exit(main1())
+}
+
+func main1() int {
 	flag.Parse()
 
 	if err := loader.Load("", flag.Args()...); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }

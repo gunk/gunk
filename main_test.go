@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/rogpeppe/go-internal/testscript"
+
 	"github.com/gunk/gunk/loader"
 )
 
@@ -34,14 +36,17 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	os.Exit(m.Run())
+	os.Exit(testscript.RunMain(m, map[string]func() int{
+		"gunk": main1,
+	}))
 }
 
-func TestGunk(t *testing.T) {
+func TestGenerate(t *testing.T) {
 	pkgs := []string{
 		".", "./imported",
 	}
-	wantFiles, err := generatedFiles(t, "testdata")
+	dir := filepath.Join("testdata", "generate")
+	wantFiles, err := generatedFiles(t, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +55,7 @@ func TestGunk(t *testing.T) {
 		os.Remove(path)
 	}
 
-	if err := loader.Load("testdata", pkgs...); err != nil {
+	if err := loader.Load(dir, pkgs...); err != nil {
 		t.Fatal(err)
 	}
 	if *write {
@@ -58,7 +63,7 @@ func TestGunk(t *testing.T) {
 		return
 	}
 
-	gotFiles, err := generatedFiles(t, "testdata")
+	gotFiles, err := generatedFiles(t, dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,8 +77,12 @@ func TestGunk(t *testing.T) {
 	for path := range wantFiles {
 		t.Errorf("%s was not generated", path)
 	}
+	if testing.Short() {
+		// the build shouldn't have broken if no files have changed
+		return
+	}
 	cmd := exec.Command("go", append([]string{"build"}, pkgs...)...)
-	cmd.Dir = "testdata"
+	cmd.Dir = dir
 	if _, err := cmd.Output(); err != nil {
 		if e, ok := err.(*exec.ExitError); ok {
 			t.Fatalf("%s", e.Stderr)
@@ -104,4 +113,10 @@ func generatedFiles(t *testing.T, dir string) (map[string]string, error) {
 		return nil
 	})
 	return files, err
+}
+
+func TestGenerateError(t *testing.T) {
+	testscript.Run(t, testscript.Params{
+		Dir: filepath.Join("testdata", "scripts"),
+	})
 }

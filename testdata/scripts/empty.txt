@@ -1,10 +1,23 @@
-# empty Gunk package
 env HOME=$WORK/home
-! exec gunk .
+
+# generating an empty Gunk package should fail
+! gunk .
+stderr 'no Gunk packages to generate'
+
+# generating many empty Gunk package should fail
+! gunk . ./p2
+stderr 'no Gunk packages to generate'
+
+# generating packages if some are empty should be OK
+gunk ./...
 
 -- go.mod --
 module testdata.tld/util
 -- doc.go --
-package util
-
-// make this directory a Go package
+package util // make this directory a Go package
+-- p2/doc.go --
+package p2 // make this directory a Go package
+-- p3/doc.go --
+package p3 // make this directory a Go package
+-- p3/echo.gunk --
+package p3

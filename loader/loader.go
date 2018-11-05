@@ -30,6 +30,27 @@ import (
 // ".", it is interpreted as a file system path where a package is located, and
 // "..." patterns are supported.
 func Load(dir string, patterns ...string) error {
+	l := &Loader{
+		dir:  dir,
+		fset: token.NewFileSet(),
+		tconfig: &types.Config{
+			DisableUnusedImportCheck: true,
+		},
+		info: &types.Info{
+			Types: make(map[ast.Expr]types.TypeAndValue),
+			Defs:  make(map[*ast.Ident]types.Object),
+			Uses:  make(map[*ast.Ident]types.Object),
+		},
+
+		loadPkgs:  make(map[string]*gunkPackage),
+		typePkgs:  make(map[string]*types.Package),
+		astPkgs:   make(map[string]map[string]*ast.File),
+		toGen:     make(map[string]map[string]bool),
+		allProto:  make(map[string]*desc.FileDescriptorProto),
+		origPaths: make(map[string]string),
+	}
+	l.tconfig.Importer = l
+
 	// First, translate the patterns to package paths.
 	cfg := &packages.Config{
 		Dir:  dir,
@@ -39,22 +60,45 @@ func Load(dir string, patterns ...string) error {
 	if err != nil {
 		return err
 	}
-	pkgPaths := make([]string, len(pkgs))
-	for i, pkg := range pkgs {
-		pkgPaths[i] = pkg.PkgPath
+
+	// Add the Gunk files to each package.
+	var pkgPaths []string
+	for _, pkg := range pkgs {
+		gpkg, err := l.gunkPackage(pkg)
+		if err != nil {
+			return err
+		}
+		if len(gpkg.GunkFiles) == 0 {
+			// A go package that isn't a Gunk package - skip it.
+			continue
+		}
+		pkgPaths = append(pkgPaths, pkg.PkgPath)
+		l.loadPkgs[pkg.PkgPath] = gpkg
 	}
 
-	l, err := New(dir, pkgPaths...)
-	if err != nil {
+	if len(pkgPaths) == 0 {
+		return fmt.Errorf("no Gunk packages to generate")
+	}
+
+	// Translate the packages from Gunk to Proto.
+	for _, path := range pkgPaths {
+		if err := l.addPkg(path); err != nil {
+			return err
+		}
+		if err := l.translatePkg(path); err != nil {
+			return err
+		}
+	}
+	if err := l.loadProtoDeps(); err != nil {
 		return err
 	}
 
+	// Finally, run the code generators.
 	for _, path := range pkgPaths {
 		if err := l.GeneratePkg(path); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -74,7 +118,7 @@ type Loader struct {
 	info    *types.Info
 
 	// Maps from package import path to package information.
-	loadPkgs map[string]*packages.Package
+	loadPkgs map[string]*gunkPackage
 	astPkgs  map[string]map[string]*ast.File
 	typePkgs map[string]*types.Package
 
@@ -85,44 +129,6 @@ type Loader struct {
 	messageIndex int32
 	serviceIndex int32
 	enumIndex    int32
-}
-
-// New creates a Gunk loader for the specified working directory.
-func New(dir string, paths ...string) (*Loader, error) {
-	l := &Loader{
-		dir:  dir,
-		fset: token.NewFileSet(),
-		tconfig: &types.Config{
-			DisableUnusedImportCheck: true,
-		},
-		info: &types.Info{
-			Types: make(map[ast.Expr]types.TypeAndValue),
-			Defs:  make(map[*ast.Ident]types.Object),
-			Uses:  make(map[*ast.Ident]types.Object),
-		},
-
-		loadPkgs:  make(map[string]*packages.Package),
-		typePkgs:  make(map[string]*types.Package),
-		astPkgs:   make(map[string]map[string]*ast.File),
-		toGen:     make(map[string]map[string]bool),
-		allProto:  make(map[string]*desc.FileDescriptorProto),
-		origPaths: make(map[string]string),
-	}
-	l.tconfig.Importer = l
-
-	for _, path := range paths {
-		if err := l.addPkg(path); err != nil {
-			return nil, err
-		}
-		if err := l.translatePkg(path); err != nil {
-			return nil, err
-		}
-	}
-	if err := l.loadProtoDeps(); err != nil {
-		return nil, err
-	}
-
-	return l, nil
 }
 
 // GeneratePkg runs the proto files resulting from translating gunk packages
@@ -288,7 +294,7 @@ func (l *Loader) translateFile(pkgPath, file string) error {
 		// already translated
 		return nil
 	}
-	lpkg := l.loadPkgs[pkgPath]
+	lpkg := &l.loadPkgs[pkgPath].Package
 	astFiles := l.astPkgs[pkgPath]
 	l.gfile = astFiles[file]
 	l.pfile = &desc.FileDescriptorProto{
@@ -735,25 +741,14 @@ func (l *Loader) convertType(typ types.Type) (desc.FieldDescriptorProto_Type, de
 	return 0, 0, ""
 }
 
-// addPkg sets up a gunk package to be translated and generated. It is
-// parsed from the gunk files on disk and type-checked, gathering all
-// the info needed later on.
-func (l *Loader) addPkg(pkgPath string) error {
-	// First, translate the patterns to package paths.
-	cfg := &packages.Config{
-		Dir:  l.dir,
-		Mode: packages.LoadFiles,
-	}
-	pkgs, err := packages.Load(cfg, pkgPath)
-	if err != nil {
-		return err
-	}
-	if len(pkgs) != 1 {
-		panic("expected go/packages.Load to return exactly one package")
-	}
-	lpkg := pkgs[0]
+type gunkPackage struct {
+	packages.Package
+	GunkFiles []string
+}
+
+func (l *Loader) gunkPackage(lpkg *packages.Package) (*gunkPackage, error) {
 	if len(lpkg.Errors) > 0 {
-		return lpkg.Errors[0]
+		return nil, lpkg.Errors[0]
 	}
 
 	pkgDir := ""
@@ -762,20 +757,51 @@ func (l *Loader) addPkg(pkgPath string) error {
 		if pkgDir == "" {
 			pkgDir = dir
 		} else if dir != pkgDir {
-			return fmt.Errorf("multiple dirs for %s: %s %s",
-				pkgPath, pkgDir, dir)
+			return nil, fmt.Errorf("multiple dirs for %s: %s %s",
+				lpkg.PkgPath, pkgDir, dir)
 		}
 	}
 
 	matches, err := filepath.Glob(filepath.Join(pkgDir, "*.gunk"))
 	if err != nil {
-		return err
+		return nil, err
+	}
+	return &gunkPackage{Package: *lpkg, GunkFiles: matches}, nil
+}
+
+// addPkg sets up a gunk package to be translated and generated. It is
+// parsed from the gunk files on disk and type-checked, gathering all
+// the info needed later on.
+func (l *Loader) addPkg(pkgPath string) error {
+	gpkg := l.loadPkgs[pkgPath]
+	if gpkg == nil {
+		// Implicit gunk package dependency; load it and add it to
+		// l.loadPkgs.
+		cfg := &packages.Config{
+			Dir:  l.dir,
+			Mode: packages.LoadFiles,
+		}
+		pkgs, err := packages.Load(cfg, pkgPath)
+		if err != nil {
+			return err
+		}
+		if len(pkgs) != 1 {
+			panic("expected go/packages.Load to return exactly one package")
+		}
+		gpkg, err = l.gunkPackage(pkgs[0])
+		if err != nil {
+			return err
+		}
+		l.loadPkgs[pkgPath] = gpkg
+	}
+	if len(gpkg.GunkFiles) == 0 {
+		return fmt.Errorf("gunk package %q contains no gunk files", pkgPath)
 	}
 	// TODO: support multiple packages
 	var list []*ast.File
 	pkgName := "default"
 	astFiles := make(map[string]*ast.File)
-	for _, match := range matches {
+	for _, match := range gpkg.GunkFiles {
 		file, err := parser.ParseFile(l.fset, match, nil, parser.ParseComments)
 		if err != nil {
 			return err
@@ -793,7 +819,6 @@ func (l *Loader) addPkg(pkgPath string) error {
 	if err := check.Files(list); err != nil {
 		return err
 	}
-	l.loadPkgs[pkgPath] = lpkg
 	l.typePkgs[pkgPath] = tpkg
 	l.astPkgs[pkgPath] = astFiles
 	l.toGen[pkgPath] = make(map[string]bool)

@@ -1,5 +1,5 @@
 // package util contains a simple Echo service.
-package util
+package util // proto "testdata.v1.util"
 
 import (
 	"time"

@@ -18,11 +18,10 @@ import (
 	"strconv"
 	"strings"
 
-	"golang.org/x/tools/go/packages"
-
 	"github.com/golang/protobuf/proto"
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
+	"golang.org/x/tools/go/packages"
 	"google.golang.org/genproto/googleapis/api/annotations"
 )
 
@@ -59,13 +58,16 @@ func Load(dir string, patterns ...string) error {
 	return nil
 }
 
-// Loader
 type Loader struct {
 	dir string // if empty, uses the current directory
 
 	gfile *ast.File
 	pfile *desc.FileDescriptorProto
 	tpkg  *types.Package
+
+	// protoPkgName is the name of the protobuf package currently being
+	// translated.
+	protoPkgName string
 
 	fset    *token.FileSet
 	tconfig *types.Config
@@ -232,11 +234,26 @@ func (l *Loader) requestForPkg(path string) *plugin.CodeGeneratorRequest {
 // proto language. All the files within the package, including all the
 // files for its transitive dependencies, must already be loaded via
 // addPkg.
-func (l *Loader) translatePkg(path string) error {
-	l.tpkg = l.typePkgs[path]
-	astFiles := l.astPkgs[path]
-	for file := range astFiles {
-		if err := l.translateFile(path, file); err != nil {
+func (l *Loader) translatePkg(pkgPath string) error {
+	l.tpkg = l.typePkgs[pkgPath]
+	astFiles := l.astPkgs[pkgPath]
+
+	l.protoPkgName = ""
+	for _, file := range astFiles {
+		name, err := l.protoPackageName(file)
+		if err != nil {
+			return err
+		}
+		if l.protoPkgName == "" {
+			l.protoPkgName = name
+		} else if name != "" {
+			return fmt.Errorf("proto package name mismatch: %q %q",
+				l.protoPkgName, name)
+		}
+	}
+
+	for fpath := range astFiles {
+		if err := l.translateFile(pkgPath, fpath); err != nil {
 			return err
 		}
 	}
@@ -262,21 +279,22 @@ func (l *Loader) translatePkg(path string) error {
 }
 
 // translateFile translates a single gunk file to a proto file.
-func (l *Loader) translateFile(path, file string) error {
+func (l *Loader) translateFile(pkgPath, file string) error {
 	l.messageIndex = 0
 	l.serviceIndex = 0
 	l.enumIndex = 0
-	l.toGen[path][file] = true
+	l.toGen[pkgPath][file] = true
 	if _, ok := l.allProto[file]; ok {
+		// already translated
 		return nil
 	}
-	lpkg := l.loadPkgs[path]
-	astFiles := l.astPkgs[path]
+	lpkg := l.loadPkgs[pkgPath]
+	astFiles := l.astPkgs[pkgPath]
 	l.gfile = astFiles[file]
 	l.pfile = &desc.FileDescriptorProto{
 		Syntax:  proto.String("proto3"),
 		Name:    proto.String(file),
-		Package: proto.String(lpkg.Name),
+		Package: proto.String(lpkg.Name), // TODO(mvdan): use l.protoPkgName
 		Options: &desc.FileOptions{
 			GoPackage: proto.String(lpkg.Name),
 			// TODO: Add other package options
@@ -290,6 +308,32 @@ func (l *Loader) translateFile(path, file string) error {
 	}
 	l.allProto[file] = l.pfile
 	return nil
+}
+
+const protoCommentPrefix = "// proto "
+
+func (l *Loader) protoPackageName(file *ast.File) (string, error) {
+	packageLine := l.fset.Position(file.Package).Line
+allComments:
+	for _, cgroup := range file.Comments {
+		for _, comment := range cgroup.List {
+			cline := l.fset.Position(comment.Pos()).Line
+			if cline < packageLine {
+				continue // comment before package line
+			} else if cline > packageLine {
+				break allComments // we're past the package line
+			}
+			quoted := strings.TrimPrefix(comment.Text, protoCommentPrefix)
+			if quoted == comment.Text {
+				continue // comment doesn't have the prefix
+			}
+			unquoted, err := strconv.Unquote(quoted)
+			return unquoted, err
+		}
+	}
+
+	// none found
+	return "", nil
 }
 
 // translateDecl translates a top-level declaration in a gunk file. It

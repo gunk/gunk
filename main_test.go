@@ -9,9 +9,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/rogpeppe/go-internal/testscript"
-
 	"github.com/gunk/gunk/loader"
+	"github.com/rogpeppe/go-internal/testscript"
 )
 
 var write = flag.Bool("w", false, "overwrite testdata output files")

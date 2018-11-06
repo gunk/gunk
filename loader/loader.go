@@ -107,10 +107,6 @@ type Loader struct {
 	gfile  *ast.File
 	pfile  *desc.FileDescriptorProto
 
-	// protoPkgName is the name of the protobuf package currently being
-	// translated.
-	protoPkgName string
-
 	fset    *token.FileSet
 	tconfig *types.Config
 	info    *types.Info
@@ -240,20 +236,6 @@ func (l *Loader) translatePkg(pkgPath string) error {
 	gpkg := l.gunkPkgs[pkgPath]
 	l.curPkg = gpkg
 
-	l.protoPkgName = ""
-	for _, file := range gpkg.GunkSyntax {
-		name, err := l.protoPackageName(file)
-		if err != nil {
-			return err
-		}
-		if l.protoPkgName == "" {
-			l.protoPkgName = name
-		} else if name != "" {
-			return fmt.Errorf("proto package name mismatch: %q %q",
-				l.protoPkgName, name)
-		}
-	}
-
 	for i, fpath := range gpkg.GunkNames {
 		if err := l.translateFile(pkgPath, fpath, gpkg.GunkSyntax[i]); err != nil {
 			return err
@@ -296,7 +278,7 @@ func (l *Loader) translateFile(pkgPath, fpath string, file *ast.File) error {
 	l.pfile = &desc.FileDescriptorProto{
 		Syntax:  proto.String("proto3"),
 		Name:    proto.String(fpath),
-		Package: proto.String(gpkg.Name), // TODO(mvdan): use l.protoPkgName
+		Package: proto.String(gpkg.ProtoName),
 		Options: &desc.FileOptions{
 			GoPackage: proto.String(gpkg.Name),
 			// TODO: Add other package options
@@ -687,9 +669,10 @@ func (l *Loader) convertEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto, er
 func (l *Loader) qualifiedTypeName(typeName string, pkg *types.Package) string {
 	// If pkg is nil, we should format the type for the current package.
 	if pkg == nil {
-		return "." + *l.pfile.Package + "." + typeName
+		return "." + l.curPkg.ProtoName + "." + typeName
 	}
-	return "." + pkg.Name() + "." + typeName
+	gpkg := l.gunkPkgs[pkg.Path()]
+	return "." + gpkg.ProtoName + "." + typeName
 }
 
 // convertType converts a Go field or parameter type to Protobuf, returning its
@@ -747,6 +730,8 @@ type gunkPackage struct {
 	// CodeGeneratorRequest, because that will trigger many generators to
 	// write to disk.
 	GunkNames []string
+
+	ProtoName string // protobuf package name
 }
 
 func (l *Loader) gunkPackage(lpkg *packages.Package) (*gunkPackage, error) {
@@ -769,7 +754,41 @@ func (l *Loader) gunkPackage(lpkg *packages.Package) (*gunkPackage, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &gunkPackage{Package: *lpkg, GunkFiles: matches}, nil
+
+	gpkg := &gunkPackage{
+		Package:   *lpkg,
+		GunkFiles: matches,
+	}
+
+	// parse the gunk files
+	for _, fpath := range gpkg.GunkFiles {
+		file, err := parser.ParseFile(l.fset, fpath, nil, parser.ParseComments)
+		if err != nil {
+			return nil, err
+		}
+		// to make the generated code independent of the current
+		// directory when running gunk
+		relPath := gpkg.PkgPath + "/" + filepath.Base(fpath)
+		l.origPaths[relPath] = fpath
+		gpkg.GunkNames = append(gpkg.GunkNames, relPath)
+		gpkg.GunkSyntax = append(gpkg.GunkSyntax, file)
+
+		name, err := l.protoPackageName(file)
+		if err != nil {
+			return nil, err
+		}
+		if gpkg.ProtoName == "" {
+			gpkg.ProtoName = name
+		} else if name != "" {
+			return nil, fmt.Errorf("proto package name mismatch: %q %q",
+				gpkg.ProtoName, name)
+		}
+	}
+	if gpkg.ProtoName == "" {
+		gpkg.ProtoName = gpkg.Name
+	}
+
+	return gpkg, nil
 }
 
 // addPkg sets up a gunk package to be translated and generated. It is
@@ -800,24 +819,7 @@ func (l *Loader) addPkg(pkgPath string) error {
 	if len(gpkg.GunkFiles) == 0 {
 		return fmt.Errorf("gunk package %q contains no gunk files", pkgPath)
 	}
-	// TODO: support multiple packages
-	pkgName := "default"
-	gpkg.GunkNames = nil
-	gpkg.GunkSyntax = nil
-	for _, fpath := range gpkg.GunkFiles {
-		file, err := parser.ParseFile(l.fset, fpath, nil, parser.ParseComments)
-		if err != nil {
-			return err
-		}
-		pkgName = file.Name.Name
-		// to make the generated code independent of the current
-		// directory when running gunk
-		relPath := pkgPath + "/" + filepath.Base(fpath)
-		l.origPaths[relPath] = fpath
-		gpkg.GunkNames = append(gpkg.GunkNames, relPath)
-		gpkg.GunkSyntax = append(gpkg.GunkSyntax, file)
-	}
-	gpkg.Types = types.NewPackage(pkgPath, pkgName)
+	gpkg.Types = types.NewPackage(pkgPath, gpkg.Name)
 	check := types.NewChecker(l.tconfig, l.fset, gpkg.Types, l.info)
 	if err := check.Files(gpkg.GunkSyntax); err != nil {
 		return err

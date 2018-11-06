@@ -1,4 +1,4 @@
-package imported
+package imported // proto "testdata.v1.util.imported"
 
 // Message is a Echo message.
 type Message struct {

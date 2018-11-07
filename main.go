@@ -6,6 +6,7 @@ import (
 
 	"gopkg.in/alecthomas/kingpin.v2"
 
+	"github.com/gunk/gunk/convert"
 	"github.com/gunk/gunk/generate"
 )
 
@@ -14,6 +15,10 @@ var (
 
 	gen         = app.Command("generate", "Generate code.")
 	genPatterns = gen.Arg("patterns", "patterns of Gunk packages").Strings()
+
+	conv                  = app.Command("convert", "Convert Proto file to Gunk file.")
+	convProtoFile         = conv.Arg("file", "Proto file to convert to Gunk").String()
+	convOverwriteGunkFile = conv.Flag("overwrite", "overwrite the converted Gunk file if it exists.").Bool()
 )
 
 func main() {
@@ -22,9 +27,14 @@ func main() {
 
 func main1() int {
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
-	// Register user
+	// Register generate command.
 	case gen.FullCommand():
 		if err := generate.Generate("", *genPatterns...); err != nil {
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
+			return 1
+		}
+	case conv.FullCommand():
+		if err := convert.Convert(*convProtoFile, *convOverwriteGunkFile); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			return 1
 		}

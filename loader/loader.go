@@ -5,10 +5,15 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"html/template"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/golang/protobuf/proto"
+	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -138,4 +143,52 @@ allComments:
 
 	// none found
 	return "", nil
+}
+
+// LoadProto loads the specified protobuf packages as if they were dependencies.
+//
+// It does so with protoc, to leverage protoc's features such as locating the
+// files, and the protoc parser to get a FileDescriptorProto out of the proto
+// file content.
+func LoadProto(names ...string) ([]*desc.FileDescriptorProto, error) {
+	tmpl := template.Must(template.New("letter").Parse(`
+syntax = "proto3";
+
+{{range $_, $name := .}}import "{{$name}}";
+{{end}}
+`))
+	importsFile, err := os.Create("gunk-proto")
+	if err != nil {
+		return nil, err
+	}
+	if err := tmpl.Execute(importsFile, names); err != nil {
+		return nil, err
+	}
+	if err := importsFile.Close(); err != nil {
+		return nil, err
+	}
+	defer os.Remove("gunk-proto")
+
+	// TODO: any way to specify stdout while being portable?
+	cmd := exec.Command("protoc", "-o/dev/stdout", "--include_imports", "gunk-proto")
+	out, err := cmd.Output()
+	if err != nil {
+		if e, ok := err.(*exec.ExitError); ok {
+			return nil, fmt.Errorf("%s", e.Stderr)
+		}
+		return nil, err
+	}
+
+	var fset desc.FileDescriptorSet
+	if err := proto.Unmarshal(out, &fset); err != nil {
+		return nil, err
+	}
+	for i := 0; i < len(fset.File); {
+		if *fset.File[i].Name == "gunk-proto" {
+			fset.File = append(fset.File[:i], fset.File[i+1:]...)
+		} else {
+			i++
+		}
+	}
+	return fset.File, nil
 }

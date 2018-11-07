@@ -8,7 +8,6 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
-	"html/template"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -241,9 +240,7 @@ func (g *Generator) translatePkg(pkgPath string) error {
 				continue
 			}
 			opath, _ := strconv.Unquote(imp.Path.Value)
-			for _, oname := range g.gunkPkgs[opath].GunkNames {
-				pfile.Dependency = append(pfile.Dependency, oname)
-			}
+			pfile.Dependency = append(pfile.Dependency, g.gunkPkgs[opath].GunkNames...)
 		}
 	}
 	return nil
@@ -764,57 +761,26 @@ func (g *Generator) addProtoDep(protoPath string) {
 	g.pfile.Dependency = append(g.pfile.Dependency, protoPath)
 }
 
-// loadProtoDeps loads all the proto dependencies added with addProtoDep.
-//
-// It does so with protoc, to leverage protoc's features such as locating the
-// files, and the protoc parser to get a FileDescriptorProto out of the proto file
-// content.
+// loadProtoDeps loads all the missing proto dependencies added with
+// addProtoDep.
 func (g *Generator) loadProtoDeps() error {
 	missing := make(map[string]bool)
+	var list []string
 	for _, pfile := range g.allProto {
 		for _, dep := range pfile.Dependency {
-			if _, e := g.allProto[dep]; !e {
+			if _, e := g.allProto[dep]; !e && !missing[dep] {
 				missing[dep] = true
+				list = append(list, dep)
 			}
 		}
 	}
 
-	tmpl := template.Must(template.New("letter").Parse(`
-syntax = "proto3";
-
-{{range $dep, $_ := .}}import "{{$dep}}";
-{{end}}
-`))
-	importsFile, err := os.Create("gunk-proto")
+	files, err := loader.LoadProto(list...)
 	if err != nil {
-		return err
-	}
-	if err := tmpl.Execute(importsFile, missing); err != nil {
-		return err
-	}
-	if err := importsFile.Close(); err != nil {
-		return err
-	}
-	defer os.Remove("gunk-proto")
-
-	// TODO: any way to specify stdout while being portable?
-	cmd := exec.Command("protoc", "-o/dev/stdout", "--include_imports", "gunk-proto")
-	out, err := cmd.Output()
-	if err != nil {
-		if e, ok := err.(*exec.ExitError); ok {
-			return fmt.Errorf("%s", e.Stderr)
-		}
-		return err
+		return nil
 	}
 
-	var fset desc.FileDescriptorSet
-	if err := proto.Unmarshal(out, &fset); err != nil {
-		return err
-	}
-	for _, pfile := range fset.File {
-		if *pfile.Name == "gunk-proto" {
-			continue
-		}
+	for _, pfile := range files {
 		g.allProto[*pfile.Name] = pfile
 	}
 	return nil

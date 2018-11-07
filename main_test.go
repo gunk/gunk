@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/gunk/gunk/loader"
+	"github.com/gunk/gunk/generate"
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
@@ -56,7 +56,7 @@ func TestGenerate(t *testing.T) {
 		os.Remove(path)
 	}
 
-	if err := loader.Load(dir, pkgs...); err != nil {
+	if err := generate.Generate(dir, pkgs...); err != nil {
 		t.Fatal(err)
 	}
 	if *write {

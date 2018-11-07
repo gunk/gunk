@@ -1,0 +1,23 @@
+gunk
+stderr '^usage: gunk \['
+! stdout .
+
+gunk help
+stderr '^usage: gunk \['
+! stdout .
+
+gunk generate --help
+stderr '^usage: gunk generate'
+! stdout .
+
+gunk help generate
+stderr '^usage: gunk generate'
+! stdout .
+
+! gunk missing
+stderr 'expected command'
+
+! gunk generate --missing
+stderr 'unknown long flag'
+! stdout .
+

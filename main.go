@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gunk/gunk/loader"
+	"github.com/gunk/gunk/generate"
 )
 
 func main() {
@@ -15,7 +15,7 @@ func main() {
 func main1() int {
 	flag.Parse()
 
-	if err := loader.Load("", flag.Args()...); err != nil {
+	if err := generate.Generate("", flag.Args()...); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		return 1
 	}

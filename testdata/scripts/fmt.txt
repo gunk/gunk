@@ -1,0 +1,29 @@
+env HOME=$WORK/home
+
+# formatting an empty Gunk package should fail
+! gunk format ./empty
+stderr 'no Gunk packages to format'
+
+# formatting a normal package and checking the result
+gunk format .
+cmp echo.gunk echo.gunk.golden
+
+-- go.mod --
+module testdata.tld/util
+-- doc.go --
+package util // make this directory a Go package
+-- empty/doc.go --
+package empty // make this directory a Go package
+
+-- echo.gunk --
+package util   // proto "testdata.v1.util"
+
+type Request struct {
+Status Status    `pb:"1" json:"status"`
+}
+-- echo.gunk.golden --
+package util // proto "testdata.v1.util"
+
+type Request struct {
+	Status Status `pb:"1" json:"status"`
+}

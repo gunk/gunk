@@ -19,13 +19,6 @@ const (
 	serviceMethodPath = 2 // ServiceDescriptorProto.Method
 )
 
-// namePrefix returns a func which prefixes the supplied name.
-func namePrefix(name string) func(string) string {
-	return func(text string) string {
-		return name + "_" + text
-	}
-}
-
 // splitGunkTag splits a '+gunk' tag.
 func splitGunkTag(text string) (doc, tag string) {
 	lines := strings.Split(text, "\n")

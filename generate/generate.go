@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"strconv"
@@ -22,12 +23,17 @@ import (
 	"golang.org/x/tools/go/packages"
 	"google.golang.org/genproto/googleapis/api/annotations"
 
+	"github.com/gunk/gunk/config"
 	"github.com/gunk/gunk/loader"
 )
 
 // Generate runs protobuf generators on the specified Gunk packages, writing the
 // output files in the same directories.
 func Generate(dir string, patterns ...string) error {
+	cfg, err := config.Load(dir)
+	if err != nil {
+		return fmt.Errorf("unable to load gunkconfig: %v", err)
+	}
 	g := &Generator{
 		dir:  dir,
 		fset: token.NewFileSet(),
@@ -59,7 +65,9 @@ func Generate(dir string, patterns ...string) error {
 	for _, pkg := range pkgs {
 		g.gunkPkgs[pkg.PkgPath] = pkg
 		for i, name := range pkg.GunkNames {
-			g.origPaths[name] = pkg.GunkFiles[i]
+			// Save only the directory for each file path.
+			dir, _ := filepath.Split(name)
+			g.origPaths[dir], _ = filepath.Split(pkg.GunkFiles[i])
 		}
 	}
 
@@ -78,7 +86,7 @@ func Generate(dir string, patterns ...string) error {
 
 	// Finally, run the code generators.
 	for _, pkg := range pkgs {
-		if err := g.GeneratePkg(pkg.PkgPath); err != nil {
+		if err := g.GeneratePkg(pkg.PkgPath, cfg.Generators); err != nil {
 			return err
 		}
 	}
@@ -117,13 +125,53 @@ type Generator struct {
 // It is fine to pass the plugin.CodeGeneratorRequest to every protoc generator
 // unaltered; this is what protoc does when calling out to the generators and
 // the generators should already handle the case where they have nothing to do.
-func (g *Generator) GeneratePkg(path string) error {
+func (g *Generator) GeneratePkg(path string, gens []config.Generator) error {
 	req := g.requestForPkg(path)
+	// TODO: Use the go generator library rather than shell out.
+	// Run generator for go.
 	if err := g.generatePluginGo(*req); err != nil {
 		return fmt.Errorf("error generating plugin go: %v", err)
 	}
-	if err := g.generatePluginGrpcGateway(*req); err != nil {
-		return fmt.Errorf("error generating plugin grpc-gateway: %v", err)
+	// Run any other configured generators.
+	for _, gen := range gens {
+		if err := g.generatePlugin(*req, gen); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.Generator) error {
+	protoParameters := make([]string, len(gen.Params))
+	for i, p := range gen.Params {
+		protoParameters[i] = fmt.Sprintf("%s=%s", p.Key, p.Value)
+	}
+	req.Parameter = proto.String(strings.Join(protoParameters, ","))
+	bs, err := proto.Marshal(&req)
+	if err != nil {
+		return err
+	}
+
+	cmd := exec.Command(gen.Command)
+	cmd.Stdin = bytes.NewReader(bs)
+	cmd.Stderr = os.Stderr
+	out, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("error executing %s: %s, %v", gen.Command, out, err)
+	}
+	var resp plugin.CodeGeneratorResponse
+	if err := proto.Unmarshal(out, &resp); err != nil {
+		return err
+	}
+	for _, rf := range resp.File {
+		// Turn the relative package file path to the absolute
+		// on-disk file path.
+		dir, f := filepath.Split(*rf.Name)
+		outPath := strings.Replace(g.origPaths[dir]+f, ".gunk", "", 1)
+		data := []byte(*rf.Content)
+		if err := ioutil.WriteFile(outPath, data, 0644); err != nil {
+			return fmt.Errorf("unable to write to file %q: %v", outPath, err)
+		}
 	}
 	return nil
 }
@@ -148,9 +196,8 @@ func (g *Generator) generatePluginGo(req plugin.CodeGeneratorRequest) error {
 	}
 	for _, rf := range resp.File {
 		// to turn foo.gunk.pb.go into foo.pb.go
-		inPath := strings.Replace(*rf.Name, ".pb.go", "", 1)
-		outPath := g.origPaths[inPath]
-		outPath = strings.Replace(outPath, ".gunk", ".pb.go", 1)
+		dir, f := filepath.Split(*rf.Name)
+		outPath := strings.Replace(g.origPaths[dir]+f, ".gunk", "", 1)
 		data := []byte(*rf.Content)
 		if err := ioutil.WriteFile(outPath, data, 0644); err != nil {
 			return fmt.Errorf("unable to write to file %q: %v", outPath, err)

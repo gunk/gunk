@@ -31,7 +31,8 @@ the Go programming language:
 Working with the `gunk` command line tool should be instantly recognizable to
 experienced Go developers:
 
-	gunk generate ./examples/util
+	cd ./examples/util
+	gunk generate .
 
 ## Overview
 

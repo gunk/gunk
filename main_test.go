@@ -119,5 +119,10 @@ func generatedFiles(t *testing.T, dir string) (map[string]string, error) {
 func TestGenerateError(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir: filepath.Join("testdata", "scripts"),
+		Setup: func(env *testscript.Env) error {
+			oldName := filepath.Join("testdata/generate", ".gunkconfig")
+			newName := filepath.Join(env.WorkDir, ".gunkconfig")
+			return os.Link(oldName, newName)
+		},
 	})
 }

@@ -267,7 +267,7 @@ func (g *Generator) translateFile(pkgPath, fpath string, file *ast.File) error {
 			// TODO: Add other package options
 		},
 	}
-	g.addDoc(file.Doc, nil, packagePath)
+	g.addDoc(file.Doc.Text(), packagePath)
 	for _, decl := range file.Decls {
 		if err := g.translateDecl(decl); err != nil {
 			return err
@@ -327,16 +327,12 @@ func (g *Generator) translateDecl(decl ast.Decl) error {
 	return nil
 }
 
-func (g *Generator) addDoc(doc *ast.CommentGroup, transform func(string) string, path ...int32) {
-	if doc == nil {
+func (g *Generator) addDoc(text string, path ...int32) {
+	if text == "" {
 		return
 	}
 	if g.pfile.SourceCodeInfo == nil {
 		g.pfile.SourceCodeInfo = &desc.SourceCodeInfo{}
-	}
-	text := doc.Text()
-	if transform != nil {
-		text = transform(text)
 	}
 	g.pfile.SourceCodeInfo.Location = append(g.pfile.SourceCodeInfo.Location,
 		&desc.SourceCodeInfo_Location{
@@ -347,7 +343,7 @@ func (g *Generator) addDoc(doc *ast.CommentGroup, transform func(string) string,
 }
 
 func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, error) {
-	g.addDoc(tspec.Doc, nil, messagePath, g.messageIndex)
+	g.addDoc(tspec.Doc.Text(), messagePath, g.messageIndex)
 	msg := &desc.DescriptorProto{
 		Name: proto.String(tspec.Name.Name),
 	}
@@ -357,7 +353,7 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, 
 			return nil, fmt.Errorf("need all fields to have one name")
 		}
 		fieldName := field.Names[0].Name
-		g.addDoc(field.Doc, nil, messagePath, g.messageIndex, messageFieldPath, int32(i))
+		g.addDoc(field.Doc.Text(), messagePath, g.messageIndex, messageFieldPath, int32(i))
 		ftype := g.info.TypeOf(field.Type)
 
 		var ptype desc.FieldDescriptorProto_Type
@@ -418,13 +414,8 @@ func (g *Generator) convertService(tspec *ast.TypeSpec) (*desc.ServiceDescriptor
 		if len(method.Names) != 1 {
 			return nil, fmt.Errorf("need all methods to have one name")
 		}
-		tag := ""
-		stripTag := func(text string) string {
-			text, tag = splitGunkTag(text)
-			return text
-		}
-		g.addDoc(method.Doc, stripTag, servicePath, g.serviceIndex,
-			serviceMethodPath, int32(i))
+		docText, tag := splitGunkTag(method.Doc.Text())
+		g.addDoc(docText, servicePath, g.serviceIndex, serviceMethodPath, int32(i))
 		pmethod := &desc.MethodDescriptorProto{
 			Name: proto.String(method.Names[0].Name),
 		}
@@ -582,7 +573,7 @@ func (g *Generator) convertParameter(tuple *types.Tuple) (*string, error) {
 }
 
 func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto, error) {
-	g.addDoc(tspec.Doc, nil, enumPath, g.enumIndex)
+	g.addDoc(tspec.Doc.Text(), enumPath, g.enumIndex)
 	enum := &desc.EnumDescriptorProto{
 		Name: proto.String(tspec.Name.Name),
 	}
@@ -604,8 +595,8 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto,
 				continue
 			}
 			// SomeVal will be exported as SomeType_SomeVal
-			g.addDoc(vs.Doc, namePrefix(tspec.Name.Name),
-				enumPath, g.enumIndex, enumValuePath, int32(i))
+			docText := tspec.Name.Name + "_" + vs.Doc.Text()
+			g.addDoc(docText, enumPath, g.enumIndex, enumValuePath, int32(i))
 			val := g.info.Defs[name].(*types.Const).Val()
 			ival, _ := constant.Int64Val(val)
 			enum.Value = append(enum.Value, &desc.EnumValueDescriptorProto{

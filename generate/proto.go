@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -18,23 +17,6 @@ const (
 	enumValuePath     = 2 // EnumDescriptorProto.Value
 	serviceMethodPath = 2 // ServiceDescriptorProto.Method
 )
-
-// splitGunkTag splits a '+gunk' tag.
-func splitGunkTag(text string) (doc, tag string) {
-	lines := strings.Split(text, "\n")
-	var tagLines []string
-	for i, line := range lines {
-		if strings.HasPrefix(line, "+gunk ") {
-			tagLines = lines[i:]
-			tagLines[0] = strings.TrimPrefix(tagLines[0], "+gunk ")
-			lines = lines[:i]
-			break
-		}
-	}
-	doc = strings.TrimSpace(strings.Join(lines, "\n"))
-	tag = strings.TrimSpace(strings.Join(tagLines, "\n"))
-	return
-}
 
 func protoNumber(tag reflect.StructTag) (*int32, error) {
 	pbTag := tag.Get("pb")

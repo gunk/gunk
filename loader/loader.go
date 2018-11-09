@@ -192,3 +192,28 @@ syntax = "proto3";
 	}
 	return fset.File, nil
 }
+
+// SplitGunkTag splits a '+gunk' tag from a comment group, returning the leading
+// documentation and the tag's Go expression.
+func SplitGunkTag(fset *token.FileSet, comment *ast.CommentGroup) (string, ast.Expr, error) {
+	lines := strings.Split(comment.Text(), "\n")
+	var tagLines []string
+	for i, line := range lines {
+		if strings.HasPrefix(line, "+gunk ") {
+			tagLines = lines[i:]
+			tagLines[0] = strings.TrimPrefix(tagLines[0], "+gunk ")
+			lines = lines[:i]
+			break
+		}
+	}
+	doc := strings.TrimSpace(strings.Join(lines, "\n"))
+	tagStr := strings.TrimSpace(strings.Join(tagLines, "\n"))
+	if tagStr == "" {
+		return doc, nil, nil
+	}
+	tag, err := parser.ParseExprFrom(fset, "", tagStr, 0)
+	if err != nil {
+		return "", nil, err
+	}
+	return doc, tag, nil
+}

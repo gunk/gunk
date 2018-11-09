@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/constant"
-	"go/parser"
+	"go/printer"
 	"go/token"
 	"go/types"
 	"io/ioutil"
@@ -414,13 +414,15 @@ func (g *Generator) convertService(tspec *ast.TypeSpec) (*desc.ServiceDescriptor
 		if len(method.Names) != 1 {
 			return nil, fmt.Errorf("need all methods to have one name")
 		}
-		docText, tag := splitGunkTag(method.Doc.Text())
+		docText, tag, err := loader.SplitGunkTag(g.fset, method.Doc)
+		if err != nil {
+			return nil, err
+		}
 		g.addDoc(docText, servicePath, g.serviceIndex, serviceMethodPath, int32(i))
 		pmethod := &desc.MethodDescriptorProto{
 			Name: proto.String(method.Names[0].Name),
 		}
 		sign := g.info.TypeOf(method.Type).(*types.Signature)
-		var err error
 		pmethod.InputType, err = g.convertParameter(sign.Params())
 		if err != nil {
 			return nil, err
@@ -429,8 +431,8 @@ func (g *Generator) convertService(tspec *ast.TypeSpec) (*desc.ServiceDescriptor
 		if err != nil {
 			return nil, err
 		}
-		if tag != "" {
-			edesc, val, err := g.interpretTagValue(tag)
+		if tag != nil {
+			edesc, val, err := g.interpretTagExpr(tag)
 			if err != nil {
 				return nil, err
 			}
@@ -494,18 +496,20 @@ func (g *Generator) convertMap(parentName, fieldName string, mapTyp *types.Map) 
 	return typeName, nestedType
 }
 
-func (g *Generator) interpretTagValue(tag string) (*proto.ExtensionDesc, interface{}, error) {
+func (g *Generator) interpretTagExpr(expr ast.Expr) (*proto.ExtensionDesc, interface{}, error) {
+	// Eval needs a string, so stringify it again.
+	var buf bytes.Buffer
+	printer.Fprint(&buf, g.fset, expr)
+
 	// use Eval to resolve the type, and check for any errors in the
 	// value expression
-	tv, err := types.Eval(g.fset, g.curPkg.Types, g.gfile.End(), tag)
+	tv, err := types.Eval(g.fset, g.curPkg.Types, g.gfile.End(), buf.String())
 	if err != nil {
 		return nil, nil, err
 	}
+
 	switch s := tv.Type.String(); s {
 	case "github.com/gunk/opt/http.Match":
-		// an error would be caught in Eval
-		expr, _ := parser.ParseExpr(tag)
-
 		// Capture the values required to use in annotations.HttpRule.
 		// We need to evaluate the entire expression, and then we can
 		// create an annotations.HttpRule.

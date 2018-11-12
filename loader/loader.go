@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/parser"
+	"go/scanner"
 	"go/token"
 	"html/template"
 	"os"
@@ -196,24 +197,51 @@ syntax = "proto3";
 // SplitGunkTag splits a '+gunk' tag from a comment group, returning the leading
 // documentation and the tag's Go expression.
 func SplitGunkTag(fset *token.FileSet, comment *ast.CommentGroup) (string, ast.Expr, error) {
-	lines := strings.Split(comment.Text(), "\n")
+	docLines := strings.Split(comment.Text(), "\n")
 	var tagLines []string
-	for i, line := range lines {
+	for i, line := range docLines {
 		if strings.HasPrefix(line, "+gunk ") {
-			tagLines = lines[i:]
-			tagLines[0] = strings.TrimPrefix(tagLines[0], "+gunk ")
-			lines = lines[:i]
+			tagLines = docLines[i:]
+			// Replace "+gunk" with spaces, so that we keep the
+			// tag's lines all starting at the same column, for
+			// accurate position information later.
+			tagLines[0] = strings.Replace(tagLines[0], "+gunk", "     ", 1)
+			docLines = docLines[:i]
 			break
 		}
 	}
-	doc := strings.TrimSpace(strings.Join(lines, "\n"))
-	tagStr := strings.TrimSpace(strings.Join(tagLines, "\n"))
-	if tagStr == "" {
+	doc := strings.TrimSpace(strings.Join(docLines, "\n"))
+	tagStr := strings.Join(tagLines, "\n")
+	if strings.TrimSpace(tagStr) == "" {
 		return doc, nil, nil
 	}
 	tag, err := parser.ParseExprFrom(fset, "", tagStr, 0)
 	if err != nil {
-		return "", nil, err
+		tagPos := fset.Position(comment.Pos())
+		tagPos.Line += len(docLines) // relative to the "+gunk" line
+		tagPos.Column += len("// ")  // .Text() stripped these prefixes
+		return "", nil, ErrorAbsolutePos(err, tagPos)
 	}
+	// TODO: make positions in the tag expression absolute too
 	return doc, tag, nil
+}
+
+// ErrorAbsolutePos modifies all positions in err, considered to be relative to
+// pos. This is useful so that the position information of syntax tree nodes
+// parsed from a comment are relative to the entire file, and not only relative
+// to the comment containing the source.
+func ErrorAbsolutePos(err error, pos token.Position) error {
+	list, ok := err.(scanner.ErrorList)
+	if !ok {
+		return err
+	}
+	for i, err := range list {
+		err.Pos.Filename = pos.Filename
+		err.Pos.Line += pos.Line
+		err.Pos.Line-- // since these numbers are 1-based
+		err.Pos.Column += pos.Column
+		err.Pos.Column-- // since these numbers are 1-based
+		list[i] = err
+	}
+	return list
 }

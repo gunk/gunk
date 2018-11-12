@@ -1,0 +1,43 @@
+env HOME=$WORK/home
+
+! gunk generate ./p1
+stderr 'p1.gunk:10:22: expected operand'
+
+! gunk generate ./p2
+stderr 'p2.gunk:11:13: expected operand'
+
+-- go.mod --
+module testdata.tld/util
+-- p1/doc.go --
+package util // make this directory a Go package
+-- p1/p1.gunk --
+package util
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
+type Util interface {
+	// Echo echoes a message.
+	//
+	// +gunk http.Match{)
+	// }
+	Echo(Message) Message
+}
+-- p2/doc.go --
+package util // make this directory a Go package
+-- p2/p2.gunk --
+package util
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
+type Util interface {
+	// Echo echoes a message.
+	//
+	// +gunk http.Match{
+	//         )
+	// }
+	Echo(Message) Message
+}

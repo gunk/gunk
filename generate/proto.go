@@ -37,3 +37,10 @@ func jsonName(tag reflect.StructTag) *string {
 	}
 	return proto.String(jsonTag)
 }
+
+func protoStringOrNil(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return proto.String(s)
+}

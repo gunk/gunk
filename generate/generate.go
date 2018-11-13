@@ -134,19 +134,78 @@ func (g *Generator) GeneratePkg(path string, gens []config.Generator) error {
 	}
 	// Run any other configured generators.
 	for _, gen := range gens {
-		if err := g.generatePlugin(*req, gen); err != nil {
-			return err
+		if gen.IsProtoc() {
+			if err := g.generateProtoc(*req, gen); err != nil {
+				return err
+			}
+		} else {
+			if err := g.generatePlugin(*req, gen); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.Generator) error {
-	protoParameters := make([]string, len(gen.Params))
-	for i, p := range gen.Params {
-		protoParameters[i] = fmt.Sprintf("%s=%s", p.Key, p.Value)
+func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.Generator) error {
+	// The proto files we are asking protoc to generate. This should be
+	// a formatted list of what is in req.FileToGenerate.
+	protoFilenames := []string{}
+
+	fds := desc.FileDescriptorSet{
+		File: req.ProtoFile,
 	}
-	req.Parameter = proto.String(strings.Join(protoParameters, ","))
+	// Determine the files that protoc will be generating and
+	// remove the package directory path and change .gunk to .proto.
+	// This is needed because there is no way to specify the output
+	// filename, and protoc will use the FileDescriptorSet.File.Name
+	// to determine the filename. In our case, that would be the
+	// package path, but it would be created from the current relative
+	// directory, rather than an absolute path.
+	//
+	// We also replace .gunk with .proto. protoc will turn
+	// 'echo.gunk' into 'echo.gunk_pb.js' which makes it a bit
+	// hard to replace afterwards. This seemed like the easier approach.
+	for i, f := range fds.File {
+		for _, ftg := range req.GetFileToGenerate() {
+			if f.GetName() != ftg {
+				continue
+			}
+			name := filepath.Base(ftg)
+			name = strings.Replace(name, ".gunk", ".proto", 1)
+			fds.File[i].Name = proto.String(name)
+			protoFilenames = append(protoFilenames, name)
+		}
+	}
+
+	bs, err := proto.Marshal(&fds)
+	if err != nil {
+		return err
+	}
+
+	// Build up the protoc command line arguments.
+	command := "protoc"
+	args := []string{
+		fmt.Sprintf("--%s_out=%s", gen.ProtocGen, gen.ParamsWithOut()),
+		"--descriptor_set_in=/dev/stdin",
+	}
+
+	for _, f := range protoFilenames {
+		args = append(args, f)
+	}
+
+	cmd := exec.Command(command, args...)
+	cmd.Stdin = bytes.NewReader(bs)
+	cmd.Stderr = os.Stderr
+	out, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("error executing %q: %q, %v", command, out, err)
+	}
+	return nil
+}
+
+func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.Generator) error {
+	req.Parameter = proto.String(gen.Params())
 	bs, err := proto.Marshal(&req)
 	if err != nil {
 		return err
@@ -362,11 +421,16 @@ func (g *Generator) translateDecl(decl ast.Decl) error {
 			}
 			g.pfile.Service = append(g.pfile.Service, srv)
 		case *ast.Ident:
+			// TODO(vishen): Check to see if the ident is a known file
+			// option and add if to  'p.file.Options'.
 			enum, err := g.convertEnum(ts)
 			if err != nil {
 				return err
 			}
-			g.pfile.EnumType = append(g.pfile.EnumType, enum)
+			// This can happen if the enum has no values.
+			if enum != nil {
+				g.pfile.EnumType = append(g.pfile.EnumType, enum)
+			}
 		default:
 			return fmt.Errorf("invalid declaration type %T", ts.Type)
 		}
@@ -421,7 +485,6 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, 
 		if ptype == 0 {
 			return nil, fmt.Errorf("unsupported field type: %v", ftype)
 		}
-
 		// Check that the struct field has a tag. We currently
 		// require all struct fields to have a tag; this is used
 		// to assign the position number for a field, ie: `pb:"1"`
@@ -442,7 +505,7 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, 
 		msg.Field = append(msg.Field, &desc.FieldDescriptorProto{
 			Name:     proto.String(fieldName),
 			Number:   num,
-			TypeName: &tname,
+			TypeName: protoStringOrNil(tname),
 			Type:     &ptype,
 			Label:    &plabel,
 			JsonName: jsonName(tag),
@@ -657,6 +720,10 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto,
 		}
 	}
 	g.enumIndex++
+	// If an enum doesn't have any values
+	if len(enum.Value) == 0 {
+		return nil, nil
+	}
 	return enum, nil
 }
 

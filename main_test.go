@@ -120,9 +120,16 @@ func TestGenerateError(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir: filepath.Join("testdata", "scripts"),
 		Setup: func(env *testscript.Env) error {
-			oldName := filepath.Join("testdata/generate", ".gunkconfig")
+			// Use a full copy instead of a hard link or a symbolic
+			// link, as those can cause issues if /tmp is a separate
+			// filesystem device.
+			oldName := filepath.Join("testdata", "generate", ".gunkconfig")
 			newName := filepath.Join(env.WorkDir, ".gunkconfig")
-			return os.Link(oldName, newName)
+			bs, err := ioutil.ReadFile(oldName)
+			if err != nil {
+				return err
+			}
+			return ioutil.WriteFile(newName, bs, 0777)
 		},
 	})
 }

@@ -33,11 +33,11 @@ func main1() int {
 	var err error
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 	case gen.FullCommand():
-		err = generate.Generate("", *genPatterns...)
+		err = generate.Run("", *genPatterns...)
 	case conv.FullCommand():
-		err = convert.Convert(*convProtoFile, *convOverwriteGunkFile)
+		err = convert.Run(*convProtoFile, *convOverwriteGunkFile)
 	case frmt.FullCommand():
-		err = format.Format("", *frmtPatterns...)
+		err = format.Run("", *frmtPatterns...)
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

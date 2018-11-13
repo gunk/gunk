@@ -56,7 +56,7 @@ func TestGenerate(t *testing.T) {
 		os.Remove(path)
 	}
 
-	if err := generate.Generate(dir, pkgs...); err != nil {
+	if err := generate.Run(dir, pkgs...); err != nil {
 		t.Fatal(err)
 	}
 	if *write {

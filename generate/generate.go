@@ -27,9 +27,9 @@ import (
 	"github.com/gunk/gunk/loader"
 )
 
-// Generate runs protobuf generators on the specified Gunk packages, writing the
-// output files in the same directories.
-func Generate(dir string, patterns ...string) error {
+// Run generates the specified Gunk packages via protobuf generators, writing
+// the output files in the same directories.
+func Run(dir string, args ...string) error {
 	cfg, err := config.Load(dir)
 	if err != nil {
 		return fmt.Errorf("unable to load gunkconfig: %v", err)
@@ -53,7 +53,7 @@ func Generate(dir string, patterns ...string) error {
 	}
 	g.tconfig.Importer = g
 
-	pkgs, err := loader.Load(g.dir, g.fset, patterns...)
+	pkgs, err := loader.Load(g.dir, g.fset, args...)
 	if err != nil {
 		return err
 	}

@@ -11,10 +11,10 @@ import (
 	"github.com/gunk/gunk/loader"
 )
 
-// Format rewrites Gunk files to be canonically formatted.
-func Format(dir string, patterns ...string) error {
+// Run formats Gunk files to be canonically formatted.
+func Run(dir string, args ...string) error {
 	fset := token.NewFileSet()
-	pkgs, err := loader.Load(dir, fset, patterns...)
+	pkgs, err := loader.Load(dir, fset, args...)
 	if err != nil {
 		return err
 	}

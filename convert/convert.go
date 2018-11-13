@@ -34,9 +34,9 @@ type builder struct {
 	imports []*proto.Import
 }
 
-// Convert will convert a proto file to a gunk file,
-// saving the file in the same folder as the proto file.
-func Convert(path string, overwrite bool) error {
+// Run converts a proto file to a gunk file, saving the file in the same folder
+// as the proto file.
+func Run(path string, overwrite bool) error {
 	if filepath.Ext(path) != ".proto" {
 		return fmt.Errorf("convert requires a .proto file")
 	}

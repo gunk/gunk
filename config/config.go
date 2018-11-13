@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/knq/ini"
 	"github.com/knq/ini/parser"
@@ -16,8 +17,34 @@ type KeyValue struct {
 }
 
 type Generator struct {
-	Command string
-	Params  []KeyValue
+	ProtocGen string // The type of protoc generator that should be run; js, python, etc.
+	Command   string
+	params    []KeyValue
+	Out       string
+}
+
+func (g Generator) IsProtoc() bool {
+	return g.ProtocGen != ""
+}
+
+func (g Generator) Params() string {
+	params := make([]string, len(g.params))
+	for i, p := range g.params {
+		if p.Value != "" {
+			params[i] = fmt.Sprintf("%s=%s", p.Key, p.Value)
+		} else {
+			params[i] = fmt.Sprintf("%s", p.Key)
+		}
+	}
+	return strings.Join(params, ",")
+}
+
+func (g Generator) ParamsWithOut() string {
+	params := g.Params()
+	if params == "" {
+		return g.Out
+	}
+	return params + ":" + g.Out
 }
 
 type Config struct {
@@ -33,7 +60,6 @@ type Config struct {
 // Passing in an empty 'dir' will tell Load to look in the current
 // working directory.
 func Load(dir string) (*Config, error) {
-	startDir := dir
 	var err error
 	if dir == "" {
 		dir, err = os.Getwd()
@@ -41,7 +67,7 @@ func Load(dir string) (*Config, error) {
 			return nil, fmt.Errorf("error getting working directory: %v", err)
 		}
 	}
-
+	startDir := dir
 	var cfg *Config
 	for {
 		configPath := filepath.Join(dir, ".gunkconfig")
@@ -62,6 +88,12 @@ func Load(dir string) (*Config, error) {
 			return nil, fmt.Errorf("error loading %q: %v", configPath, err)
 		}
 		cfg.Dir = startDir
+		// Patch in the directory of where to output the generated
+		// files.
+		// TODO(vishen): Make this configurable
+		for i := range cfg.Generators {
+			cfg.Generators[i].Out = startDir
+		}
 		break
 	}
 
@@ -99,15 +131,23 @@ func load(reader io.Reader) (*Config, error) {
 func handleGenerate(section *parser.Section) (*Generator, error) {
 	keys := section.RawKeys()
 	gen := &Generator{
-		Params: make([]KeyValue, 0, len(keys)),
+		params: make([]KeyValue, 0, len(keys)),
 	}
 	for _, k := range keys {
 		v := section.GetRaw(k)
 		switch k {
 		case "command":
+			if gen.ProtocGen != "" {
+				return nil, fmt.Errorf("only one 'command' or 'protoc' allowed")
+			}
 			gen.Command = v
+		case "protoc":
+			if gen.Command != "" {
+				return nil, fmt.Errorf("only one 'command' or 'protoc' allowed")
+			}
+			gen.ProtocGen = v
 		default:
-			gen.Params = append(gen.Params, KeyValue{k, v})
+			gen.params = append(gen.params, KeyValue{k, v})
 		}
 	}
 	return gen, nil

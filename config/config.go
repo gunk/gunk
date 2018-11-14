@@ -20,7 +20,7 @@ type Generator struct {
 	ProtocGen string // The type of protoc generator that should be run; js, python, etc.
 	Command   string
 	params    []KeyValue
-	Out       string
+	ConfigDir string
 }
 
 func (g Generator) IsProtoc() bool {
@@ -42,9 +42,9 @@ func (g Generator) Params() string {
 func (g Generator) ParamsWithOut() string {
 	params := g.Params()
 	if params == "" {
-		return g.Out
+		return g.ConfigDir
 	}
-	return params + ":" + g.Out
+	return params + ":" + g.ConfigDir
 }
 
 type Config struct {
@@ -92,7 +92,7 @@ func Load(dir string) (*Config, error) {
 		// files.
 		// TODO(vishen): Make this configurable
 		for i := range cfg.Generators {
-			cfg.Generators[i].Out = startDir
+			cfg.Generators[i].ConfigDir = startDir
 		}
 		break
 	}

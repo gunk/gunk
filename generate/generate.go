@@ -152,8 +152,17 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 	// a formatted list of what is in req.FileToGenerate.
 	protoFilenames := []string{}
 
+	// Make copies of the req.ProtoFile so we don't accidentally change
+	// the values of the pointers which will affect all other protoc
+	// generator runs.
+	protoFiles := make([]*desc.FileDescriptorProto, len(req.ProtoFile))
+	for i, pf := range req.ProtoFile {
+		tmpPf := *pf
+		protoFiles[i] = &tmpPf
+	}
+
 	fds := desc.FileDescriptorSet{
-		File: req.ProtoFile,
+		File: protoFiles,
 	}
 	// Determine the files that protoc will be generating and
 	// remove the package directory path and change .gunk to .proto.

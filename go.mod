@@ -21,3 +21,5 @@ require (
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/yaml.v2 v2.2.1 // indirect
 )
+
+replace github.com/knq/ini => github.com/vishen/ini v0.0.0-20181114105943-e8b73a8b85fb

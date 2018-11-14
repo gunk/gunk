@@ -1,9 +1,10 @@
 [generate]
 command=protoc-gen-grpc-gateway
-logtostderr=true
+params=logtostderr=true
 
 [generate]
 protoc=python
 
 [generate]
 protoc=js
+paramas=import_style=commonjs,binary

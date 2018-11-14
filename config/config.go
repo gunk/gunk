@@ -5,21 +5,15 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/knq/ini"
 	"github.com/knq/ini/parser"
 )
 
-type KeyValue struct {
-	Key   string
-	Value string
-}
-
 type Generator struct {
 	ProtocGen string // The type of protoc generator that should be run; js, python, etc.
 	Command   string
-	params    []KeyValue
+	params    string
 	Out       string
 }
 
@@ -28,15 +22,7 @@ func (g Generator) IsProtoc() bool {
 }
 
 func (g Generator) Params() string {
-	params := make([]string, len(g.params))
-	for i, p := range g.params {
-		if p.Value != "" {
-			params[i] = fmt.Sprintf("%s=%s", p.Key, p.Value)
-		} else {
-			params[i] = fmt.Sprintf("%s", p.Key)
-		}
-	}
-	return strings.Join(params, ",")
+	return g.params
 }
 
 func (g Generator) ParamsWithOut() string {
@@ -130,9 +116,7 @@ func load(reader io.Reader) (*Config, error) {
 
 func handleGenerate(section *parser.Section) (*Generator, error) {
 	keys := section.RawKeys()
-	gen := &Generator{
-		params: make([]KeyValue, 0, len(keys)),
-	}
+	gen := &Generator{}
 	for _, k := range keys {
 		v := section.GetRaw(k)
 		switch k {
@@ -146,8 +130,10 @@ func handleGenerate(section *parser.Section) (*Generator, error) {
 				return nil, fmt.Errorf("only one 'command' or 'protoc' allowed")
 			}
 			gen.ProtocGen = v
+		case "params":
+			gen.params = v
 		default:
-			gen.params = append(gen.params, KeyValue{k, v})
+			return nil, fmt.Errorf("unknown key %q in section %q", k, section.Name())
 		}
 	}
 	return gen, nil

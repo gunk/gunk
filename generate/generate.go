@@ -175,15 +175,38 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 	// We also replace .gunk with .proto. protoc will turn
 	// 'echo.gunk' into 'echo.gunk_pb.js' which makes it a bit
 	// hard to replace afterwards. This seemed like the easier approach.
-	for i, f := range fds.File {
+	//
+	// Keep a record of the proto file names, and what we want to change
+	// them to.
+	namesToChange := make(map[string]string)
+	for _, f := range fds.File {
 		for _, ftg := range req.GetFileToGenerate() {
 			if f.GetName() != ftg {
 				continue
 			}
-			name := filepath.Base(ftg)
-			name = strings.Replace(name, ".gunk", ".proto", 1)
-			fds.File[i].Name = proto.String(name)
-			protoFilenames = append(protoFilenames, name)
+			// Turn the relative package file path to the absolute
+			// on-disk file path.
+			dir, file := filepath.Split(ftg)
+			outPath := strings.Replace(g.origPaths[dir]+file, ".gunk", ".proto", 1)
+			namesToChange[ftg] = outPath
+			protoFilenames = append(protoFilenames, outPath)
+		}
+	}
+
+	// Go through all the files and change the proto file names if
+	// we have a name to change. We then also check all the dependencies
+	// and change any that are pointing to the name we want to change.
+	for i, f := range fds.File {
+		name := f.GetName()
+		changeTo, ok := namesToChange[name]
+		if ok {
+			fds.File[i].Name = proto.String(changeTo)
+		}
+		for i, d := range f.GetDependency() {
+			changeTo, ok := namesToChange[d]
+			if ok {
+				f.Dependency[i] = changeTo
+			}
 		}
 	}
 
@@ -601,14 +624,14 @@ func (g *Generator) convertMap(parentName, fieldName string, mapTyp *types.Map) 
 				Number:   proto.Int32(1),
 				Label:    &fieldLabel,
 				Type:     &keyType,
-				TypeName: &keyTypeName,
+				TypeName: protoStringOrNil(keyTypeName),
 			},
 			{
 				Name:     proto.String("value"),
 				Number:   proto.Int32(2),
 				Label:    &fieldLabel,
 				Type:     &elemType,
-				TypeName: &elemTypeName,
+				TypeName: protoStringOrNil(elemTypeName),
 			},
 		},
 	}

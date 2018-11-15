@@ -23,6 +23,8 @@ github.com/gunk/opt v0.0.0-20181101130410-636bd718f80f/go.mod h1:mwnDF6IXLCA4xXL
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
 github.com/knq/ini v0.0.0-20181108233727-0accc5354f51 h1:6fMn68icnSrqu0k5+rFbk3KPQJCiNDUwLlzpjuxNrdY=
 github.com/knq/ini v0.0.0-20181108233727-0accc5354f51/go.mod h1:kWZM2Rp5R3eP4q91Xms9JPMXuH7+yQrfTd3ZVzhxTUE=
+github.com/knq/ini v0.0.0-20181114105943-e8b73a8b85fb h1:32KK66UttTiEp0hxdcTiav9Zwr59oJ93DEmj1FWLSFI=
+github.com/knq/ini v0.0.0-20181114105943-e8b73a8b85fb/go.mod h1:kWZM2Rp5R3eP4q91Xms9JPMXuH7+yQrfTd3ZVzhxTUE=
 github.com/knq/snaker v0.0.0-20180306023312-d9ad1e7f342a h1:xI9Pl9IBPAx+41qm+jZbJ+h/Bh+vFXVqvO7ru3wutO0=
 github.com/knq/snaker v0.0.0-20180306023312-d9ad1e7f342a/go.mod h1:f0Dmq8fkddh8nOsVabYmtOHHdxlq2q4X+LQ1xWQEdUU=
 github.com/kr/pretty v0.1.0 h1:L/CwN0zerZDmRFUapSPitk6f+Q3+0za1rQkzVuMiMFI=

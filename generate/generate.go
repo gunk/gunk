@@ -46,10 +46,8 @@ func Run(dir string, args ...string) error {
 			Uses:  make(map[*ast.Ident]types.Object),
 		},
 
-		gunkPkgs:  make(map[string]*loader.GunkPackage),
-		toGen:     make(map[string]map[string]bool),
-		allProto:  make(map[string]*desc.FileDescriptorProto),
-		origPaths: make(map[string]string),
+		gunkPkgs: make(map[string]*loader.GunkPackage),
+		allProto: make(map[string]*desc.FileDescriptorProto),
 	}
 	g.tconfig.Importer = g
 
@@ -64,11 +62,6 @@ func Run(dir string, args ...string) error {
 	// Record the loaded packages
 	for _, pkg := range pkgs {
 		g.gunkPkgs[pkg.PkgPath] = pkg
-		for i, name := range pkg.GunkNames {
-			// Save only the directory for each file path.
-			dir, _ := filepath.Split(name)
-			g.origPaths[dir], _ = filepath.Split(pkg.GunkFiles[i])
-		}
 	}
 
 	// Translate the packages from Gunk to Proto.
@@ -107,9 +100,8 @@ type Generator struct {
 	// Maps from package import path to package information.
 	gunkPkgs map[string]*loader.GunkPackage
 
-	toGen     map[string]map[string]bool
 	allProto  map[string]*desc.FileDescriptorProto
-	origPaths map[string]string
+	origPaths map[string]string // TODO: remove
 
 	messageIndex int32
 	serviceIndex int32
@@ -187,6 +179,7 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 			// Turn the relative package file path to the absolute
 			// on-disk file path.
 			dir, file := filepath.Split(ftg)
+			// TODO: origPaths is now empty, fix
 			outPath := strings.Replace(g.origPaths[dir]+file, ".gunk", ".proto", 1)
 			namesToChange[ftg] = outPath
 			protoFilenames = append(protoFilenames, outPath)
@@ -218,7 +211,7 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 	// Build up the protoc command line arguments.
 	command := "protoc"
 	args := []string{
-		fmt.Sprintf("--%s_out=%s", gen.ProtocGen, gen.ParamsWithOut()),
+		fmt.Sprintf("--%s_out=%s", gen.ProtocGen, gen.ParamStringWithOut()),
 		"--descriptor_set_in=/dev/stdin",
 	}
 
@@ -235,7 +228,7 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 }
 
 func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.Generator) error {
-	req.Parameter = proto.String(gen.Params())
+	req.Parameter = proto.String(gen.ParamString())
 	bs, err := proto.Marshal(&req)
 	if err != nil {
 		return err
@@ -255,9 +248,11 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.G
 	for _, rf := range resp.File {
 		// Turn the relative package file path to the absolute
 		// on-disk file path.
-		dir, f := filepath.Split(*rf.Name)
-		outPath := strings.Replace(g.origPaths[dir]+f, ".gunk", "", 1)
+		pkgPath, basename := filepath.Split(*rf.Name)
+		pkgPath = filepath.Clean(pkgPath) // to remove trailing slashes
+		gpkg := g.gunkPkgs[pkgPath]
 		data := []byte(*rf.Content)
+		outPath := filepath.Join(gpkg.Dir, basename)
 		if err := ioutil.WriteFile(outPath, data, 0644); err != nil {
 			return fmt.Errorf("unable to write to file %q: %v", outPath, err)
 		}
@@ -266,40 +261,15 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.G
 }
 
 func (g *Generator) generatePluginGo(req plugin.CodeGeneratorRequest) error {
-	req.Parameter = proto.String("plugins=grpc")
-	bs, err := proto.Marshal(&req)
-	if err != nil {
-		return err
-	}
-
-	cmd := exec.Command("protoc-gen-go")
-	cmd.Stdin = bytes.NewReader(bs)
-	cmd.Stderr = os.Stderr
-	out, err := cmd.Output()
-	if err != nil {
-		return fmt.Errorf("error executing protoc-gen-go: %s, %v", out, err)
-	}
-	var resp plugin.CodeGeneratorResponse
-	if err := proto.Unmarshal(out, &resp); err != nil {
-		return err
-	}
-	for _, rf := range resp.File {
-		// to turn foo.gunk.pb.go into foo.pb.go
-		dir, f := filepath.Split(*rf.Name)
-		outPath := strings.Replace(g.origPaths[dir]+f, ".gunk", "", 1)
-		data := []byte(*rf.Content)
-		if err := ioutil.WriteFile(outPath, data, 0644); err != nil {
-			return fmt.Errorf("unable to write to file %q: %v", outPath, err)
-		}
-	}
-	return nil
+	return g.generatePlugin(req, config.Generator{
+		Command: "protoc-gen-go",
+		Params:  []config.KeyValue{{"plugins", "grpc"}},
+	})
 }
 
-func (g *Generator) requestForPkg(path string) *plugin.CodeGeneratorRequest {
+func (g *Generator) requestForPkg(pkgPath string) *plugin.CodeGeneratorRequest {
 	req := &plugin.CodeGeneratorRequest{}
-	for file := range g.toGen[path] {
-		req.FileToGenerate = append(req.FileToGenerate, file)
-	}
+	req.FileToGenerate = append(req.FileToGenerate, unifiedProtoFile(pkgPath))
 	for _, pfile := range g.allProto {
 		req.ProtoFile = append(req.ProtoFile, pfile)
 	}
@@ -324,59 +294,59 @@ func (g *Generator) translatePkg(pkgPath string) error {
 	gpkg := g.gunkPkgs[pkgPath]
 	g.curPkg = gpkg
 
-	for i, fpath := range gpkg.GunkNames {
-		if err := g.translateFile(pkgPath, fpath, gpkg.GunkSyntax[i]); err != nil {
-			return err
-		}
-	}
-
-	for i, name := range gpkg.GunkNames {
-		gfile := gpkg.GunkSyntax[i]
-		pfile := g.allProto[name]
-		for _, oname := range gpkg.GunkNames {
-			if name != oname {
-				pfile.Dependency = append(pfile.Dependency, oname)
-			}
-		}
-		for _, imp := range gfile.Imports {
-			if imp.Name != nil && imp.Name.Name == "_" {
-				continue
-			}
-			opath, _ := strconv.Unquote(imp.Path.Value)
-			pfile.Dependency = append(pfile.Dependency, g.gunkPkgs[opath].GunkNames...)
-		}
-	}
-	return nil
-}
-
-// translateFile translates a single gunk file to a proto file.
-func (g *Generator) translateFile(pkgPath, fpath string, file *ast.File) error {
-	g.messageIndex = 0
-	g.serviceIndex = 0
-	g.enumIndex = 0
-	g.toGen[pkgPath][fpath] = true
-	if _, ok := g.allProto[fpath]; ok {
-		// already translated
-		return nil
-	}
-	gpkg := g.gunkPkgs[pkgPath]
-	g.gfile = file
 	g.pfile = &desc.FileDescriptorProto{
 		Syntax:  proto.String("proto3"),
-		Name:    proto.String(fpath),
+		Name:    proto.String(unifiedProtoFile(gpkg.PkgPath)),
 		Package: proto.String(gpkg.ProtoName),
 		Options: &desc.FileOptions{
 			GoPackage: proto.String(gpkg.Name),
 			// TODO: Add other package options
 		},
 	}
+	g.allProto[*g.pfile.Name] = g.pfile
+
+	g.messageIndex = 0
+	g.serviceIndex = 0
+	g.enumIndex = 0
+
+	for i, fpath := range gpkg.GunkNames {
+		if err := g.appendFile(pkgPath, fpath, gpkg.GunkSyntax[i]); err != nil {
+			return err
+		}
+	}
+
+	for _, gfile := range gpkg.GunkSyntax {
+		for _, imp := range gfile.Imports {
+			if imp.Name != nil && imp.Name.Name == "_" {
+				// An underscore import.
+				continue
+			}
+			opath, _ := strconv.Unquote(imp.Path.Value)
+			if len(g.gunkPkgs[opath].GunkNames) == 0 {
+				// Not a gunk package, so no joint proto file to
+				// depend on.
+				continue
+			}
+			g.pfile.Dependency = append(g.pfile.Dependency, unifiedProtoFile(opath))
+		}
+	}
+	return nil
+}
+
+// appendFile translates a single gunk file to protobuf, appending its contents
+// to the package's proto file.
+func (g *Generator) appendFile(pkgPath, fpath string, file *ast.File) error {
+	if _, ok := g.allProto[fpath]; ok {
+		// already translated
+		return nil
+	}
+	g.gfile = file
 	g.addDoc(file.Doc.Text(), packagePath)
 	for _, decl := range file.Decls {
 		if err := g.translateDecl(decl); err != nil {
 			return err
 		}
 	}
-	g.allProto[fpath] = g.pfile
 	return nil
 }
 
@@ -809,7 +779,6 @@ func (g *Generator) addPkg(pkgPath string) error {
 	if err := check.Files(pkg.GunkSyntax); err != nil {
 		return err
 	}
-	g.toGen[pkgPath] = make(map[string]bool)
 	return nil
 }
 

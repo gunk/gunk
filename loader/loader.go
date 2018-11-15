@@ -53,6 +53,8 @@ func Load(dir string, fset *token.FileSet, patterns ...string) ([]*GunkPackage, 
 
 type GunkPackage struct {
 	packages.Package
+	Dir string // for now, we require all files to be in the same dir
+
 	GunkFiles  []string    // absolute paths of the Gunk files
 	GunkSyntax []*ast.File // syntax trees for the files in GunkFiles
 
@@ -88,6 +90,7 @@ func toGunkPackage(fset *token.FileSet, lpkg *packages.Package) (*GunkPackage, e
 
 	pkg := &GunkPackage{
 		Package:   *lpkg,
+		Dir:       pkgDir,
 		GunkFiles: matches,
 	}
 

@@ -111,12 +111,22 @@ func load(reader io.Reader) (*Config, error) {
 	for _, s := range f.AllSections() {
 		var err error
 		var gen *Generator
-		switch s.Name() {
-		case "":
+		name := s.Name()
+		switch {
+		case name == "":
 			// TODO: Sometimes the ini parser returns an empty first section name.
 			continue
-		case "generate":
+		case name == "generate":
 			gen, err = handleGenerate(s)
+		case strings.HasPrefix(name, "generate"):
+			sParts := strings.Split(name, " ")
+			if len(sParts) != 2 {
+				return nil, fmt.Errorf("generate section name should have 2 values, not %d", len(sParts))
+			}
+			// Check to see if we have the shorten version of a generate config:
+			// [generate js].
+			gen, err = handleGenerate(s)
+			gen.ProtocGen = strings.Trim(sParts[1], "\"")
 		default:
 			return nil, fmt.Errorf("unknown section %q", s.Name())
 		}

@@ -9,7 +9,7 @@ require (
 	github.com/golang/protobuf v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway v1.5.1
 	github.com/gunk/opt v0.0.0-20181101130410-636bd718f80f
-	github.com/knq/ini v0.0.0-20181108233727-0accc5354f51
+	github.com/knq/ini v0.0.0-20181114105943-e8b73a8b85fb
 	github.com/knq/snaker v0.0.0-20180306023312-d9ad1e7f342a
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.0.0
@@ -21,5 +21,3 @@ require (
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/yaml.v2 v2.2.1 // indirect
 )
-
-replace github.com/knq/ini => github.com/vishen/ini v0.0.0-20181114105943-e8b73a8b85fb

@@ -222,9 +222,7 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 		"--descriptor_set_in=/dev/stdin",
 	}
 
-	for _, f := range protoFilenames {
-		args = append(args, f)
-	}
+	args = append(args, protoFilenames...)
 
 	cmd := exec.Command(command, args...)
 	cmd.Stdin = bytes.NewReader(bs)
@@ -289,39 +287,6 @@ func (g *Generator) generatePluginGo(req plugin.CodeGeneratorRequest) error {
 		// to turn foo.gunk.pb.go into foo.pb.go
 		dir, f := filepath.Split(*rf.Name)
 		outPath := strings.Replace(g.origPaths[dir]+f, ".gunk", "", 1)
-		data := []byte(*rf.Content)
-		if err := ioutil.WriteFile(outPath, data, 0644); err != nil {
-			return fmt.Errorf("unable to write to file %q: %v", outPath, err)
-		}
-	}
-	return nil
-}
-
-func (g *Generator) generatePluginGrpcGateway(req plugin.CodeGeneratorRequest) error {
-	bs, err := proto.Marshal(&req)
-	if err != nil {
-		return err
-	}
-
-	cmd := exec.Command("protoc-gen-grpc-gateway")
-	cmd.Stdin = bytes.NewReader(bs)
-	cmd.Stderr = os.Stderr
-	out, err := cmd.Output()
-	if err != nil {
-		return fmt.Errorf("error executing protoc-gen-grpc-gateway: %s, %v", out, err)
-	}
-	var resp plugin.CodeGeneratorResponse
-	if err := proto.Unmarshal(out, &resp); err != nil {
-		return err
-	}
-	if rerr := resp.GetError(); rerr != "" {
-		return fmt.Errorf("error executing protoc-gen-grpc-gateway: %v", rerr)
-	}
-	for _, rf := range resp.File {
-		// to turn foo.gunk.pb.gw.go into foo.pb.gw.go
-		inPath := strings.Replace(*rf.Name, ".pb.gw.go", ".gunk", 1)
-		outPath := g.origPaths[inPath]
-		outPath = strings.Replace(outPath, ".gunk", ".pb.gw.go", 1)
 		data := []byte(*rf.Content)
 		if err := ioutil.WriteFile(outPath, data, 0644); err != nil {
 			return fmt.Errorf("unable to write to file %q: %v", outPath, err)

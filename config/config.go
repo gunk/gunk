@@ -19,7 +19,7 @@ type KeyValue struct {
 type Generator struct {
 	ProtocGen string // The type of protoc generator that should be run; js, python, etc.
 	Command   string
-	params    []KeyValue
+	Params    []KeyValue
 	ConfigDir string
 }
 
@@ -27,9 +27,9 @@ func (g Generator) IsProtoc() bool {
 	return g.ProtocGen != ""
 }
 
-func (g Generator) Params() string {
-	params := make([]string, len(g.params))
-	for i, p := range g.params {
+func (g Generator) ParamString() string {
+	params := make([]string, len(g.Params))
+	for i, p := range g.Params {
 		if p.Value != "" {
 			params[i] = fmt.Sprintf("%s=%s", p.Key, p.Value)
 		} else {
@@ -39,8 +39,8 @@ func (g Generator) Params() string {
 	return strings.Join(params, ",")
 }
 
-func (g Generator) ParamsWithOut() string {
-	params := g.Params()
+func (g Generator) ParamStringWithOut() string {
+	params := g.ParamString()
 	if params == "" {
 		return g.ConfigDir
 	}
@@ -141,7 +141,7 @@ func load(reader io.Reader) (*Config, error) {
 func handleGenerate(section *parser.Section) (*Generator, error) {
 	keys := section.RawKeys()
 	gen := &Generator{
-		params: make([]KeyValue, 0, len(keys)),
+		Params: make([]KeyValue, 0, len(keys)),
 	}
 	for _, k := range keys {
 		v := section.GetRaw(k)
@@ -157,7 +157,7 @@ func handleGenerate(section *parser.Section) (*Generator, error) {
 			}
 			gen.ProtocGen = v
 		default:
-			gen.params = append(gen.params, KeyValue{k, v})
+			gen.Params = append(gen.Params, KeyValue{k, v})
 		}
 	}
 	return gen, nil

@@ -44,3 +44,11 @@ func protoStringOrNil(s string) *string {
 	}
 	return proto.String(s)
 }
+
+// unifiedProtoFile returns the proto file name that a Gunk package is
+// translated into. Note that the returned name isn't a path on disk; it's
+// merely a unique path to identify each package's proto file and its output
+// from each of the code generators.
+func unifiedProtoFile(pkgPath string) string {
+	return pkgPath + "/all.proto"
+}

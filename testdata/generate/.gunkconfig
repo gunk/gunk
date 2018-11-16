@@ -1,3 +1,7 @@
 [generate]
+command=protoc-gen-go
+plugins=grpc
+
+[generate]
 command=protoc-gen-grpc-gateway
 logtostderr=true

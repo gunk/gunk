@@ -119,11 +119,6 @@ type Generator struct {
 // the generators should already handle the case where they have nothing to do.
 func (g *Generator) GeneratePkg(path string, gens []config.Generator) error {
 	req := g.requestForPkg(path)
-	// TODO: Use the go generator library rather than shell out.
-	// Run generator for go.
-	if err := g.generatePluginGo(*req); err != nil {
-		return fmt.Errorf("error generating plugin go: %v", err)
-	}
 	// Run any other configured generators.
 	for _, gen := range gens {
 		if gen.IsProtoc() {
@@ -176,11 +171,8 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 			if f.GetName() != ftg {
 				continue
 			}
-			// Turn the relative package file path to the absolute
-			// on-disk file path.
-			dir, file := filepath.Split(ftg)
-			// TODO: origPaths is now empty, fix
-			outPath := strings.Replace(g.origPaths[dir]+file, ".gunk", ".proto", 1)
+			basename := filepath.Base(ftg)
+			outPath := strings.Replace(basename, ".gunk", ".proto", 1)
 			namesToChange[ftg] = outPath
 			protoFilenames = append(protoFilenames, outPath)
 		}
@@ -252,19 +244,16 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.G
 		pkgPath = filepath.Clean(pkgPath) // to remove trailing slashes
 		gpkg := g.gunkPkgs[pkgPath]
 		data := []byte(*rf.Content)
-		outPath := filepath.Join(gpkg.Dir, basename)
+		dir := gpkg.Dir
+		if gen.Out != "" {
+			dir = gen.Out
+		}
+		outPath := filepath.Join(dir, basename)
 		if err := ioutil.WriteFile(outPath, data, 0644); err != nil {
 			return fmt.Errorf("unable to write to file %q: %v", outPath, err)
 		}
 	}
 	return nil
-}
-
-func (g *Generator) generatePluginGo(req plugin.CodeGeneratorRequest) error {
-	return g.generatePlugin(req, config.Generator{
-		Command: "protoc-gen-go",
-		Params:  []config.KeyValue{{"plugins", "grpc"}},
-	})
 }
 
 func (g *Generator) requestForPkg(pkgPath string) *plugin.CodeGeneratorRequest {

@@ -21,6 +21,7 @@ type Generator struct {
 	Command   string
 	Params    []KeyValue
 	ConfigDir string
+	Out       string
 }
 
 func (g Generator) IsProtoc() bool {
@@ -40,11 +41,19 @@ func (g Generator) ParamString() string {
 }
 
 func (g Generator) ParamStringWithOut() string {
+	outPath := g.OutPath()
 	params := g.ParamString()
 	if params == "" {
-		return g.ConfigDir
+		return outPath
 	}
-	return params + ":" + g.ConfigDir
+	return params + ":" + outPath
+}
+
+func (g Generator) OutPath() string {
+	if g.Out != "" {
+		return g.Out
+	}
+	return g.ConfigDir
 }
 
 type Config struct {
@@ -90,7 +99,6 @@ func Load(dir string) (*Config, error) {
 		cfg.Dir = startDir
 		// Patch in the directory of where to output the generated
 		// files.
-		// TODO(vishen): Make this configurable
 		for i := range cfg.Generators {
 			cfg.Generators[i].ConfigDir = startDir
 		}
@@ -156,6 +164,8 @@ func handleGenerate(section *parser.Section) (*Generator, error) {
 				return nil, fmt.Errorf("only one 'command' or 'protoc' allowed")
 			}
 			gen.ProtocGen = v
+		case "out":
+			gen.Out = v
 		default:
 			gen.Params = append(gen.Params, KeyValue{k, v})
 		}

@@ -1,9 +1,17 @@
 [generate]
+out=v1/
+command=protoc-gen-go
+plugins=grpc
+
+[generate]
+out=v1/
 command=protoc-gen-grpc-gateway
 logtostderr=true
 
 [generate]
+out=v1/
 protoc=python
 
 [generate]
+out=v1/
 protoc=js

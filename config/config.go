@@ -11,6 +11,14 @@ import (
 	"github.com/knq/ini/parser"
 )
 
+var DefaultConfig = Config{
+	Dir: "", // This needs to be set before returning the default config
+	Generators: []Generator{
+		{Command: "protoc-gen-go", Params: []KeyValue{{"plugins", "grpc"}}},
+		{Command: "protoc-gen-grpc-gateway", Params: []KeyValue{{"logtostderr", "true"}}},
+	},
+}
+
 type KeyValue struct {
 	Key   string
 	Value string
@@ -84,18 +92,21 @@ func Load(dir string) (*Config, error) {
 		if err != nil {
 			prevDir := dir
 			dir = filepath.Dir(dir)
-			// If we are unable to go any further up the directory
-			// structure.
-			if prevDir == dir {
-				return nil, fmt.Errorf("could not find a .gunkconfig")
+			// Is the parent directory the same as the child.
+			if prevDir != dir {
+				continue
 			}
-			continue
+			// If we are unable to go any further up the directory
+			// structure, set the config to be the default config.
+			cfg = &DefaultConfig
+		} else {
+			defer reader.Close()
+			cfg, err = load(reader)
+			if err != nil {
+				return nil, fmt.Errorf("error loading %q: %v", configPath, err)
+			}
 		}
-		defer reader.Close()
-		cfg, err = load(reader)
-		if err != nil {
-			return nil, fmt.Errorf("error loading %q: %v", configPath, err)
-		}
+
 		cfg.Dir = startDir
 		// Patch in the directory of where to output the generated
 		// files.

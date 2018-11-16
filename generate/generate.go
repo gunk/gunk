@@ -237,6 +237,9 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.G
 	if err := proto.Unmarshal(out, &resp); err != nil {
 		return err
 	}
+	if rerr := resp.GetError(); rerr != "" {
+		return fmt.Errorf("error from generator %s: %s", gen.Command, rerr)
+	}
 	for _, rf := range resp.File {
 		// Turn the relative package file path to the absolute
 		// on-disk file path.

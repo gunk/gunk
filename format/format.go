@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/format"
+	"go/parser"
 	"go/printer"
 	"go/token"
 	"io/ioutil"
@@ -26,20 +27,38 @@ func Run(dir string, args ...string) error {
 	for _, pkg := range pkgs {
 		for i, file := range pkg.GunkSyntax {
 			path := pkg.GunkFiles[i]
-			if err := formatFile(fset, path, file); err != nil {
+			orig, err := ioutil.ReadFile(path)
+			if err != nil {
 				return err
+			}
+
+			got, err := formatFile(fset, file)
+			if err != nil {
+				return err
+			}
+
+			if !bytes.Equal(orig, got) {
+				if err := ioutil.WriteFile(path, got, 0666); err != nil {
+					return err
+				}
 			}
 		}
 	}
 	return nil
 }
 
-func formatFile(fset *token.FileSet, path string, file *ast.File) (formatErr error) {
-	orig, err := ioutil.ReadFile(path)
+// Source canonically formats a single Gunk file, returning the result and any
+// error encountered.
+func Source(src []byte) ([]byte, error) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "", src, parser.ParseComments)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	return formatFile(fset, file)
+}
 
+func formatFile(fset *token.FileSet, file *ast.File) (_ []byte, formatErr error) {
 	// Use custom panic values to report errors from the inspect func,
 	// since that's the easiest way to immediately halt the process and
 	// return the error.
@@ -78,17 +97,11 @@ func formatFile(fset *token.FileSet, path string, file *ast.File) (formatErr err
 		*group = *commentFromText(group, text)
 		return true
 	})
-
 	var buf bytes.Buffer
 	if err := format.Node(&buf, fset, file); err != nil {
-		return err
+		return nil, err
 	}
-	got := buf.Bytes()
-	if bytes.Equal(orig, got) {
-		// already formatted; nothing to do
-		return nil
-	}
-	return ioutil.WriteFile(path, got, 0666)
+	return buf.Bytes(), nil
 }
 
 func commentFromText(orig ast.Node, text string) *ast.CommentGroup {

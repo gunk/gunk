@@ -2,6 +2,7 @@ package convert
 
 import (
 	"fmt"
+	"go/format"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -53,6 +54,13 @@ func Run(path string, overwrite bool) error {
 		return fmt.Errorf("unable to parse proto file %q: %v", path, err)
 	}
 
+	fileToWrite := strings.Replace(filepath.Base(path), ".proto", ".gunk", 1)
+	fullpath := filepath.Join(filepath.Dir(path), fileToWrite)
+
+	if _, err := os.Stat(fullpath); !os.IsNotExist(err) && !overwrite {
+		return fmt.Errorf("path already exists %q, use --overwrite", fullpath)
+	}
+
 	// Start converting the proto declarations to gunk.
 	b := builder{}
 	for _, e := range d.Elements {
@@ -81,15 +89,14 @@ func Run(path string, overwrite bool) error {
 
 	// TODO: We should run this through the Gunk generator to
 	// make sure that it compiles?
-	// TODO: Run this through the gunk fmt when it is implemented.
 
-	fileToWrite := strings.Replace(filepath.Base(path), ".proto", ".gunk", 1)
-	fullpath := filepath.Dir(path) + "/" + fileToWrite
-
-	if _, err := os.Stat(fullpath); !os.IsNotExist(err) && !overwrite {
-		return fmt.Errorf("path already exists %q, use --overwrite", fullpath)
+	result := []byte(w.String())
+	result, err = format.Source(result)
+	if err != nil {
+		return err
 	}
-	if err := ioutil.WriteFile(fullpath, []byte(w.String()), 0644); err != nil {
+
+	if err := ioutil.WriteFile(fullpath, result, 0644); err != nil {
 		return fmt.Errorf("unable to write to file %q: %v", fullpath, err)
 	}
 

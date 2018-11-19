@@ -30,10 +30,6 @@ import (
 // Run generates the specified Gunk packages via protobuf generators, writing
 // the output files in the same directories.
 func Run(dir string, args ...string) error {
-	cfg, err := config.Load(dir)
-	if err != nil {
-		return fmt.Errorf("unable to load gunkconfig: %v", err)
-	}
 	g := &Generator{
 		dir:  dir,
 		fset: token.NewFileSet(),
@@ -79,6 +75,10 @@ func Run(dir string, args ...string) error {
 
 	// Finally, run the code generators.
 	for _, pkg := range pkgs {
+		cfg, err := config.Load(pkg.Dir)
+		if err != nil {
+			return fmt.Errorf("unable to load gunkconfig: %v", err)
+		}
 		if err := g.GeneratePkg(pkg.PkgPath, cfg.Generators); err != nil {
 			return err
 		}
@@ -166,15 +166,24 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 	// Keep a record of the proto file names, and what we want to change
 	// them to.
 	namesToChange := make(map[string]string)
+	// Default location to output protoc generated files.
+	protocOutputPath := ""
 	for _, f := range fds.File {
 		for _, ftg := range req.GetFileToGenerate() {
 			if f.GetName() != ftg {
 				continue
 			}
-			basename := filepath.Base(ftg)
+			pkgPath, basename := filepath.Split(ftg)
 			outPath := strings.Replace(basename, ".gunk", ".proto", 1)
 			namesToChange[ftg] = outPath
 			protoFilenames = append(protoFilenames, outPath)
+
+			// Because we merge all .gunk files into one 'all.proto' file,
+			// we can use that package path on disk as the default location
+			// to output generated files.
+			pkgPath = filepath.Clean(pkgPath)
+			gpkg := g.gunkPkgs[pkgPath]
+			protocOutputPath = gpkg.Dir
 		}
 	}
 
@@ -203,7 +212,7 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 	// Build up the protoc command line arguments.
 	command := "protoc"
 	args := []string{
-		fmt.Sprintf("--%s_out=%s", gen.ProtocGen, gen.ParamStringWithOut()),
+		fmt.Sprintf("--%s_out=%s", gen.ProtocGen, gen.ParamStringWithOut(protocOutputPath)),
 		"--descriptor_set_in=/dev/stdin",
 	}
 
@@ -247,10 +256,7 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.G
 		pkgPath = filepath.Clean(pkgPath) // to remove trailing slashes
 		gpkg := g.gunkPkgs[pkgPath]
 		data := []byte(*rf.Content)
-		dir := gpkg.Dir
-		if gen.Out != "" {
-			dir = gen.Out
-		}
+		dir := gen.OutPath(gpkg.Dir)
 		outPath := filepath.Join(dir, basename)
 		if err := ioutil.WriteFile(outPath, data, 0644); err != nil {
 			return fmt.Errorf("unable to write to file %q: %v", outPath, err)

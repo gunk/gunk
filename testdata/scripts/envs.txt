@@ -1,0 +1,30 @@
+env HOME=$WORK/home
+
+# protoc can't be run correctly to resolve proto imports
+env PATH=$WORK/bin:$PATH
+exec chmod a+x bin/protoc
+
+# we should stop before any generators are run
+! gunk generate .
+! stdout .
+stderr 'exit status'
+stderr 'fatal failure'
+! stderr 'error executing protoc-gen'
+! stderr panicc
+
+-- bin/protoc --
+#!/bin/sh
+
+echo fatal failure >&2
+
+exit 1
+-- go.mod --
+module testdata.tld/util
+-- doc.go --
+package util // make this directory a Go package
+-- echo.gunk --
+package util // proto "testdata.v1.util"
+
+type Util interface {
+	Echo() // use google.protobuf.Empty, which requires protoc
+}

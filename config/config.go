@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +11,8 @@ import (
 	"github.com/knq/ini"
 	"github.com/knq/ini/parser"
 )
+
+const goModFilename = "go.mod"
 
 var DefaultConfig = Config{
 	Dir: "", // This needs to be set before returning the default config
@@ -93,36 +96,67 @@ func Load(dir string) (*Config, error) {
 			return nil, fmt.Errorf("error getting working directory: %v", err)
 		}
 	}
-	startDir := dir
-	var cfg *Config
+	cfgs := []*Config{}
 	for {
 		configPath := filepath.Join(dir, ".gunkconfig")
 		reader, err := os.Open(configPath)
-		if err != nil {
-			prevDir := dir
-			dir = filepath.Dir(dir)
-			// Is the parent directory the same as the child.
-			if prevDir != dir {
-				continue
-			}
-			// If we are unable to go any further up the directory
-			// structure, set the config to be the default config.
-			cfg = &DefaultConfig
-		} else {
+		if err == nil {
 			defer reader.Close()
-			cfg, err = load(reader)
+			cfg, err := load(reader)
 			if err != nil {
 				return nil, fmt.Errorf("error loading %q: %v", configPath, err)
 			}
+
+			cfg.Dir = dir
+			// Patch in the directory of where to output the generated
+			// files.
+			for i := range cfg.Generators {
+				cfg.Generators[i].ConfigDir = dir
+			}
+			cfgs = append(cfgs, cfg)
 		}
 
-		cfg.Dir = startDir
-		// Patch in the directory of where to output the generated
-		// files.
-		for i := range cfg.Generators {
-			cfg.Generators[i].ConfigDir = startDir
+		// Check to see if this directory contains a 'go.mod' file. If so,
+		// we assume that is the root of the project and we have found all
+		// the gunk configs.
+		files, err := ioutil.ReadDir(dir)
+		if err != nil {
+			return nil, fmt.Errorf("unable to list files in directory %q", dir)
 		}
-		break
+
+		foundGoMod := false
+		for _, f := range files {
+			if f.Name() == goModFilename {
+				foundGoMod = true
+				break
+			}
+		}
+
+		if foundGoMod {
+			break
+		}
+
+		prevDir := dir
+		dir = filepath.Dir(dir)
+
+		// Is the parent directory the same as the child.
+		if prevDir == dir {
+			// If we are unable to determine a different parent from
+			// the current directory (most likely we have hit the root '/').
+			break
+		}
+
+	}
+
+	// If no configs were found, return the default config.
+	if len(cfgs) == 0 {
+		return &DefaultConfig, nil
+	}
+
+	// Merge the found configs.
+	cfg := cfgs[0]
+	for i := 1; i < len(cfgs); i++ {
+		cfg.Generators = append(cfg.Generators, cfgs[i].Generators...)
 	}
 
 	return cfg, nil

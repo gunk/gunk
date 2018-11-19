@@ -48,8 +48,12 @@ func (g Generator) ParamString() string {
 	return strings.Join(params, ",")
 }
 
-func (g Generator) ParamStringWithOut() string {
-	outPath := g.OutPath()
+// ParamStringWithOut will return the generator paramaters formatted
+// for protoc, including where protoc should output the generated files.
+// It will use 'packageDir' if no 'out' key was set in the config.
+func (g Generator) ParamStringWithOut(packageDir string) string {
+	// If no out path was specified, use the package directory.
+	outPath := g.OutPath(packageDir)
 	params := g.ParamString()
 	if params == "" {
 		return outPath
@@ -57,11 +61,16 @@ func (g Generator) ParamStringWithOut() string {
 	return params + ":" + outPath
 }
 
-func (g Generator) OutPath() string {
-	if g.Out != "" {
+// Determine an out path for a generator to write generated files to.
+// It will use 'packageDir' if no 'out' key was set in the config.
+func (g Generator) OutPath(packageDir string) string {
+	if g.Out == "" {
+		return packageDir
+	}
+	if filepath.IsAbs(g.Out) {
 		return g.Out
 	}
-	return g.ConfigDir
+	return filepath.Join(g.ConfigDir, g.Out)
 }
 
 type Config struct {

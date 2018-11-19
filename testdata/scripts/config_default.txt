@@ -1,0 +1,35 @@
+env HOME=$WORK/home
+
+# Gunk generate with out specified in config
+gunk generate ./gunk
+
+# Check that that files were generated in the correct folder
+exists gunk/all.pb.go gunk/all.pb.gw.go
+
+-- go.mod --
+module testdata.tld/util
+
+-- gunk/doc.go --
+package util // make this directory a Go package
+
+-- gunk/util.gunk --
+package util
+
+import (
+	"github.com/gunk/opt/http"
+)
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
+type Util interface {
+	// Echo echoes a message.
+	//
+	// +gunk http.Match{
+	//         Method: "POST",
+	//         Path:   "/v1/echo",
+	//         Body:   "*",
+	// }
+	Echo(Message) Message
+}

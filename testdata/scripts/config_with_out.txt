@@ -1,0 +1,40 @@
+env HOME=$WORK/home
+
+# Files should be generated here
+mkdir gunk/v1
+
+# Gunk generate with out specified in config
+gunk generate ./gunk
+
+# Check that that files were generated in the correct folder
+exists gunk/v1/all.pb.go gunk/v1/all_pb2.py
+
+! exists gunk/all.pb.go gunk/all_pb2.py
+
+-- go.mod --
+module testdata.tld/util
+
+-- gunk/.gunkconfig --
+[generate]
+out=v1/
+command=protoc-gen-go
+plugins=grpc
+
+[generate]
+out=v1/
+protoc=python
+
+-- gunk/doc.go --
+package util // make this directory a Go package
+
+-- gunk/util.gunk --
+package util
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
+type Util interface {
+	// Echo echoes a message.
+	Echo(Message) Message
+}

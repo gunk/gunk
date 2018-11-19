@@ -178,7 +178,7 @@ syntax = "proto3";
 	out, err := cmd.Output()
 	if err != nil {
 		if e, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("%s", e.Stderr)
+			return nil, fmt.Errorf("protoc %s: %s", e, e.Stderr)
 		}
 		return nil, err
 	}

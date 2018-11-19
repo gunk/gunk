@@ -850,7 +850,7 @@ func (g *Generator) loadProtoDeps() error {
 
 	files, err := loader.LoadProto(list...)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	for _, pfile := range files {

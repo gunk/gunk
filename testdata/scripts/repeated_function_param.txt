@@ -1,0 +1,36 @@
+env HOME=$WORK/home
+
+! gunk generate ./p1
+stderr 'error: parameter type should not be repeated'
+
+! gunk generate ./p2
+stderr 'error: parameter type should not be repeated'
+
+-- go.mod --
+module testdata.tld/util
+-- p1/doc.go --
+package util // make this directory a Go package
+-- p1/p1.gunk --
+package util
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
+type Util interface {
+	// Echo echoes a message.
+	Echo(Message) []Message
+}
+-- p2/doc.go --
+package util // make this directory a Go package
+-- p2/p2.gunk --
+package util
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
+type Util interface {
+	// Echo echoes a message.
+	Echo([]Message) Message
+}

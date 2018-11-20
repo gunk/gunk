@@ -9,6 +9,7 @@ import (
 	"github.com/gunk/gunk/convert"
 	"github.com/gunk/gunk/format"
 	"github.com/gunk/gunk/generate"
+	"github.com/gunk/gunk/log"
 )
 
 var (
@@ -30,6 +31,9 @@ func main() {
 }
 
 func main1() int {
+	gen.Flag("print-commands", "print the commands").Short('x').BoolVar(&log.PrintCommands)
+	gen.Flag("verbose", "print the names of packages as they are generated").Short('v').BoolVar(&log.Verbose)
+
 	var err error
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 	case gen.FullCommand():

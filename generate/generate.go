@@ -9,8 +9,6 @@ import (
 	"go/token"
 	"go/types"
 	"io/ioutil"
-	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -25,6 +23,7 @@ import (
 
 	"github.com/gunk/gunk/config"
 	"github.com/gunk/gunk/loader"
+	"github.com/gunk/gunk/log"
 )
 
 // Run generates the specified Gunk packages via protobuf generators, writing
@@ -82,6 +81,8 @@ func Run(dir string, args ...string) error {
 		if err := g.GeneratePkg(pkg.PkgPath, cfg.Generators); err != nil {
 			return err
 		}
+		log.PackageGenerated(pkg.PkgPath)
+
 	}
 	return nil
 }
@@ -218,9 +219,8 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 
 	args = append(args, protoFilenames...)
 
-	cmd := exec.Command(command, args...)
+	cmd := log.ExecCommand(command, args...)
 	cmd.Stdin = bytes.NewReader(bs)
-	cmd.Stderr = os.Stderr
 	out, err := cmd.Output()
 	if err != nil {
 		return fmt.Errorf("error executing %q: %q, %v", command, out, err)
@@ -235,9 +235,8 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.G
 		return err
 	}
 
-	cmd := exec.Command(gen.Command)
+	cmd := log.ExecCommand(gen.Command)
 	cmd.Stdin = bytes.NewReader(bs)
-	cmd.Stderr = os.Stderr
 	out, err := cmd.Output()
 	if err != nil {
 		return fmt.Errorf("error executing %s: %s, %v", gen.Command, out, err)

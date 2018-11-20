@@ -644,9 +644,12 @@ func (g *Generator) convertParameter(tuple *types.Tuple) (*string, error) {
 		return nil, fmt.Errorf("multiple parameters are not supported")
 	}
 	param := tuple.At(0).Type()
-	_, _, tname := g.convertType(param)
+	_, label, tname := g.convertType(param)
 	if tname == "" {
 		return nil, fmt.Errorf("unsupported parameter type: %v", param)
+	}
+	if label == desc.FieldDescriptorProto_LABEL_REPEATED {
+		return nil, fmt.Errorf("parameter type should not be repeated")
 	}
 	return &tname, nil
 }

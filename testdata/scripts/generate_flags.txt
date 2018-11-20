@@ -1,0 +1,31 @@
+env HOME=$WORK/home
+
+env PATH=$WORK/bin:$PATH
+exec chmod a+x bin/protoc
+
+gunk generate . -x
+stdout bin/protoc
+
+gunk generate . -v
+stdout 'hello gunk'
+stdout testdata.tld/util
+
+-- bin/protoc --
+#!/bin/sh
+
+echo hello gunk >&2
+
+exit 0
+-- go.mod --
+module testdata.tld/util
+-- .gunkconfig --
+[generate]
+command=bin/protoc
+-- doc.go --
+package util // make this directory a Go package
+-- echo.gunk --
+package util // proto "testdata.v1.util"
+
+type Util interface {
+	Echo() // use google.protobuf.Empty, which requires protoc
+}

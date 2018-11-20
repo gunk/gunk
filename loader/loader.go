@@ -16,6 +16,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"golang.org/x/tools/go/packages"
+
+	"github.com/gunk/gunk/log"
 )
 
 // Load loads the Gunk packages on the provided patterns from the given dir and
@@ -174,7 +176,7 @@ syntax = "proto3";
 	defer os.Remove("gunk-proto")
 
 	// TODO: any way to specify stdout while being portable?
-	cmd := exec.Command("protoc", "-o/dev/stdout", "--include_imports", "gunk-proto")
+	cmd := log.ExecCommand("protoc", "-o/dev/stdout", "--include_imports", "gunk-proto")
 	out, err := cmd.Output()
 	if err != nil {
 		if e, ok := err.(*exec.ExitError); ok {

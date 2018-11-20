@@ -15,7 +15,8 @@ require (
 	github.com/rogpeppe/go-internal v1.0.0
 	github.com/stretchr/testify v1.2.2 // indirect
 	golang.org/x/net v0.0.0-20181029044818-c44066c5c816
-	golang.org/x/tools v0.0.0-20181030000716-a0a13e073c7b
+	golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33 // indirect
+	golang.org/x/tools v0.0.0-20181120060634-fc4f04983f62
 	google.golang.org/genproto v0.0.0-20181029155118-b69ba1387ce2
 	google.golang.org/grpc v1.16.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6

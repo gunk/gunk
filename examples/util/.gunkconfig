@@ -15,3 +15,5 @@ protoc=python
 [generate]
 out=v1/
 protoc=js
+import_style=commonjs
+binary

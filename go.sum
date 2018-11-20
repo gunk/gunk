@@ -21,10 +21,8 @@ github.com/grpc-ecosystem/grpc-gateway v1.5.1/go.mod h1:RSKVYQBd5MCa4OVpNdGskqpg
 github.com/gunk/opt v0.0.0-20181101130410-636bd718f80f h1:QXNv4Sic6WZs3FYadox4JNS6dOI2QlXzRS8WNVrlU48=
 github.com/gunk/opt v0.0.0-20181101130410-636bd718f80f/go.mod h1:mwnDF6IXLCA4xXLUMmG7usTLB6Mk+KGQelNF1u390gc=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
-github.com/knq/ini v0.0.0-20181108233727-0accc5354f51 h1:6fMn68icnSrqu0k5+rFbk3KPQJCiNDUwLlzpjuxNrdY=
-github.com/knq/ini v0.0.0-20181108233727-0accc5354f51/go.mod h1:kWZM2Rp5R3eP4q91Xms9JPMXuH7+yQrfTd3ZVzhxTUE=
-github.com/knq/ini v0.0.0-20181114105943-e8b73a8b85fb h1:32KK66UttTiEp0hxdcTiav9Zwr59oJ93DEmj1FWLSFI=
-github.com/knq/ini v0.0.0-20181114105943-e8b73a8b85fb/go.mod h1:kWZM2Rp5R3eP4q91Xms9JPMXuH7+yQrfTd3ZVzhxTUE=
+github.com/knq/ini v0.0.0-20181118015158-a301e724bd35 h1:et/xKFFaPqT7bV8MOn5KVnNiqenWdE9KM8fPlni6z0g=
+github.com/knq/ini v0.0.0-20181118015158-a301e724bd35/go.mod h1:kWZM2Rp5R3eP4q91Xms9JPMXuH7+yQrfTd3ZVzhxTUE=
 github.com/knq/snaker v0.0.0-20180306023312-d9ad1e7f342a h1:xI9Pl9IBPAx+41qm+jZbJ+h/Bh+vFXVqvO7ru3wutO0=
 github.com/knq/snaker v0.0.0-20180306023312-d9ad1e7f342a/go.mod h1:f0Dmq8fkddh8nOsVabYmtOHHdxlq2q4X+LQ1xWQEdUU=
 github.com/kr/pretty v0.1.0 h1:L/CwN0zerZDmRFUapSPitk6f+Q3+0za1rQkzVuMiMFI=
@@ -38,10 +36,6 @@ github.com/rogpeppe/go-internal v1.0.0 h1:o4VLZ5jqHE+HahLT6drNtSGTrrUA3wPBmtpgqt
 github.com/rogpeppe/go-internal v1.0.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
-github.com/vishen/ini v0.0.0-20181114075600-0e4d8f27e48e h1:+8tep4Yegg7IyaYGnreK1NxnahaMgQ0K2aDWBui09No=
-github.com/vishen/ini v0.0.0-20181114075600-0e4d8f27e48e/go.mod h1:kWZM2Rp5R3eP4q91Xms9JPMXuH7+yQrfTd3ZVzhxTUE=
-github.com/vishen/ini v0.0.0-20181114105943-e8b73a8b85fb h1:GB1X/gZb7wQgJAsH7VifrmWilAOjvQM5DMXe6Er+mEw=
-github.com/vishen/ini v0.0.0-20181114105943-e8b73a8b85fb/go.mod h1:kWZM2Rp5R3eP4q91Xms9JPMXuH7+yQrfTd3ZVzhxTUE=
 golang.org/x/lint v0.0.0-20180702182130-06c8688daad7/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=
 golang.org/x/net v0.0.0-20180826012351-8a410e7b638d/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=
 golang.org/x/net v0.0.0-20181029044818-c44066c5c816 h1:mVFkLpejdFLXVUv9E42f3XJVfMdqd0IVLVIVLjZWn5o=

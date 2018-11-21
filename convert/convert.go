@@ -283,25 +283,45 @@ func (b *builder) handleMessage(m *proto.Message) error {
 	return nil
 }
 
+// handleEnum will output a proto enum as a Go const. It will output
+// the enum using Go iota if each enum value is incrementing by 1
+// (starting from 0). Otherwise we output each enum value as a straight
+// conversion.
 func (b *builder) handleEnum(e *proto.Enum) error {
-	// TODO(vishen): Output as iota
-	// Currently we output the entire constant decleration for each element, eg:
-	// const (
-	//     Element0 int = 0
-	//     Element1 int = 1
-	//     Element2 int = 2
-	// )
-	// It should be possible to output as an iota if the element starts at zero
-	// and increments by 1.
 	w := &strings.Builder{}
 	b.format(w, 0, e.Comment, "type %s int\n", e.Name)
 	b.format(w, 0, nil, "\nconst (\n")
-	for _, c := range e.Elements {
+
+	// Check to see if we can output the enum using an iota. This is
+	// currently only possible if every enum value is an increment of 1
+	// from the previous enum value.
+	outputIota := true
+	for i, c := range e.Elements {
 		ef, ok := c.(*proto.EnumField)
 		if !ok {
 			return b.formatError(e.Position, "unexpected type %T in enum, expected enum field", c)
 		}
-		b.format(w, 1, ef.Comment, "%s %s = %d\n", ef.Name, e.Name, ef.Integer)
+		if i != ef.Integer {
+			outputIota = false
+			break
+		}
+	}
+
+	// Now we can output the enum as a const.
+	for i, c := range e.Elements {
+		ef := c.(*proto.EnumField)
+		// If we can't output as an iota.
+		if !outputIota {
+			b.format(w, 1, ef.Comment, "%s %s = %d\n", ef.Name, e.Name, ef.Integer)
+			continue
+		}
+		// If we can output as an iota, output the first element as the
+		// iota and output the rest as just the enum field name.
+		if i == 0 {
+			b.format(w, 1, ef.Comment, "%s %s = iota\n", ef.Name, e.Name)
+		} else {
+			b.format(w, 1, ef.Comment, "%s\n", ef.Name)
+		}
 	}
 	b.format(w, 0, nil, ")")
 	b.translatedDeclarations = append(b.translatedDeclarations, w.String())

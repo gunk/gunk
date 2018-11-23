@@ -9,6 +9,8 @@ import (
 	"go/printer"
 	"go/token"
 	"io/ioutil"
+	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/gunk/gunk/loader"
@@ -73,28 +75,16 @@ func formatFile(fset *token.FileSet, file *ast.File) (_ []byte, formatErr error)
 		}
 	}()
 	ast.Inspect(file, func(node ast.Node) bool {
-		group, ok := node.(*ast.CommentGroup)
-		if !ok {
-			return true
+		switch node.(type) {
+		case *ast.CommentGroup:
+			if err := formatComment(fset, node.(*ast.CommentGroup)); err != nil {
+				panic(inspectError{err})
+			}
+		case *ast.StructType:
+			if err := formatStruct(fset, node.(*ast.StructType)); err != nil {
+				panic(inspectError{err})
+			}
 		}
-		doc, tag, err := loader.SplitGunkTag(fset, group)
-		if err != nil {
-			panic(inspectError{err})
-		}
-		if tag == nil {
-			// no gunk tag
-			return true
-		}
-		var buf bytes.Buffer
-
-		// Print with space indentation, since all comment lines begin
-		// with "// " and we don't want to mix spaces and tabs.
-		config := printer.Config{Mode: printer.UseSpaces, Tabwidth: 8}
-		if err := config.Fprint(&buf, fset, tag); err != nil {
-			panic(inspectError{err})
-		}
-		text := doc + "\n\n+gunk " + buf.String()
-		*group = *commentFromText(group, text)
 		return true
 	})
 	var buf bytes.Buffer
@@ -102,6 +92,28 @@ func formatFile(fset *token.FileSet, file *ast.File) (_ []byte, formatErr error)
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func formatComment(fset *token.FileSet, group *ast.CommentGroup) error {
+	doc, tag, err := loader.SplitGunkTag(fset, group)
+	if err != nil {
+		return err
+	}
+	if tag == nil {
+		// no gunk tag
+		return nil
+	}
+	var buf bytes.Buffer
+
+	// Print with space indentation, since all comment lines begin
+	// with "// " and we don't want to mix spaces and tabs.
+	config := printer.Config{Mode: printer.UseSpaces, Tabwidth: 8}
+	if err := config.Fprint(&buf, fset, tag); err != nil {
+		return err
+	}
+	text := doc + "\n\n+gunk " + buf.String()
+	*group = *commentFromText(group, text)
+	return nil
 }
 
 func commentFromText(orig ast.Node, text string) *ast.CommentGroup {
@@ -122,4 +134,81 @@ func commentFromText(orig ast.Node, text string) *ast.CommentGroup {
 		group.List = append(group.List, comment)
 	}
 	return group
+}
+
+func formatStruct(fset *token.FileSet, st *ast.StructType) error {
+	if st.Fields == nil {
+		return nil
+	}
+	// Find which struct fields require sequence numbers, and
+	// keep a record of which sequence numbers are already used.
+	usedSequences := []int{}
+	fieldsWithoutSequence := []*ast.Field{}
+	for _, f := range st.Fields.List {
+		tag := f.Tag
+		if tag == nil {
+			fieldsWithoutSequence = append(fieldsWithoutSequence, f)
+			continue
+		}
+		// Can skip the error here because we've already parsed the file.
+		str, _ := strconv.Unquote(tag.Value)
+		stag := reflect.StructTag(str)
+		val, ok := stag.Lookup("pb")
+		// If there isn't a 'pb' tag present.
+		if !ok {
+			fieldsWithoutSequence = append(fieldsWithoutSequence, f)
+			continue
+		}
+		// If there was a 'pb' tag, but it wasn't empty, return an error.
+		// It is a bit difficult to add in the sequence number if the 'pb'
+		// tag already exists.
+		if ok && val == "" {
+			errorPos := fset.Position(tag.Pos())
+			return fmt.Errorf("%s: struct field tag for pb was empty, please remove or add sequence number", errorPos)
+		}
+		// If there isn't a number in 'pb' then return an error.
+		i, err := strconv.Atoi(val)
+		if err != nil {
+			errorPos := fset.Position(tag.Pos())
+			// TODO: Add the same error checking in generate. Or, look at factoring
+			// this code with the code in generate, they do very similar things?
+			return fmt.Errorf("%s: struct field tag for pb contains a non-number %q", errorPos, val)
+		}
+		usedSequences = append(usedSequences, i)
+	}
+
+	// Determine missing sequences.
+	missingSequences := []int{}
+	for i := 1; i < len(st.Fields.List)+1; i++ {
+		found := false
+		for _, u := range usedSequences {
+			if u == i {
+				found = true
+				break
+			}
+		}
+		if !found {
+			missingSequences = append(missingSequences, i)
+		}
+	}
+
+	// Add the sequence number to the field tag, creating a new
+	// tag if one doesn't exist, or prepend the sequence number
+	// to the tag that is already there.
+	for i, f := range fieldsWithoutSequence {
+		nextSequence := missingSequences[i]
+		if f.Tag == nil {
+			f.Tag = &ast.BasicLit{
+				ValuePos: f.Type.End() + 1,
+				Kind:     token.STRING,
+				Value:    fmt.Sprintf("`pb:\"%d\"`", nextSequence),
+			}
+		} else {
+			// Remove the string quoting around so it is easier to prepend
+			// the sequence number.
+			tagValueStr, _ := strconv.Unquote(f.Tag.Value)
+			f.Tag.Value = fmt.Sprintf("`pb:\"%d\" %s`", nextSequence, tagValueStr)
+		}
+	}
+	return nil
 }

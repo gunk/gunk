@@ -1,0 +1,30 @@
+env HOME=$WORK/home
+
+gunk generate ./normal
+exists normal/all.pb.go
+! grep 'all.proto is a deprecated file' normal/all.pb.go
+
+gunk generate ./deprecated
+exists deprecated/all.pb.go
+grep 'all.proto is a deprecated file' deprecated/all.pb.go
+
+-- go.mod --
+module testdata.tld/util
+-- .gunkconfig --
+[generate]
+command=protoc-gen-go
+
+-- normal/doc.go --
+package normal
+-- normal/normal.gunk --
+package normal
+
+-- deprecated/doc.go --
+package deprecated
+-- deprecated/deprecated.gunk --
+// +gunk opt.Deprecated(true)
+package deprecated
+
+import (
+    "github.com/gunk/opt"
+)

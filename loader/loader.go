@@ -31,6 +31,11 @@ func Load(dir string, fset *token.FileSet, patterns ...string) ([]*GunkPackage, 
 		Dir:  dir,
 		Mode: packages.LoadFiles,
 	}
+	if len(patterns) == 0 {
+		// TODO(mvdan): remove once
+		// https://github.com/golang/go/issues/28767 is fixed
+		patterns = []string{"."}
+	}
 	lpkgs, err := packages.Load(cfg, patterns...)
 	if err != nil {
 		return nil, err

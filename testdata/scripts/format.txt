@@ -8,12 +8,22 @@ stderr 'no Gunk packages to format'
 gunk format .
 cmp echo.gunk echo.gunk.golden
 
+# no args is equivalent to "."
+cd broken
+! gunk format
+stderr 'echo.gunk:1'
+cd ..
+
 -- go.mod --
 module testdata.tld/util
 -- doc.go --
 package util // make this directory a Go package
 -- empty/doc.go --
 package empty // make this directory a Go package
+-- broken/doc.go --
+package broken // make this directory a Go package
+-- broken/echo.gunk --
+package
 -- echo.gunk --
 package util   // proto "testdata.v1.util"
 

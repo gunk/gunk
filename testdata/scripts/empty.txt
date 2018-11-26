@@ -13,6 +13,8 @@ gunk generate ./...
 
 -- go.mod --
 module testdata.tld/util
+-- .gunkconfig --
+# Empty gunkconfig
 -- doc.go --
 package util // make this directory a Go package
 -- p2/doc.go --

@@ -1,0 +1,78 @@
+env HOME=$WORK/home
+
+# Check that the project root is assumed to be where the .git folder is.
+gunk generate ./gitfolder
+exists gitfolder/all.pb.go
+! exists gitfolder/all_pb2.py
+
+# Check that the project root is assumed to be where the .git file is.
+gunk generate ./gitfile
+exists gitfile/all.pb.go
+! exists gitfile/all_pb2.py
+
+# Check that the project root is assumed to be where the go.mod file it.
+gunk generate ./gomod
+exists gomod/all.pb.go
+! exists gomod/all_pb2.py
+
+# Add a gunk config not in the project root.
+# This should not get picked up
+-- .gunkconfig --
+[generate python]
+
+-- gitfolder/.git/config --
+-- gitfolder/.gunkconfig --
+[generate]
+command=protoc-gen-go
+plugins=grpc
+-- gitfolder/doc.go --
+package util // make this directory a Go package
+-- gitfolder/util.gunk --
+package util
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
+type Util interface {
+	// Echo echoes a message.
+	Echo(Message) Message
+}
+
+-- gitfile/.git --
+-- gitfile/.gunkconfig --
+[generate]
+command=protoc-gen-go
+plugins=grpc
+-- gitfile/doc.go --
+package util // make this directory a Go package
+-- gitfile/util.gunk --
+package util
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
+type Util interface {
+	// Echo echoes a message.
+	Echo(Message) Message
+}
+
+-- gomod/.git --
+-- gomod/.gunkconfig --
+[generate]
+command=protoc-gen-go
+plugins=grpc
+-- gomod/doc.go --
+package util // make this directory a Go package
+-- gomod/util.gunk --
+package util
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
+type Util interface {
+	// Echo echoes a message.
+	Echo(Message) Message
+}

@@ -13,10 +13,6 @@ package util // make this directory a Go package
 -- gunk/util.gunk --
 package util
 
-import (
-	"github.com/gunk/opt/http"
-)
-
 type Message struct {
 	Msg string `pb:"1"`
 }

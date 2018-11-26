@@ -116,7 +116,7 @@ func generatedFiles(t *testing.T, dir string) (map[string]string, error) {
 	return files, err
 }
 
-func TestGenerateScripts(t *testing.T) {
+func TestScripts(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir: filepath.Join("testdata", "scripts"),
 	})

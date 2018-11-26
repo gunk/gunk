@@ -12,15 +12,10 @@ import (
 	"github.com/knq/ini/parser"
 )
 
-const goModFilename = "go.mod"
-
-var DefaultConfig = Config{
-	Dir: "", // This needs to be set before returning the default config
-	Generators: []Generator{
-		{Command: "protoc-gen-go", Params: []KeyValue{{"plugins", "grpc"}}},
-		{Command: "protoc-gen-grpc-gateway", Params: []KeyValue{{"logtostderr", "true"}}},
-	},
-}
+const (
+	goModFilename = "go.mod"
+	gitFilename   = ".git"
+)
 
 type KeyValue struct {
 	Key   string
@@ -84,7 +79,8 @@ type Config struct {
 // Load will attempt to find the .gunkconfig in the 'dir', working
 // its way up to each parent looking for a .gunkconfig. Currently,
 // Load will only stop when it is unable to go any further up the
-// directory structure.
+// directory structure or until it finds a 'go.mod' file, or a
+// '.git' file or folder.
 //
 // Passing in an empty 'dir' will tell Load to look in the current
 // working directory.
@@ -116,23 +112,23 @@ func Load(dir string) (*Config, error) {
 			cfgs = append(cfgs, cfg)
 		}
 
-		// Check to see if this directory contains a 'go.mod' file. If so,
-		// we assume that is the root of the project and we have found all
-		// the gunk configs.
+		// Check to see if this directory contains a 'go.mod' file or '.git'
+		// file or folder. If so, we assume that is the root of the project
+		// and we have found all the gunk configs.
 		files, err := ioutil.ReadDir(dir)
 		if err != nil {
 			return nil, fmt.Errorf("unable to list files in directory %q", dir)
 		}
 
-		foundGoMod := false
+		foundProjectRoot := false
 		for _, f := range files {
-			if f.Name() == goModFilename {
-				foundGoMod = true
+			if f.Name() == goModFilename || f.Name() == gitFilename {
+				foundProjectRoot = true
 				break
 			}
 		}
 
-		if foundGoMod {
+		if foundProjectRoot {
 			break
 		}
 
@@ -148,9 +144,9 @@ func Load(dir string) (*Config, error) {
 
 	}
 
-	// If no configs were found, return the default config.
+	// If no configs were found, return an error.
 	if len(cfgs) == 0 {
-		return &DefaultConfig, nil
+		return nil, fmt.Errorf("no .gunkconfig found")
 	}
 
 	// Merge the found configs.

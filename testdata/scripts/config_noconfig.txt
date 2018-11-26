@@ -1,10 +1,8 @@
 env HOME=$WORK/home
 
 # Gunk generate with out specified in config
-gunk generate ./gunk
-
-# Check that that files were generated in the correct folder
-exists gunk/all.pb.go gunk/all.pb.gw.go
+! gunk generate ./gunk
+stderr 'unable to load gunkconfig: no .gunkconfig found'
 
 -- go.mod --
 module testdata.tld/util
@@ -25,11 +23,5 @@ type Message struct {
 
 type Util interface {
 	// Echo echoes a message.
-	//
-	// +gunk http.Match{
-	//         Method: "POST",
-	//         Path:   "/v1/echo",
-	//         Body:   "*",
-	// }
 	Echo(Message) Message
 }

@@ -291,14 +291,20 @@ func (g *Generator) translatePkg(pkgPath string) error {
 	gpkg := g.gunkPkgs[pkgPath]
 	g.curPkg = gpkg
 
+	// Get file options for package
+	fo, err := g.fileOptions(gpkg)
+	if err != nil {
+		return fmt.Errorf("unable to get file options: %v", err)
+	}
+
+	// Set the GoPackage file option to be the gunk package name.
+	fo.GoPackage = proto.String(gpkg.Name)
+
 	g.pfile = &desc.FileDescriptorProto{
 		Syntax:  proto.String("proto3"),
 		Name:    proto.String(unifiedProtoFile(gpkg.PkgPath)),
 		Package: proto.String(gpkg.ProtoName),
-		Options: &desc.FileOptions{
-			GoPackage: proto.String(gpkg.Name),
-			// TODO: Add other package options
-		},
+		Options: fo,
 	}
 	g.allProto[*g.pfile.Name] = g.pfile
 
@@ -328,6 +334,44 @@ func (g *Generator) translatePkg(pkgPath string) error {
 		}
 	}
 	return nil
+}
+
+// fileOptions will return the proto file options that have been set in the
+// gunk package. These include "JavaPackage", "Deprecated", "PhpNamespace", etc.
+func (g *Generator) fileOptions(pkg *loader.GunkPackage) (*desc.FileOptions, error) {
+	fo := &desc.FileOptions{}
+	for _, f := range pkg.GunkSyntax {
+		if f.Doc == nil {
+			continue
+		}
+		_, tag, err := loader.SplitGunkTag(g.fset, f.Doc)
+		if err != nil || tag == nil {
+			continue
+		}
+
+		// Eval needs a string, so stringify it again.
+		var buf bytes.Buffer
+		printer.Fprint(&buf, g.fset, tag)
+
+		// use Eval to resolve the type, and check for any errors in the
+		// value expression
+		tv, err := types.Eval(g.fset, pkg.Types, f.End(), buf.String())
+		if err != nil {
+			return nil, err
+		}
+
+		switch s := tv.Type.String(); s {
+		case "github.com/gunk/opt.Deprecated":
+			fo.Deprecated = proto.Bool(constant.BoolVal(tv.Value))
+		case "github.com/gunk/opt.JavaPackage":
+			fo.JavaPackage = proto.String(constant.StringVal(tv.Value))
+		case "github.com/gunk/opt.JavaMultipleFiles":
+			fo.JavaMultipleFiles = proto.Bool(constant.BoolVal(tv.Value))
+		default:
+			return nil, fmt.Errorf("gunk package option %q not supported", s)
+		}
+	}
+	return fo, nil
 }
 
 // appendFile translates a single gunk file to protobuf, appending its contents

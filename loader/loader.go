@@ -204,36 +204,50 @@ syntax = "proto3";
 	return fset.File, nil
 }
 
-// SplitGunkTag splits a '+gunk' tag from a comment group, returning the leading
-// documentation and the tag's Go expression.
-func SplitGunkTag(fset *token.FileSet, comment *ast.CommentGroup) (string, ast.Expr, error) {
+// SplitGunkTag splits '+gunk' tags from a comment group, returning the leading
+// documentation and the tags Go expressions.
+func SplitGunkTag(fset *token.FileSet, comment *ast.CommentGroup) (string, []ast.Expr, error) {
+	// Remove the comment leading and / or trailing identifier; // and /* */ and `
 	docLines := strings.Split(comment.Text(), "\n")
-	var tagLines []string
+	var gunkTagLines []string
+	var gunkTagPos []int
+	var commentLines []string
+	foundGunkTag := false
 	for i, line := range docLines {
 		if strings.HasPrefix(line, "+gunk ") {
-			tagLines = docLines[i:]
 			// Replace "+gunk" with spaces, so that we keep the
 			// tag's lines all starting at the same column, for
 			// accurate position information later.
-			tagLines[0] = strings.Replace(tagLines[0], "+gunk", "     ", 1)
-			docLines = docLines[:i]
-			break
+			gunkTagLine := strings.Replace(line, "+gunk", "     ", 1)
+			gunkTagLines = append(gunkTagLines, gunkTagLine)
+			gunkTagPos = append(gunkTagPos, i)
+			foundGunkTag = true
+		} else if foundGunkTag {
+			gunkTagLines[len(gunkTagLines)-1] += "\n" + line
+		} else {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			commentLines = append(commentLines, line)
 		}
 	}
-	doc := strings.TrimSpace(strings.Join(docLines, "\n"))
-	tagStr := strings.Join(tagLines, "\n")
-	if strings.TrimSpace(tagStr) == "" {
-		return doc, nil, nil
+	if len(gunkTagLines) == 0 {
+		return comment.Text(), nil, nil
 	}
-	tag, err := parser.ParseExprFrom(fset, "", tagStr, 0)
-	if err != nil {
-		tagPos := fset.Position(comment.Pos())
-		tagPos.Line += len(docLines) // relative to the "+gunk" line
-		tagPos.Column += len("// ")  // .Text() stripped these prefixes
-		return "", nil, ErrorAbsolutePos(err, tagPos)
+	var tags []ast.Expr
+	for i, gunkTag := range gunkTagLines {
+		tag, err := parser.ParseExprFrom(fset, "", gunkTag, 0)
+		if err != nil {
+			tagPos := fset.Position(comment.Pos())
+			tagPos.Line += gunkTagPos[i] // relative to the "+gunk" line
+			tagPos.Column += len("// ")  // .Text() stripped these prefixes
+			return "", nil, ErrorAbsolutePos(err, tagPos)
+		}
+		tags = append(tags, tag)
 	}
 	// TODO: make positions in the tag expression absolute too
-	return doc, tag, nil
+	return strings.Join(commentLines, "\n"), tags, nil
 }
 
 // ErrorAbsolutePos modifies all positions in err, considered to be relative to

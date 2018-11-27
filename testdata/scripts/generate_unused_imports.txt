@@ -1,0 +1,51 @@
+env HOME=$WORK/home
+
+gunk generate . -v
+! stdout 'all.proto: warning: Import testdata.tld/util/v1/all.proto but not used.'
+! stdout 'all.proto: warning: Import'
+! grep 'testdata.tld/util/v1' all.pb.go
+grep 'testdata.tld/util/v2' all.pb.go
+
+-- go.mod --
+module testdata.tld/util
+-- .gunkconfig --
+[generate]
+command=protoc-gen-go
+-- doc.go --
+package util // make this directory a Go package
+-- echo.gunk --
+package util // proto "testdata.v1.util"
+
+import (
+	"testdata.tld/util/v1"
+	v2 "testdata.tld/util/v2"
+)
+
+type Code struct {
+    Code v2.Code `pb:"1"`
+}
+
+type Util interface {
+	Echo(Code) Code
+}
+-- v1/doc.go --
+package message // make this directory a Go package
+-- v1/message.gunk --
+package message
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
+-- v2/doc.go --
+package code // make this directory a Go package
+-- v2/message.gunk --
+package code
+
+import (
+    "github.com/gunk/opt"
+)
+
+type Code struct {
+	Code string `pb:"1"`
+}

@@ -90,9 +90,10 @@ func Run(dir string, args ...string) error {
 type Generator struct {
 	dir string // if empty, uses the current directory
 
-	curPkg *loader.GunkPackage // current package being translated or generated
-	gfile  *ast.File
-	pfile  *desc.FileDescriptorProto
+	curPkg      *loader.GunkPackage // current package being translated or generated
+	gfile       *ast.File
+	pfile       *desc.FileDescriptorProto
+	usedImports map[string]bool // imports being used for the current package
 
 	fset    *token.FileSet
 	tconfig *types.Config
@@ -283,6 +284,9 @@ func (g *Generator) requestForPkg(pkgPath string) *plugin.CodeGeneratorRequest {
 	return req
 }
 
+func (g *Generator) addUsedImport(pkgPath string) {
+}
+
 // translatePkg translates all the gunk files in a gunk package to the
 // proto language. All the files within the package, including all the
 // files for its transitive dependencies, must already be loaded via
@@ -290,6 +294,7 @@ func (g *Generator) requestForPkg(pkgPath string) *plugin.CodeGeneratorRequest {
 func (g *Generator) translatePkg(pkgPath string) error {
 	gpkg := g.gunkPkgs[pkgPath]
 	g.curPkg = gpkg
+	g.usedImports = make(map[string]bool)
 
 	// Get file options for package
 	fo, err := g.fileOptions(gpkg)
@@ -330,7 +335,10 @@ func (g *Generator) translatePkg(pkgPath string) error {
 				// depend on.
 				continue
 			}
-			g.pfile.Dependency = append(g.pfile.Dependency, unifiedProtoFile(opath))
+			// Only include imports that are used.
+			if g.usedImports[opath] {
+				g.pfile.Dependency = append(g.pfile.Dependency, unifiedProtoFile(opath))
+			}
 		}
 	}
 	return nil
@@ -431,8 +439,6 @@ func (g *Generator) translateDecl(decl ast.Decl) error {
 			}
 			g.pfile.Service = append(g.pfile.Service, srv)
 		case *ast.Ident:
-			// TODO(vishen): Check to see if the ident is a known file
-			// option and add if to  'p.file.Options'.
 			enum, err := g.convertEnum(ts)
 			if err != nil {
 				return err
@@ -780,6 +786,7 @@ func (g *Generator) convertType(typ types.Type) (desc.FieldDescriptorProto_Type,
 			return desc.FieldDescriptorProto_TYPE_MESSAGE, desc.FieldDescriptorProto_LABEL_OPTIONAL, ".google.protobuf.Duration"
 		}
 		fullName := g.qualifiedTypeName(typ.Obj().Name(), typ.Obj().Pkg())
+		g.usedImports[typ.Obj().Pkg().Path()] = true
 		switch u := typ.Underlying().(type) {
 		case *types.Basic:
 			switch u.Kind() {

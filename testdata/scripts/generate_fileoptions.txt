@@ -6,7 +6,10 @@ exists normal/all.pb.go
 
 gunk generate ./deprecated
 exists deprecated/all.pb.go
+exists deprecated/com/example/deprecated/All.java
 grep 'all.proto is a deprecated file' deprecated/all.pb.go
+grep 'package com.example.deprecated;' deprecated/com/example/deprecated/All.java
+grep '@java.lang.Deprecated' deprecated/com/example/deprecated/All.java
 
 -- go.mod --
 module testdata.tld/util
@@ -14,6 +17,8 @@ module testdata.tld/util
 [generate]
 command=protoc-gen-go
 
+[generate java]
+[generate python]
 -- normal/doc.go --
 package normal
 -- normal/normal.gunk --
@@ -23,6 +28,7 @@ package normal
 package deprecated
 -- deprecated/deprecated.gunk --
 // +gunk opt.Deprecated(true)
+// +gunk opt.JavaPackage("com.example.deprecated")
 package deprecated
 
 import (

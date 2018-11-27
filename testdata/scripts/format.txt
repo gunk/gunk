@@ -25,6 +25,8 @@ package broken // make this directory a Go package
 -- broken/echo.gunk --
 package
 -- echo.gunk --
+// +gunk opt.JavaPackage("com.testdata.v1")
+// +gunk opt.Deprecated(true)
 package util   // proto "testdata.v1.util"
 
 type Message struct {
@@ -41,9 +43,18 @@ type Util interface {
 // Body: "*",
 // }
 Echo(Message) Message
+
+// +gunk http.Match{
+// Method: "POST",
+// Path: "/v1/echo",
+// Body: "*",
+// }
+Echo2(Message) Message
 }
 
 -- echo.gunk.golden --
+// +gunk opt.JavaPackage("com.testdata.v1")
+// +gunk opt.Deprecated(true)
 package util // proto "testdata.v1.util"
 
 type Message struct {
@@ -60,4 +71,11 @@ type Util interface {
 	//         Body:   "*",
 	// }
 	Echo(Message) Message
+
+	// +gunk http.Match{
+	//         Method: "POST",
+	//         Path:   "/v1/echo",
+	//         Body:   "*",
+	// }
+	Echo2(Message) Message
 }

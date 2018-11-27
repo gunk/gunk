@@ -344,31 +344,33 @@ func (g *Generator) fileOptions(pkg *loader.GunkPackage) (*desc.FileOptions, err
 		if f.Doc == nil {
 			continue
 		}
-		_, tag, err := loader.SplitGunkTag(g.fset, f.Doc)
-		if err != nil || tag == nil {
+		_, tags, err := loader.SplitGunkTag(g.fset, f.Doc)
+		if err != nil {
 			continue
 		}
 
-		// Eval needs a string, so stringify it again.
-		var buf bytes.Buffer
-		printer.Fprint(&buf, g.fset, tag)
+		for _, tag := range tags {
+			var buf bytes.Buffer
+			// Eval needs a string, so stringify it again.
+			printer.Fprint(&buf, g.fset, tag)
 
-		// use Eval to resolve the type, and check for any errors in the
-		// value expression
-		tv, err := types.Eval(g.fset, pkg.Types, f.End(), buf.String())
-		if err != nil {
-			return nil, err
-		}
+			// use Eval to resolve the type, and check for any errors in the
+			// value expression
+			tv, err := types.Eval(g.fset, pkg.Types, f.End(), buf.String())
+			if err != nil {
+				return nil, err
+			}
 
-		switch s := tv.Type.String(); s {
-		case "github.com/gunk/opt.Deprecated":
-			fo.Deprecated = proto.Bool(constant.BoolVal(tv.Value))
-		case "github.com/gunk/opt.JavaPackage":
-			fo.JavaPackage = proto.String(constant.StringVal(tv.Value))
-		case "github.com/gunk/opt.JavaMultipleFiles":
-			fo.JavaMultipleFiles = proto.Bool(constant.BoolVal(tv.Value))
-		default:
-			return nil, fmt.Errorf("gunk package option %q not supported", s)
+			switch s := tv.Type.String(); s {
+			case "github.com/gunk/opt.Deprecated":
+				fo.Deprecated = proto.Bool(constant.BoolVal(tv.Value))
+			case "github.com/gunk/opt.JavaPackage":
+				fo.JavaPackage = proto.String(constant.StringVal(tv.Value))
+			case "github.com/gunk/opt.JavaMultipleFiles":
+				fo.JavaMultipleFiles = proto.Bool(constant.BoolVal(tv.Value))
+			default:
+				return nil, fmt.Errorf("gunk package option %q not supported", s)
+			}
 		}
 	}
 	return fo, nil
@@ -532,7 +534,7 @@ func (g *Generator) convertService(tspec *ast.TypeSpec) (*desc.ServiceDescriptor
 		if len(method.Names) != 1 {
 			return nil, fmt.Errorf("need all methods to have one name")
 		}
-		docText, tag, err := loader.SplitGunkTag(g.fset, method.Doc)
+		docText, tags, err := loader.SplitGunkTag(g.fset, method.Doc)
 		if err != nil {
 			return nil, err
 		}
@@ -549,7 +551,7 @@ func (g *Generator) convertService(tspec *ast.TypeSpec) (*desc.ServiceDescriptor
 		if err != nil {
 			return nil, err
 		}
-		if tag != nil {
+		for _, tag := range tags {
 			edesc, val, err := g.interpretTagExpr(tag)
 			if err != nil {
 				return nil, err

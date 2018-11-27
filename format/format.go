@@ -95,24 +95,34 @@ func formatFile(fset *token.FileSet, file *ast.File) (_ []byte, formatErr error)
 }
 
 func formatComment(fset *token.FileSet, group *ast.CommentGroup) error {
-	doc, tag, err := loader.SplitGunkTag(fset, group)
+	doc, tags, err := loader.SplitGunkTag(fset, group)
 	if err != nil {
 		return err
 	}
-	if tag == nil {
-		// no gunk tag
+	if len(tags) == 0 {
+		// no gunk tags
 		return nil
 	}
-	var buf bytes.Buffer
-
-	// Print with space indentation, since all comment lines begin
-	// with "// " and we don't want to mix spaces and tabs.
-	config := printer.Config{Mode: printer.UseSpaces, Tabwidth: 8}
-	if err := config.Fprint(&buf, fset, tag); err != nil {
-		return err
+	// If there is leading comments, add a new line
+	// between them and the gunk tags.
+	if doc != "" {
+		doc += "\n\n"
 	}
-	text := doc + "\n\n+gunk " + buf.String()
-	*group = *commentFromText(group, text)
+	for i, tag := range tags {
+		var buf bytes.Buffer
+
+		// Print with space indentation, since all comment lines begin
+		// with "// " and we don't want to mix spaces and tabs.
+		config := printer.Config{Mode: printer.UseSpaces, Tabwidth: 8}
+		if err := config.Fprint(&buf, fset, tag); err != nil {
+			return err
+		}
+		doc += "+gunk " + buf.String()
+		if i < len(tags)-1 {
+			doc += "\n"
+		}
+	}
+	*group = *commentFromText(group, doc)
 	return nil
 }
 

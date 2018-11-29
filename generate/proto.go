@@ -2,6 +2,7 @@ package generate
 
 import (
 	"fmt"
+	"go/constant"
 	"reflect"
 	"strconv"
 
@@ -43,6 +44,14 @@ func protoStringOrNil(s string) *string {
 		return nil
 	}
 	return proto.String(s)
+}
+
+func protoEnumValue(value constant.Value) int32 {
+	val, ok := constant.Int64Val(value)
+	if !ok {
+		panic(fmt.Sprintf("value %#v is unknown", value))
+	}
+	return int32(val)
 }
 
 // unifiedProtoFile returns the proto file name that a Gunk package is

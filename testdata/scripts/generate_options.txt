@@ -1,0 +1,70 @@
+env HOME=$WORK/home
+
+gunk generate ./normal
+exists normal/all.pb.go
+! grep 'all.proto is a deprecated file' normal/all.pb.go
+
+gunk generate ./deprecated
+exists deprecated/all.pb.go
+exists deprecated/com/example/deprecated/All.java
+grep 'package com.example.deprecated;' deprecated/com/example/deprecated/All.java
+grep '@java.lang.Deprecated public final class All' deprecated/com/example/deprecated/All.java
+grep '@java.lang.Deprecated public  static final class Message' deprecated/com/example/deprecated/All.java
+grep 'string Msg = 1 \[ctype = STRING, deprecated = true, lazy = false, jstype = JS_NORMAL, weak = false\]' deprecated/com/example/deprecated/All.java
+
+grep 'all.proto is a deprecated file' deprecated/all.pb.go
+grep 'type Status int32 // Deprecated: Do not use.' deprecated/all.pb.go
+grep 'Status_Error Status = 2 // Deprecated: Do not use.' deprecated/all.pb.go
+grep 'Msg .* // Deprecated: Do not use.' deprecated/all.pb.go
+
+-- go.mod --
+module testdata.tld/util
+-- .gunkconfig --
+[generate]
+command=protoc-gen-go
+
+[generate java]
+[generate python]
+-- normal/doc.go --
+package normal
+-- normal/normal.gunk --
+package normal
+
+-- deprecated/doc.go --
+package deprecated
+-- deprecated/deprecated.gunk --
+// +gunk file.Deprecated(true)
+// +gunk java.Package("com.example.deprecated")
+package deprecated
+
+import (
+	"github.com/gunk/opt/enum"
+	"github.com/gunk/opt/enumvalues"
+	"github.com/gunk/opt/file"
+	"github.com/gunk/opt/file/java"
+	"github.com/gunk/opt/field"
+	"github.com/gunk/opt/message"
+	"github.com/gunk/opt/service"
+	"github.com/gunk/opt/method"
+)
+
+// +gunk enum.Deprecated(true)
+type Status int
+const (
+	Unknown Status = iota
+	Success
+	// +gunk enumvalues.Deprecated(true)
+	Error
+)
+
+// +gunk message.Deprecated(true)
+type Message struct {
+	// +gunk field.Deprecated(true)
+	Msg string `pb:"1"`
+}
+
+// +gunk service.Deprecated(true)
+type Service interface {
+	// +gunk method.Deprecated(true)
+	Echo(Message) Message
+}

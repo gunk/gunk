@@ -11,7 +11,6 @@ import (
 	"io/ioutil"
 	"reflect"
 	"strconv"
-	"strings"
 
 	"github.com/gunk/gunk/loader"
 )
@@ -19,7 +18,8 @@ import (
 // Run formats Gunk files to be canonically formatted.
 func Run(dir string, args ...string) error {
 	fset := token.NewFileSet()
-	pkgs, err := loader.Load(dir, fset, args...)
+	l := loader.Loader{Dir: dir, Fset: fset}
+	pkgs, err := l.Load(args...)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,8 @@ func formatFile(fset *token.FileSet, file *ast.File) (_ []byte, formatErr error)
 }
 
 func formatComment(fset *token.FileSet, group *ast.CommentGroup) error {
-	doc, tags, err := loader.SplitGunkTag(fset, group)
+	// Split the gunk tag ourselves, so we can support Source.
+	doc, tags, err := loader.SplitGunkTag(nil, fset, group)
 	if err != nil {
 		return err
 	}
@@ -114,7 +115,7 @@ func formatComment(fset *token.FileSet, group *ast.CommentGroup) error {
 		// Print with space indentation, since all comment lines begin
 		// with "// " and we don't want to mix spaces and tabs.
 		config := printer.Config{Mode: printer.UseSpaces, Tabwidth: 8}
-		if err := config.Fprint(&buf, fset, tag); err != nil {
+		if err := config.Fprint(&buf, fset, tag.Expr); err != nil {
 			return err
 		}
 		doc += "+gunk " + buf.String()
@@ -122,28 +123,8 @@ func formatComment(fset *token.FileSet, group *ast.CommentGroup) error {
 			doc += "\n"
 		}
 	}
-	*group = *commentFromText(group, doc)
+	*group = *loader.CommentFromText(group, doc)
 	return nil
-}
-
-func commentFromText(orig ast.Node, text string) *ast.CommentGroup {
-	group := &ast.CommentGroup{}
-	lines := strings.Split(text, "\n")
-	for i, line := range lines {
-		comment := &ast.Comment{Text: "// " + line}
-
-		// Ensure that group.Pos() and group.End() stay on the same
-		// lines, to ensure that printing doesn't move the comment
-		// around or introduce newlines.
-		switch i {
-		case 0:
-			comment.Slash = orig.Pos()
-		case len(lines) - 1:
-			comment.Slash = orig.End()
-		}
-		group.List = append(group.List, comment)
-	}
-	return group
 }
 
 func formatStruct(fset *token.FileSet, st *ast.StructType) error {

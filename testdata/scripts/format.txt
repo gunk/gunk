@@ -25,9 +25,14 @@ package broken // make this directory a Go package
 -- broken/echo.gunk --
 package
 -- echo.gunk --
-// +gunk opt.JavaPackage("com.testdata.v1")
-// +gunk opt.Deprecated(true)
+// +gunk java.Package("com.testdata.v1")
+// +gunk file.Deprecated(true)
 package util   // proto "testdata.v1.util"
+
+import (
+"github.com/gunk/opt/file"
+"github.com/gunk/opt/file/java"
+)
 
 type Message struct {
 Text string    `pb:"1" json:"text"`
@@ -53,9 +58,14 @@ Echo2(Message) Message
 }
 
 -- echo.gunk.golden --
-// +gunk opt.JavaPackage("com.testdata.v1")
-// +gunk opt.Deprecated(true)
+// +gunk java.Package("com.testdata.v1")
+// +gunk file.Deprecated(true)
 package util // proto "testdata.v1.util"
+
+import (
+	"github.com/gunk/opt/file"
+	"github.com/gunk/opt/file/java"
+)
 
 type Message struct {
 	Text string `pb:"1" json:"text"`

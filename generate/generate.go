@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"go/ast"
 	"go/constant"
-	"go/printer"
 	"go/token"
 	"go/types"
 	"io/ioutil"
@@ -18,7 +17,6 @@ import (
 	"github.com/golang/protobuf/proto"
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
-	"golang.org/x/tools/go/packages"
 	"google.golang.org/genproto/googleapis/api/annotations"
 
 	"github.com/gunk/gunk/config"
@@ -30,23 +28,17 @@ import (
 // the output files in the same directories.
 func Run(dir string, args ...string) error {
 	g := &Generator{
-		dir:  dir,
-		fset: token.NewFileSet(),
-		tconfig: &types.Config{
-			DisableUnusedImportCheck: true,
-		},
-		info: &types.Info{
-			Types: make(map[ast.Expr]types.TypeAndValue),
-			Defs:  make(map[*ast.Ident]types.Object),
-			Uses:  make(map[*ast.Ident]types.Object),
+		Loader: loader.Loader{
+			Dir:   dir,
+			Fset:  token.NewFileSet(),
+			Types: true,
 		},
 
 		gunkPkgs: make(map[string]*loader.GunkPackage),
 		allProto: make(map[string]*desc.FileDescriptorProto),
 	}
-	g.tconfig.Importer = g
 
-	pkgs, err := loader.Load(g.dir, g.fset, args...)
+	pkgs, err := g.Load(args...)
 	if err != nil {
 		return err
 	}
@@ -54,20 +46,16 @@ func Run(dir string, args ...string) error {
 		return fmt.Errorf("no Gunk packages to generate")
 	}
 
-	// Record the loaded packages
-	for _, pkg := range pkgs {
-		g.gunkPkgs[pkg.PkgPath] = pkg
-	}
+	// Record the loaded packages in gunkPkgs.
+	g.recordPkgs(pkgs...)
 
 	// Translate the packages from Gunk to Proto.
 	for _, pkg := range pkgs {
-		if err := g.addPkg(pkg.PkgPath); err != nil {
-			return err
-		}
 		if err := g.translatePkg(pkg.PkgPath); err != nil {
 			return err
 		}
 	}
+	// Load any non-Gunk proto dependencies.
 	if err := g.loadProtoDeps(); err != nil {
 		return err
 	}
@@ -88,26 +76,30 @@ func Run(dir string, args ...string) error {
 }
 
 type Generator struct {
-	dir string // if empty, uses the current directory
+	loader.Loader
 
 	curPkg      *loader.GunkPackage // current package being translated or generated
 	gfile       *ast.File
 	pfile       *desc.FileDescriptorProto
 	usedImports map[string]bool // imports being used for the current package
 
-	fset    *token.FileSet
-	tconfig *types.Config
-	info    *types.Info
-
 	// Maps from package import path to package information.
 	gunkPkgs map[string]*loader.GunkPackage
 
-	allProto  map[string]*desc.FileDescriptorProto
-	origPaths map[string]string // TODO: remove
+	allProto map[string]*desc.FileDescriptorProto
 
 	messageIndex int32
 	serviceIndex int32
 	enumIndex    int32
+}
+
+func (g *Generator) recordPkgs(pkgs ...*loader.GunkPackage) {
+	for _, pkg := range pkgs {
+		g.gunkPkgs[pkg.PkgPath] = pkg
+		for _, ipkg := range pkg.Imports {
+			g.recordPkgs(ipkg)
+		}
+	}
 }
 
 // GeneratePkg runs the proto files resulting from translating gunk packages
@@ -286,10 +278,15 @@ func (g *Generator) requestForPkg(pkgPath string) *plugin.CodeGeneratorRequest {
 
 // translatePkg translates all the gunk files in a gunk package to the
 // proto language. All the files within the package, including all the
-// files for its transitive dependencies, must already be loaded via
-// addPkg.
+// files for its transitive dependencies, must already be loaded.
 func (g *Generator) translatePkg(pkgPath string) error {
 	gpkg := g.gunkPkgs[pkgPath]
+	pfilename := unifiedProtoFile(gpkg.PkgPath)
+	if _, ok := g.allProto[pfilename]; ok {
+		// Already translated, e.g. as a dependency.
+		return nil
+	}
+
 	g.curPkg = gpkg
 	g.usedImports = make(map[string]bool)
 
@@ -304,11 +301,11 @@ func (g *Generator) translatePkg(pkgPath string) error {
 
 	g.pfile = &desc.FileDescriptorProto{
 		Syntax:  proto.String("proto3"),
-		Name:    proto.String(unifiedProtoFile(gpkg.PkgPath)),
+		Name:    proto.String(pfilename),
 		Package: proto.String(gpkg.ProtoName),
 		Options: fo,
 	}
-	g.allProto[*g.pfile.Name] = g.pfile
+	g.allProto[pfilename] = g.pfile
 
 	g.messageIndex = 0
 	g.serviceIndex = 0
@@ -320,6 +317,8 @@ func (g *Generator) translatePkg(pkgPath string) error {
 		}
 	}
 
+	var leftToTranslate []string
+
 	for _, gfile := range gpkg.GunkSyntax {
 		for _, imp := range gfile.Imports {
 			if imp.Name != nil && imp.Name.Name == "_" {
@@ -327,15 +326,29 @@ func (g *Generator) translatePkg(pkgPath string) error {
 				continue
 			}
 			opath, _ := strconv.Unquote(imp.Path.Value)
-			if len(g.gunkPkgs[opath].GunkNames) == 0 {
+			pkg := g.gunkPkgs[opath]
+			if pkg == nil || len(pkg.GunkNames) == 0 {
 				// Not a gunk package, so no joint proto file to
 				// depend on.
 				continue
 			}
-			// Only include imports that are used.
-			if g.usedImports[opath] {
-				g.pfile.Dependency = append(g.pfile.Dependency, unifiedProtoFile(opath))
+			if !g.usedImports[opath] {
+				// Only include imports that are used.
+				continue
 			}
+			pfile := unifiedProtoFile(opath)
+			if _, ok := g.allProto[pfile]; !ok {
+				leftToTranslate = append(leftToTranslate, opath)
+			}
+			g.pfile.Dependency = append(g.pfile.Dependency, pfile)
+		}
+	}
+
+	// Do the recursive translatePkg calls at the end, since the generator
+	// holds the state for the current package.
+	for _, pkgPath := range leftToTranslate {
+		if err := g.translatePkg(pkgPath); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -346,66 +359,47 @@ func (g *Generator) translatePkg(pkgPath string) error {
 func (g *Generator) fileOptions(pkg *loader.GunkPackage) (*desc.FileOptions, error) {
 	fo := &desc.FileOptions{}
 	for _, f := range pkg.GunkSyntax {
-		if f.Doc == nil {
-			continue
-		}
-		_, tags, err := loader.SplitGunkTag(g.fset, f.Doc)
-		if err != nil {
-			continue
-		}
-
-		for _, tag := range tags {
-			var buf bytes.Buffer
-			// Eval needs a string, so stringify it again.
-			printer.Fprint(&buf, g.fset, tag)
-
-			// use Eval to resolve the type, and check for any errors in the
-			// value expression
-			tv, err := types.Eval(g.fset, pkg.Types, f.End(), buf.String())
-			if err != nil {
-				return nil, err
-			}
-
-			switch s := tv.Type.String(); s {
+		for _, tag := range pkg.GunkTags[f] {
+			switch s := tag.Type.String(); s {
 			case "github.com/gunk/opt/file.OptimizeFor":
-				oValue := desc.FileOptions_OptimizeMode(protoEnumValue(tv.Value))
+				oValue := desc.FileOptions_OptimizeMode(protoEnumValue(tag.Value))
 				fo.OptimizeFor = &oValue
 			case "github.com/gunk/opt/file.Deprecated":
-				fo.Deprecated = proto.Bool(constant.BoolVal(tv.Value))
+				fo.Deprecated = proto.Bool(constant.BoolVal(tag.Value))
 			// Java package options.
 			case "github.com/gunk/opt/file/java.Package":
-				fo.JavaPackage = proto.String(constant.StringVal(tv.Value))
+				fo.JavaPackage = proto.String(constant.StringVal(tag.Value))
 			case "github.com/gunk/opt/file/java.OuterClassname":
-				fo.JavaOuterClassname = proto.String(constant.StringVal(tv.Value))
+				fo.JavaOuterClassname = proto.String(constant.StringVal(tag.Value))
 			case "github.com/gunk/opt/file/java.MultipleFiles":
-				fo.JavaMultipleFiles = proto.Bool(constant.BoolVal(tv.Value))
+				fo.JavaMultipleFiles = proto.Bool(constant.BoolVal(tag.Value))
 			case "github.com/gunk/opt/file/java.StringCheckUtf8":
-				fo.JavaStringCheckUtf8 = proto.Bool(constant.BoolVal(tv.Value))
+				fo.JavaStringCheckUtf8 = proto.Bool(constant.BoolVal(tag.Value))
 			case "github.com/gunk/opt/file/java.GenericServices":
-				fo.JavaGenericServices = proto.Bool(constant.BoolVal(tv.Value))
+				fo.JavaGenericServices = proto.Bool(constant.BoolVal(tag.Value))
 			// Swift package options.
 			case "github.com/gunk/opt/file/swift.Prefix":
-				fo.SwiftPrefix = proto.String(constant.StringVal(tv.Value))
+				fo.SwiftPrefix = proto.String(constant.StringVal(tag.Value))
 			// Ruby package options.
 			case "github.com/gunk/opt/file/ruby.Package":
 				// TODO: This isn't currently in protoc-gen-go decriptor.pb.go
-				// fo.RubyPackage = proto.String(constant.StringVal(tv.Value))
+				// fo.RubyPackage = proto.String(constant.StringVal(tag.Value))
 			// CSharp package options.
 			case "github.com/gunk/opt/file/csharp.Namespace":
-				fo.CsharpNamespace = proto.String(constant.StringVal(tv.Value))
+				fo.CsharpNamespace = proto.String(constant.StringVal(tag.Value))
 			// ObjectiveC package options.
 			case "github.com/gunk/opt/file/objc.ClassPrefix":
-				fo.ObjcClassPrefix = proto.String(constant.StringVal(tv.Value))
+				fo.ObjcClassPrefix = proto.String(constant.StringVal(tag.Value))
 			// PHP package options.
 			case "github.com/gunk/opt/file/php.Namespace":
-				fo.PhpNamespace = proto.String(constant.StringVal(tv.Value))
+				fo.PhpNamespace = proto.String(constant.StringVal(tag.Value))
 			case "github.com/gunk/opt/file/php.ClassPrefix":
-				fo.PhpClassPrefix = proto.String(constant.StringVal(tv.Value))
+				fo.PhpClassPrefix = proto.String(constant.StringVal(tag.Value))
 			case "github.com/gunk/opt/file/php.MetadataNamespace":
 				// TODO: This isn't currently in protoc-gen-go decriptor.pb.go
-				//fo.PhpMetadataNamespace = proto.String(constant.StringVal(tv.Value))
+				//fo.PhpMetadataNamespace = proto.String(constant.StringVal(tag.Value))
 			case "github.com/gunk/opt/file/php.GenericServices":
-				fo.PhpGenericServices = proto.Bool(constant.BoolVal(tv.Value))
+				fo.PhpGenericServices = proto.Bool(constant.BoolVal(tag.Value))
 			default:
 				return nil, fmt.Errorf("gunk package option %q not supported", s)
 			}
@@ -453,10 +447,6 @@ func (g *Generator) translateDecl(decl ast.Decl) error {
 	}
 	for _, spec := range gd.Specs {
 		ts := spec.(*ast.TypeSpec)
-		if ts.Doc == nil {
-			// pass it on to the helpers
-			ts.Doc = gd.Doc
-		}
 		switch ts.Type.(type) {
 		case *ast.StructType:
 			msg, err := g.convertMessage(ts)
@@ -501,31 +491,16 @@ func (g *Generator) addDoc(text string, path ...int32) {
 	)
 }
 
-func (g *Generator) messageOptions(comment *ast.CommentGroup) (*desc.MessageOptions, error) {
+func (g *Generator) messageOptions(tspec *ast.TypeSpec) (*desc.MessageOptions, error) {
 	o := &desc.MessageOptions{}
-	_, tags, err := loader.SplitGunkTag(g.fset, comment)
-	if err != nil {
-		return nil, err
-	}
-	for _, tag := range tags {
-		var buf bytes.Buffer
-		// Eval needs a string, so stringify it again.
-		printer.Fprint(&buf, g.fset, tag)
-
-		// use Eval to resolve the type, and check for any errors in the
-		// value expression
-		tv, err := types.Eval(g.fset, g.curPkg.Types, g.gfile.End(), buf.String())
-		if err != nil {
-			return nil, err
-		}
-
-		switch s := tv.Type.String(); s {
+	for _, tag := range g.curPkg.GunkTags[tspec] {
+		switch s := tag.Type.String(); s {
 		case "github.com/gunk/opt/message.MessageSetWireFormat":
-			o.MessageSetWireFormat = proto.Bool(constant.BoolVal(tv.Value))
+			o.MessageSetWireFormat = proto.Bool(constant.BoolVal(tag.Value))
 		case "github.com/gunk/opt/message.NoStandardDescriptorAccessor":
-			o.NoStandardDescriptorAccessor = proto.Bool(constant.BoolVal(tv.Value))
+			o.NoStandardDescriptorAccessor = proto.Bool(constant.BoolVal(tag.Value))
 		case "github.com/gunk/opt/message.Deprecated":
-			o.Deprecated = proto.Bool(constant.BoolVal(tv.Value))
+			o.Deprecated = proto.Bool(constant.BoolVal(tag.Value))
 		default:
 			return nil, fmt.Errorf("gunk message option %q not supported", s)
 		}
@@ -534,36 +509,21 @@ func (g *Generator) messageOptions(comment *ast.CommentGroup) (*desc.MessageOpti
 	return o, nil
 }
 
-func (g *Generator) fieldOptions(comment *ast.CommentGroup) (*desc.FieldOptions, error) {
+func (g *Generator) fieldOptions(field *ast.Field) (*desc.FieldOptions, error) {
 	o := &desc.FieldOptions{}
-	_, tags, err := loader.SplitGunkTag(g.fset, comment)
-	if err != nil {
-		return nil, err
-	}
-	for _, tag := range tags {
-		var buf bytes.Buffer
-		// Eval needs a string, so stringify it again.
-		printer.Fprint(&buf, g.fset, tag)
-
-		// use Eval to resolve the type, and check for any errors in the
-		// value expression
-		tv, err := types.Eval(g.fset, g.curPkg.Types, g.gfile.End(), buf.String())
-		if err != nil {
-			return nil, err
-		}
-
-		switch s := tv.Type.String(); s {
+	for _, tag := range g.curPkg.GunkTags[field] {
+		switch s := tag.Type.String(); s {
 		case "github.com/gunk/opt/field.Packed":
-			o.Packed = proto.Bool(constant.BoolVal(tv.Value))
+			o.Packed = proto.Bool(constant.BoolVal(tag.Value))
 		case "github.com/gunk/opt/field.Lazy":
-			o.Lazy = proto.Bool(constant.BoolVal(tv.Value))
+			o.Lazy = proto.Bool(constant.BoolVal(tag.Value))
 		case "github.com/gunk/opt/field.Deprecated":
-			o.Deprecated = proto.Bool(constant.BoolVal(tv.Value))
+			o.Deprecated = proto.Bool(constant.BoolVal(tag.Value))
 		case "github.com/gunk/opt/field/cc.Type":
-			oValue := desc.FieldOptions_CType(protoEnumValue(tv.Value))
+			oValue := desc.FieldOptions_CType(protoEnumValue(tag.Value))
 			o.Ctype = &oValue
 		case "github.com/gunk/opt/field/js.Type":
-			oValue := desc.FieldOptions_JSType(protoEnumValue(tv.Value))
+			oValue := desc.FieldOptions_JSType(protoEnumValue(tag.Value))
 			o.Jstype = &oValue
 		default:
 			return nil, fmt.Errorf("gunk field option %q not supported", s)
@@ -578,7 +538,7 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, 
 	msg := &desc.DescriptorProto{
 		Name: proto.String(tspec.Name.Name),
 	}
-	messageOptions, err := g.messageOptions(tspec.Doc)
+	messageOptions, err := g.messageOptions(tspec)
 	if err != nil {
 		return nil, fmt.Errorf("error getting message options: %v", err)
 	}
@@ -590,7 +550,7 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, 
 		}
 		fieldName := field.Names[0].Name
 		g.addDoc(field.Doc.Text(), messagePath, g.messageIndex, messageFieldPath, int32(i))
-		ftype := g.info.TypeOf(field.Type)
+		ftype := g.curPkg.TypesInfo.TypeOf(field.Type)
 
 		var ptype desc.FieldDescriptorProto_Type
 		var plabel desc.FieldDescriptorProto_Label
@@ -627,7 +587,7 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, 
 		if err != nil {
 			return nil, fmt.Errorf("unable to convert tag to number on %s: %v", fieldName, err)
 		}
-		fieldOptions, err := g.fieldOptions(field.Doc)
+		fieldOptions, err := g.fieldOptions(field)
 		if err != nil {
 			return nil, fmt.Errorf("error getting field options: %v", err)
 		}
@@ -645,27 +605,12 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, 
 	return msg, nil
 }
 
-func (g *Generator) serviceOptions(comment *ast.CommentGroup) (*desc.ServiceOptions, error) {
+func (g *Generator) serviceOptions(tspec *ast.TypeSpec) (*desc.ServiceOptions, error) {
 	o := &desc.ServiceOptions{}
-	_, tags, err := loader.SplitGunkTag(g.fset, comment)
-	if err != nil {
-		return nil, err
-	}
-	for _, tag := range tags {
-		var buf bytes.Buffer
-		// Eval needs a string, so stringify it again.
-		printer.Fprint(&buf, g.fset, tag)
-
-		// use Eval to resolve the type, and check for any errors in the
-		// value expression
-		tv, err := types.Eval(g.fset, g.curPkg.Types, g.gfile.End(), buf.String())
-		if err != nil {
-			return nil, err
-		}
-
-		switch s := tv.Type.String(); s {
+	for _, tag := range g.curPkg.GunkTags[tspec] {
+		switch s := tag.Type.String(); s {
 		case "github.com/gunk/opt/service.Deprecated":
-			o.Deprecated = proto.Bool(constant.BoolVal(tv.Value))
+			o.Deprecated = proto.Bool(constant.BoolVal(tag.Value))
 		default:
 			return nil, fmt.Errorf("gunk service option %q not supported", s)
 		}
@@ -674,29 +619,14 @@ func (g *Generator) serviceOptions(comment *ast.CommentGroup) (*desc.ServiceOpti
 	return o, nil
 }
 
-func (g *Generator) methodOptions(comment *ast.CommentGroup) (*desc.MethodOptions, error) {
+func (g *Generator) methodOptions(method *ast.Field) (*desc.MethodOptions, error) {
 	o := &desc.MethodOptions{}
-	_, tags, err := loader.SplitGunkTag(g.fset, comment)
-	if err != nil {
-		return nil, err
-	}
-	for _, tag := range tags {
-		var buf bytes.Buffer
-		// Eval needs a string, so stringify it again.
-		printer.Fprint(&buf, g.fset, tag)
-
-		// use Eval to resolve the type, and check for any errors in the
-		// value expression
-		tv, err := types.Eval(g.fset, g.curPkg.Types, g.gfile.End(), buf.String())
-		if err != nil {
-			return nil, err
-		}
-
-		switch s := tv.Type.String(); s {
+	for _, tag := range g.curPkg.GunkTags[method] {
+		switch s := tag.Type.String(); s {
 		case "github.com/gunk/opt/method.Deprecated":
-			o.Deprecated = proto.Bool(constant.BoolVal(tv.Value))
+			o.Deprecated = proto.Bool(constant.BoolVal(tag.Value))
 		case "github.com/gunk/opt/method.IdempotencyLevel":
-			oValue := desc.MethodOptions_IdempotencyLevel(protoEnumValue(tv.Value))
+			oValue := desc.MethodOptions_IdempotencyLevel(protoEnumValue(tag.Value))
 			o.IdempotencyLevel = &oValue
 		case "github.com/gunk/opt/http.Match":
 			// Capture the values required to use in annotations.HttpRule.
@@ -705,7 +635,7 @@ func (g *Generator) methodOptions(comment *ast.CommentGroup) (*desc.MethodOption
 			var path string
 			var body string
 			method := "GET"
-			for _, elt := range tag.(*ast.CompositeLit).Elts {
+			for _, elt := range tag.Expr.(*ast.CompositeLit).Elts {
 				kv := elt.(*ast.KeyValueExpr)
 				val, _ := strconv.Unquote(kv.Value.(*ast.BasicLit).Value)
 				switch name := kv.Key.(*ast.Ident).Name; name {
@@ -755,7 +685,7 @@ func (g *Generator) convertService(tspec *ast.TypeSpec) (*desc.ServiceDescriptor
 	srv := &desc.ServiceDescriptorProto{
 		Name: proto.String(tspec.Name.Name),
 	}
-	serviceOptions, err := g.serviceOptions(tspec.Doc)
+	serviceOptions, err := g.serviceOptions(tspec)
 	if err != nil {
 		return nil, fmt.Errorf("error getting service options: %v", err)
 	}
@@ -765,24 +695,16 @@ func (g *Generator) convertService(tspec *ast.TypeSpec) (*desc.ServiceDescriptor
 		if len(method.Names) != 1 {
 			return nil, fmt.Errorf("need all methods to have one name")
 		}
-		// TODO: Currently a bit of a hack to get the comments without
-		// gunk tags. This will likely change when gunk tags are parsed
-		// in the loader (rather than generate). This also needs to be
-		// done for enum values and message fields.
-		docText, _, err := loader.SplitGunkTag(g.fset, method.Doc)
-		if err != nil {
-			return nil, err
-		}
-		g.addDoc(docText, servicePath, g.serviceIndex, serviceMethodPath, int32(i))
+		g.addDoc(method.Doc.Text(), servicePath, g.serviceIndex, serviceMethodPath, int32(i))
 		pmethod := &desc.MethodDescriptorProto{
 			Name: proto.String(method.Names[0].Name),
 		}
-		methodOptions, err := g.methodOptions(method.Doc)
+		methodOptions, err := g.methodOptions(method)
 		if err != nil {
 			return nil, fmt.Errorf("error getting method options: %v", err)
 		}
 		pmethod.Options = methodOptions
-		sign := g.info.TypeOf(method.Type).(*types.Signature)
+		sign := g.curPkg.TypesInfo.TypeOf(method.Type).(*types.Signature)
 		pmethod.InputType, err = g.convertParameter(sign.Params())
 		if err != nil {
 			return nil, err
@@ -865,29 +787,14 @@ func (g *Generator) convertParameter(tuple *types.Tuple) (*string, error) {
 	return &tname, nil
 }
 
-func (g *Generator) enumOptions(comment *ast.CommentGroup) (*desc.EnumOptions, error) {
+func (g *Generator) enumOptions(tspec *ast.TypeSpec) (*desc.EnumOptions, error) {
 	o := &desc.EnumOptions{}
-	_, tags, err := loader.SplitGunkTag(g.fset, comment)
-	if err != nil {
-		return nil, err
-	}
-	for _, tag := range tags {
-		var buf bytes.Buffer
-		// Eval needs a string, so stringify it again.
-		printer.Fprint(&buf, g.fset, tag)
-
-		// use Eval to resolve the type, and check for any errors in the
-		// value expression
-		tv, err := types.Eval(g.fset, g.curPkg.Types, g.gfile.End(), buf.String())
-		if err != nil {
-			return nil, err
-		}
-
-		switch s := tv.Type.String(); s {
+	for _, tag := range g.curPkg.GunkTags[tspec] {
+		switch s := tag.Type.String(); s {
 		case "github.com/gunk/opt/enum.AllowAlias":
-			o.AllowAlias = proto.Bool(constant.BoolVal(tv.Value))
+			o.AllowAlias = proto.Bool(constant.BoolVal(tag.Value))
 		case "github.com/gunk/opt/enum.Deprecated":
-			o.Deprecated = proto.Bool(constant.BoolVal(tv.Value))
+			o.Deprecated = proto.Bool(constant.BoolVal(tag.Value))
 		default:
 			return nil, fmt.Errorf("gunk enum option %q not supported", s)
 		}
@@ -896,27 +803,12 @@ func (g *Generator) enumOptions(comment *ast.CommentGroup) (*desc.EnumOptions, e
 	return o, nil
 }
 
-func (g *Generator) enumValueOptions(comment *ast.CommentGroup) (*desc.EnumValueOptions, error) {
+func (g *Generator) enumValueOptions(vspec *ast.ValueSpec) (*desc.EnumValueOptions, error) {
 	o := &desc.EnumValueOptions{}
-	_, tags, err := loader.SplitGunkTag(g.fset, comment)
-	if err != nil {
-		return nil, err
-	}
-	for _, tag := range tags {
-		var buf bytes.Buffer
-		// Eval needs a string, so stringify it again.
-		printer.Fprint(&buf, g.fset, tag)
-
-		// use Eval to resolve the type, and check for any errors in the
-		// value expression
-		tv, err := types.Eval(g.fset, g.curPkg.Types, g.gfile.End(), buf.String())
-		if err != nil {
-			return nil, err
-		}
-
-		switch s := tv.Type.String(); s {
+	for _, tag := range g.curPkg.GunkTags[vspec] {
+		switch s := tag.Type.String(); s {
 		case "github.com/gunk/opt/enumvalues.Deprecated":
-			o.Deprecated = proto.Bool(constant.BoolVal(tv.Value))
+			o.Deprecated = proto.Bool(constant.BoolVal(tag.Value))
 		default:
 			return nil, fmt.Errorf("gunk enumvalue option %q not supported", s)
 		}
@@ -930,12 +822,12 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto,
 	enum := &desc.EnumDescriptorProto{
 		Name: proto.String(tspec.Name.Name),
 	}
-	enumOptions, err := g.enumOptions(tspec.Doc)
+	enumOptions, err := g.enumOptions(tspec)
 	if err != nil {
 		return nil, fmt.Errorf("error getting enum options: %v", err)
 	}
 	enum.Options = enumOptions
-	enumType := g.info.TypeOf(tspec.Name)
+	enumType := g.curPkg.TypesInfo.TypeOf(tspec.Name)
 	for _, decl := range g.gfile.Decls {
 		gd, ok := decl.(*ast.GenDecl)
 		if !ok || gd.Tok != token.CONST {
@@ -949,15 +841,15 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto,
 				return nil, fmt.Errorf("need all value specs to define one name")
 			}
 			name := vs.Names[0]
-			if g.info.TypeOf(name) != enumType {
+			if g.curPkg.TypesInfo.TypeOf(name) != enumType {
 				continue
 			}
 			// SomeVal will be exported as SomeType_SomeVal
 			docText := tspec.Name.Name + "_" + vs.Doc.Text()
 			g.addDoc(docText, enumPath, g.enumIndex, enumValuePath, int32(i))
-			val := g.info.Defs[name].(*types.Const).Val()
+			val := g.curPkg.TypesInfo.Defs[name].(*types.Const).Val()
 			ival, _ := constant.Int64Val(val)
-			enumValueOptions, err := g.enumValueOptions(vs.Doc)
+			enumValueOptions, err := g.enumValueOptions(vs)
 			if err != nil {
 				return nil, fmt.Errorf("error getting enum value options: %v", err)
 			}
@@ -1034,78 +926,6 @@ func (g *Generator) convertType(typ types.Type) (desc.FieldDescriptorProto_Type,
 		return dtyp, desc.FieldDescriptorProto_LABEL_REPEATED, name
 	}
 	return 0, 0, ""
-}
-
-// addPkg sets up a gunk package to be translated and generated. It is
-// parsed from the gunk files on disk and type-checked, gathering all
-// the info needed later on.
-func (g *Generator) addPkg(pkgPath string) error {
-	pkg := g.gunkPkgs[pkgPath]
-	if pkg == nil {
-		// Implicit gunk package dependency; load it and add it to
-		// g.gunkPkgs.
-		pkgs, err := loader.Load(g.dir, g.fset, pkgPath)
-		if err != nil {
-			return err
-		}
-		if len(pkgs) != 1 {
-			panic("expected go/packages.Load to return exactly one package")
-		}
-		pkg = pkgs[0]
-		g.gunkPkgs[pkgPath] = pkg
-	}
-	if len(pkg.GunkFiles) == 0 {
-		return fmt.Errorf("gunk package %q contains no gunk files", pkgPath)
-	}
-	pkg.Types = types.NewPackage(pkgPath, pkg.Name)
-	check := types.NewChecker(g.tconfig, g.fset, pkg.Types, g.info)
-	if err := check.Files(pkg.GunkSyntax); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Import satisfies the go/types.Importer interface.
-//
-// Unlike standard Go ones like go/importer and x/tools/go/packages, this one
-// uses our own addPkg to instead load gunk packages.
-//
-// Aside from that, it is very similar to standard Go importers that load from
-// source. It too uses a cache to avoid loading packages multiple times.
-func (g *Generator) Import(path string) (*types.Package, error) {
-	// Has it been loaded with types before?
-	if gpkg := g.gunkPkgs[path]; gpkg != nil && gpkg.Types != nil {
-		return gpkg.Types, nil
-	}
-
-	// Loading a standard library package for the first time.
-	if !strings.Contains(path, ".") {
-		cfg := &packages.Config{Mode: packages.LoadTypes}
-		pkgs, err := packages.Load(cfg, path)
-		if err != nil {
-			return nil, err
-		}
-		if len(pkgs) != 1 {
-			panic("expected go/packages.Load to return exactly one package")
-		}
-		gpkg := &loader.GunkPackage{Package: *pkgs[0]}
-		g.gunkPkgs[path] = gpkg
-		return gpkg.Types, nil
-	}
-
-	// Loading a Gunk package for the first time.
-	if err := g.addPkg(path); err != nil {
-		return nil, err
-	}
-	if err := g.translatePkg(path); err != nil {
-		return nil, err
-	}
-	if gpkg := g.gunkPkgs[path]; gpkg != nil {
-		return gpkg.Types, nil
-	}
-
-	// Not found.
-	return nil, nil
 }
 
 // addProtoDep is called when a gunk file is known to require importing of a

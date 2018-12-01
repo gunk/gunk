@@ -58,7 +58,7 @@ func (x Status) String() string {
 	return proto.EnumName(Status_name, int32(x))
 }
 func (Status) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_all_f0aa1144da1e7949, []int{0}
+	return fileDescriptor_all_a604d30130a3b3a1, []int{0}
 }
 
 // CheckStatusResponse is the response for a check status.
@@ -73,7 +73,7 @@ func (m *CheckStatusResponse) Reset()         { *m = CheckStatusResponse{} }
 func (m *CheckStatusResponse) String() string { return proto.CompactTextString(m) }
 func (*CheckStatusResponse) ProtoMessage()    {}
 func (*CheckStatusResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_all_f0aa1144da1e7949, []int{0}
+	return fileDescriptor_all_a604d30130a3b3a1, []int{0}
 }
 func (m *CheckStatusResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CheckStatusResponse.Unmarshal(m, b)
@@ -118,7 +118,7 @@ func (m *UtilTestRequest) Reset()         { *m = UtilTestRequest{} }
 func (m *UtilTestRequest) String() string { return proto.CompactTextString(m) }
 func (*UtilTestRequest) ProtoMessage()    {}
 func (*UtilTestRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_all_f0aa1144da1e7949, []int{1}
+	return fileDescriptor_all_a604d30130a3b3a1, []int{1}
 }
 func (m *UtilTestRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UtilTestRequest.Unmarshal(m, b)
@@ -375,9 +375,9 @@ var _UtilTests_serviceDesc = grpc.ServiceDesc{
 	Metadata: "testdata.tld/util/all.proto",
 }
 
-func init() { proto.RegisterFile("testdata.tld/util/all.proto", fileDescriptor_all_f0aa1144da1e7949) }
+func init() { proto.RegisterFile("testdata.tld/util/all.proto", fileDescriptor_all_a604d30130a3b3a1) }
 
-var fileDescriptor_all_f0aa1144da1e7949 = []byte{
+var fileDescriptor_all_a604d30130a3b3a1 = []byte{
 	// 601 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x53, 0x4f, 0x6b, 0xd4, 0x5e,
 	0x14, 0x7d, 0xef, 0x4d, 0x26, 0xcd, 0xdc, 0xa1, 0xed, 0xf0, 0x7e, 0x50, 0x5e, 0x53, 0xf8, 0x75,

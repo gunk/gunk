@@ -40,7 +40,7 @@ func (g Generator) ParamString() string {
 		if p.Value != "" {
 			params[i] = fmt.Sprintf("%s=%s", p.Key, p.Value)
 		} else {
-			params[i] = fmt.Sprintf("%s", p.Key)
+			params[i] = p.Key
 		}
 	}
 	return strings.Join(params, ",")

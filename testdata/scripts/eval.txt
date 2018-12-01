@@ -8,6 +8,9 @@ stderr 'p2.gunk:11:13: expected operand'
 
 -- go.mod --
 module testdata.tld/util
+-- .gunkconfig --
+[generate]
+command=protoc-gen-go
 -- p1/doc.go --
 package util // make this directory a Go package
 -- p1/p1.gunk --

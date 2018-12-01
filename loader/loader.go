@@ -3,9 +3,11 @@ package loader
 import (
 	"fmt"
 	"go/ast"
+	"go/constant"
 	"go/parser"
 	"go/scanner"
 	"go/token"
+	"go/types"
 	"html/template"
 	"os"
 	"os/exec"
@@ -20,21 +22,39 @@ import (
 	"github.com/gunk/gunk/log"
 )
 
+type Loader struct {
+	Dir  string
+	Fset *token.FileSet
+
+	// If Types is true, we parse and type-check the given packages and all
+	// transitive dependencies, including gunk tags. Otherwise, we only
+	// parse the given packages.
+	Types bool
+
+	cache map[string]*GunkPackage // map from import path to pkg
+}
+
 // Load loads the Gunk packages on the provided patterns from the given dir and
 // using the given fileset.
 //
 // Similar to Go, if a path begins with ".", it is interpreted as a file system
 // path where a package is located, and "..." patterns are supported.
-func Load(dir string, fset *token.FileSet, patterns ...string) ([]*GunkPackage, error) {
-	// First, translate the patterns to package paths.
-	cfg := &packages.Config{
-		Dir:  dir,
-		Mode: packages.LoadFiles,
+func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
+	if len(patterns) == 1 {
+		pkgPath := patterns[0]
+		if pkg := l.cache[pkgPath]; pkg != nil {
+			return []*GunkPackage{pkg}, nil
+		}
 	}
 	if len(patterns) == 0 {
 		// TODO(mvdan): remove once
 		// https://github.com/golang/go/issues/28767 is fixed
 		patterns = []string{"."}
+	}
+	// First, translate the patterns to package paths.
+	cfg := &packages.Config{
+		Dir:  l.Dir,
+		Mode: packages.LoadFiles,
 	}
 	lpkgs, err := packages.Load(cfg, patterns...)
 	if err != nil {
@@ -44,7 +64,7 @@ func Load(dir string, fset *token.FileSet, patterns ...string) ([]*GunkPackage, 
 	// Add the Gunk files to each package.
 	pkgs := make([]*GunkPackage, 0, len(lpkgs))
 	for _, lpkg := range lpkgs {
-		pkg, err := toGunkPackage(fset, lpkg)
+		pkg, err := l.toGunkPackage(lpkg)
 		if err != nil {
 			return nil, err
 		}
@@ -52,10 +72,43 @@ func Load(dir string, fset *token.FileSet, patterns ...string) ([]*GunkPackage, 
 			// A Go package that isn't a Gunk package - skip it.
 			continue
 		}
+		if l.cache == nil {
+			l.cache = make(map[string]*GunkPackage)
+		}
+		l.cache[pkg.PkgPath] = pkg
 		pkgs = append(pkgs, pkg)
 	}
 
 	return pkgs, nil
+}
+
+// Import satisfies the go/types.Importer interface.
+//
+// Unlike standard Go ones like go/importer and x/tools/go/packages, this one is
+// adapted to load Gunk packages.
+//
+// Aside from that, it is very similar to standard Go importers that load from
+// source.
+func (l *Loader) Import(path string) (*types.Package, error) {
+	if !strings.Contains(path, ".") {
+		cfg := &packages.Config{Mode: packages.LoadTypes}
+		pkgs, err := packages.Load(cfg, path)
+		if err != nil {
+			return nil, err
+		}
+		if len(pkgs) != 1 {
+			panic("expected go/packages.Load to return exactly one package")
+		}
+		return pkgs[0].Types, nil
+	}
+	pkgs, err := l.Load(path)
+	if err != nil {
+		return nil, err
+	}
+	if len(pkgs) != 1 {
+		panic("expected Loader.Load to return exactly one package")
+	}
+	return pkgs[0].Types, nil
 }
 
 type GunkPackage struct {
@@ -71,10 +124,23 @@ type GunkPackage struct {
 	// write to disk.
 	GunkNames []string
 
+	// GunkTags stores the "+gunk" tags associated with each syntax tree
+	// node in GunkSyntax.
+	GunkTags map[ast.Node][]GunkTag
+
+	Imports map[string]*GunkPackage
+
 	ProtoName string // protobuf package name
 }
 
-func toGunkPackage(fset *token.FileSet, lpkg *packages.Package) (*GunkPackage, error) {
+type GunkTag struct {
+	ast.Expr            // original expression
+	Type     types.Type // type of the expression
+
+	Value constant.Value // constant value of the expression, if any
+}
+
+func (l *Loader) toGunkPackage(lpkg *packages.Package) (*GunkPackage, error) {
 	if len(lpkg.Errors) > 0 {
 		return nil, lpkg.Errors[0]
 	}
@@ -103,7 +169,7 @@ func toGunkPackage(fset *token.FileSet, lpkg *packages.Package) (*GunkPackage, e
 
 	// parse the gunk files
 	for _, fpath := range pkg.GunkFiles {
-		file, err := parser.ParseFile(fset, fpath, nil, parser.ParseComments)
+		file, err := parser.ParseFile(l.Fset, fpath, nil, parser.ParseComments)
 		if err != nil {
 			return nil, err
 		}
@@ -113,7 +179,7 @@ func toGunkPackage(fset *token.FileSet, lpkg *packages.Package) (*GunkPackage, e
 		pkg.GunkNames = append(pkg.GunkNames, relPath)
 		pkg.GunkSyntax = append(pkg.GunkSyntax, file)
 
-		name, err := protoPackageName(fset, file)
+		name, err := protoPackageName(l.Fset, file)
 		if err != nil {
 			return nil, err
 		}
@@ -127,6 +193,47 @@ func toGunkPackage(fset *token.FileSet, lpkg *packages.Package) (*GunkPackage, e
 	if pkg.ProtoName == "" {
 		pkg.ProtoName = pkg.Name
 	}
+
+	if !l.Types {
+		return pkg, nil
+	}
+
+	pkg.Types = types.NewPackage(pkg.PkgPath, pkg.Name)
+	tconfig := &types.Config{
+		DisableUnusedImportCheck: true,
+		Importer:                 l,
+	}
+	pkg.TypesInfo = &types.Info{
+		Types:      make(map[ast.Expr]types.TypeAndValue),
+		Defs:       make(map[*ast.Ident]types.Object),
+		Uses:       make(map[*ast.Ident]types.Object),
+		Implicits:  make(map[ast.Node]types.Object),
+		Scopes:     make(map[ast.Node]*types.Scope),
+		Selections: make(map[*ast.SelectorExpr]*types.Selection),
+	}
+
+	check := types.NewChecker(tconfig, l.Fset, pkg.Types, pkg.TypesInfo)
+	if err := check.Files(pkg.GunkSyntax); err != nil {
+		return nil, err
+	}
+	pkg.Imports = make(map[string]*GunkPackage)
+	for _, file := range pkg.GunkSyntax {
+		if err := l.splitGunkTags(pkg, file); err != nil {
+			return nil, err
+		}
+		for _, spec := range file.Imports {
+			// we can't error, since the file parsed correctly
+			pkgPath, _ := strconv.Unquote(spec.Path.Value)
+			pkgs, err := l.Load(pkgPath)
+			if err != nil {
+				return nil, err
+			}
+			if len(pkgs) == 1 {
+				pkg.Imports[pkgPath] = pkgs[0]
+			}
+		}
+	}
+
 	return pkg, nil
 }
 
@@ -204,9 +311,94 @@ syntax = "proto3";
 	return fset.File, nil
 }
 
-// SplitGunkTag splits '+gunk' tags from a comment group, returning the leading
+// splitGunkTags parses and typechecks gunk tags from the comments in a Gunk
+// file, adding them to pkg.GunkTags and removing the source lines from each
+// comment.
+func (l *Loader) splitGunkTags(pkg *GunkPackage, file *ast.File) error {
+	var inspectErr error
+	ast.Inspect(file, func(node ast.Node) bool {
+		if inspectErr != nil {
+			return false
+		}
+		if gd, ok := node.(*ast.GenDecl); ok {
+			if len(gd.Specs) != 1 {
+				return true
+			}
+			if doc := nodeDoc(gd.Specs[0]); doc != nil {
+				// Move the doc to the only spec, since we want
+				// +gunk tags attached to the type specs.
+				*doc = gd.Doc
+			}
+			return true
+		}
+		doc := nodeDoc(node)
+		if doc == nil {
+			return true
+		}
+		docText, exprs, err := SplitGunkTag(pkg, l.Fset, *doc)
+		if err != nil {
+			inspectErr = err
+			return false
+		}
+		if len(exprs) > 0 {
+			if pkg.GunkTags == nil {
+				pkg.GunkTags = make(map[ast.Node][]GunkTag)
+			}
+			pkg.GunkTags[node] = exprs
+			**doc = *CommentFromText(*doc, docText)
+		}
+		return true
+	})
+	// TODO(mvdan): check that we aren't ignoring any other +gunk comments,
+	// to prevent human error.
+	return inspectErr
+}
+
+func nodeDoc(node ast.Node) **ast.CommentGroup {
+	switch node := node.(type) {
+	case *ast.File:
+		return &node.Doc
+	case *ast.Field:
+		return &node.Doc
+	case *ast.TypeSpec:
+		return &node.Doc
+	case *ast.ValueSpec:
+		return &node.Doc
+	}
+	return nil
+}
+
+// TODO(mvdan): both loader and format use CommentFromText, but it feels awkward
+// to have it here.
+
+// CommentFromText creates a multi-line comment from the given text, with its
+// start and end positions matching the given node's.
+func CommentFromText(orig ast.Node, text string) *ast.CommentGroup {
+	group := &ast.CommentGroup{}
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		comment := &ast.Comment{Text: "// " + line}
+
+		// Ensure that group.Pos() and group.End() stay on the same
+		// lines, to ensure that printing doesn't move the comment
+		// around or introduce newlines.
+		switch i {
+		case 0:
+			comment.Slash = orig.Pos()
+		case len(lines) - 1:
+			comment.Slash = orig.End()
+		}
+		group.List = append(group.List, comment)
+	}
+	return group
+}
+
+// splitGunkTag splits '+gunk' tags from a comment group, returning the leading
 // documentation and the tags Go expressions.
-func SplitGunkTag(fset *token.FileSet, comment *ast.CommentGroup) (string, []ast.Expr, error) {
+//
+// If pkg is not nil, the tag is also type-checked using the package's type
+// information.
+func SplitGunkTag(pkg *GunkPackage, fset *token.FileSet, comment *ast.CommentGroup) (string, []GunkTag, error) {
 	// Remove the comment leading and / or trailing identifier; // and /* */ and `
 	docLines := strings.Split(comment.Text(), "\n")
 	var gunkTagLines []string
@@ -235,14 +427,22 @@ func SplitGunkTag(fset *token.FileSet, comment *ast.CommentGroup) (string, []ast
 	if len(gunkTagLines) == 0 {
 		return comment.Text(), nil, nil
 	}
-	var tags []ast.Expr
+	var tags []GunkTag
 	for i, gunkTag := range gunkTagLines {
-		tag, err := parser.ParseExprFrom(fset, "", gunkTag, 0)
+		expr, err := parser.ParseExprFrom(fset, "", gunkTag, 0)
 		if err != nil {
 			tagPos := fset.Position(comment.Pos())
 			tagPos.Line += gunkTagPos[i] // relative to the "+gunk" line
 			tagPos.Column += len("// ")  // .Text() stripped these prefixes
 			return "", nil, ErrorAbsolutePos(err, tagPos)
+		}
+		tag := GunkTag{Expr: expr}
+		if pkg != nil {
+			tv, err := types.Eval(fset, pkg.Types, comment.Pos(), gunkTag)
+			if err != nil {
+				return "", nil, err
+			}
+			tag.Type, tag.Value = tv.Type, tv.Value
 		}
 		tags = append(tags, tag)
 	}

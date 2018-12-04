@@ -172,7 +172,10 @@ func load(reader io.Reader) (*Config, error) {
 		name := s.Name()
 		switch {
 		case name == "":
-			// TODO: Sometimes the ini parser returns an empty first section name.
+			// This is the global section (unnamed section)
+			if err := handleGlobal(config, s); err != nil {
+				return nil, err
+			}
 			continue
 		case name == "generate":
 			gen, err = handleGenerate(s)
@@ -221,4 +224,14 @@ func handleGenerate(section *parser.Section) (*Generator, error) {
 		}
 	}
 	return gen, nil
+}
+
+func handleGlobal(config *Config, section *parser.Section) error {
+	for _, k := range section.RawKeys() {
+		switch k {
+		default:
+			return fmt.Errorf("unexpected key %q in global section", k)
+		}
+	}
+	return nil
 }

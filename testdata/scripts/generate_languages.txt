@@ -1,0 +1,71 @@
+env HOME=$WORK/home
+
+gunk generate ./util -v -x
+
+-- go.mod --
+module testdata.tld/util
+-- v1/go/.empty --
+-- v1/python/.empty --
+-- v1/java/.empty --
+-- v1/csharp/.empty --
+-- v1/js/.empty --
+-- v1/php/.empty --
+-- v1/ruby/.empty --
+-- v1/cpp/.empty --
+-- v1/objc/.empty --
+-- .gunkconfig --
+[generate]
+out=v1/go
+command=protoc-gen-go
+
+[generate python]
+out=v1/python
+
+[generate java]
+out=v1/java
+
+[generate csharp]
+out=v1/csharp
+
+[generate js]
+out=v1/js
+
+[generate php]
+out=v1/php
+
+[generate ruby]
+out=v1/ruby
+
+[generate cpp]
+out=v1/cpp
+
+[generate objc]
+out=v1/objc
+-- util/doc.go --
+package util
+-- util/util.gunk --
+package util
+
+import (
+	"github.com/gunk/opt/http"
+	"github.com/gunk/opt/service"
+)
+
+// Message is a Echo message.
+type Message struct {
+	// Msg holds a message.
+	Msg  string `pb:"1" json:"msg"`
+	Code int    `pb:"2" json:"code"`
+}
+
+// Util is a utility service.
+type Util interface {
+	// Echo echoes a message.
+	//
+	// +gunk http.Match{
+	//		Method:	"POST",
+	// 		Path:	"/v1/echo",
+	// 		Body:	"*",
+	//	}
+	Echo(Message) Message
+}

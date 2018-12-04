@@ -3,6 +3,7 @@ package util
 import (
 	"github.com/gunk/opt/http"
 	"github.com/gunk/opt/service"
+	"github.com/gunk/opt/field"
 )
 
 // Message is a Echo message.

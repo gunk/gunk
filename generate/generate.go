@@ -49,12 +49,21 @@ func Run(dir string, args ...string) error {
 	// Record the loaded packages in gunkPkgs.
 	g.recordPkgs(pkgs...)
 
+	// Cache of a package directory to its gunkconfig.
+	pkgConfigs := map[string]*config.Config{}
+
 	// Translate the packages from Gunk to Proto.
 	for _, pkg := range pkgs {
+		cfg, err := config.Load(pkg.Dir)
+		if err != nil {
+			return fmt.Errorf("unable to load gunkconfig: %v", err)
+		}
+		pkgConfigs[pkg.Dir] = cfg
 		if err := g.translatePkg(pkg.PkgPath); err != nil {
 			return err
 		}
 	}
+
 	// Load any non-Gunk proto dependencies.
 	if err := g.loadProtoDeps(); err != nil {
 		return err
@@ -62,10 +71,7 @@ func Run(dir string, args ...string) error {
 
 	// Finally, run the code generators.
 	for _, pkg := range pkgs {
-		cfg, err := config.Load(pkg.Dir)
-		if err != nil {
-			return fmt.Errorf("unable to load gunkconfig: %v", err)
-		}
+		cfg := pkgConfigs[pkg.Dir]
 		if err := g.GeneratePkg(pkg.PkgPath, cfg.Generators); err != nil {
 			return err
 		}
@@ -673,6 +679,7 @@ func (g *Generator) methodOptions(method *ast.Field) (*desc.MethodOptions, error
 			if err := proto.SetExtension(o, annotations.E_Http, rule); err != nil {
 				return nil, err
 			}
+			g.addProtoDep("google/api/annotations.proto")
 		default:
 			return nil, fmt.Errorf("gunk method option %q not supported", s)
 		}
@@ -942,12 +949,12 @@ func (g *Generator) addProtoDep(protoPath string) {
 // loadProtoDeps loads all the missing proto dependencies added with
 // addProtoDep.
 func (g *Generator) loadProtoDeps() error {
-	missing := make(map[string]bool)
+	loaded := make(map[string]bool)
 	var list []string
 	for _, pfile := range g.allProto {
 		for _, dep := range pfile.Dependency {
-			if _, e := g.allProto[dep]; !e && !missing[dep] {
-				missing[dep] = true
+			if _, e := g.allProto[dep]; !e && !loaded[dep] {
+				loaded[dep] = true
 				list = append(list, dep)
 			}
 		}

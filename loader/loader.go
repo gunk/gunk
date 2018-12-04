@@ -9,6 +9,7 @@ import (
 	"go/token"
 	"go/types"
 	"html/template"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,6 +20,7 @@ import (
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"golang.org/x/tools/go/packages"
 
+	"github.com/gunk/gunk/assets"
 	"github.com/gunk/gunk/log"
 )
 
@@ -275,40 +277,93 @@ syntax = "proto3";
 {{range $_, $name := .}}import "{{$name}}";
 {{end}}
 `))
-	importsFile, err := os.Create("gunk-proto")
-	if err != nil {
-		return nil, err
-	}
-	if err := tmpl.Execute(importsFile, names); err != nil {
-		return nil, err
-	}
-	if err := importsFile.Close(); err != nil {
-		return nil, err
-	}
-	defer os.Remove("gunk-proto")
+	// Imports to load from in-memory
+	generatedFilesToLoad := []string{}
+	// Imports to load using protoc
+	filteredNames := make([]string, 0, len(names))
 
-	// TODO: any way to specify stdout while being portable?
-	cmd := log.ExecCommand("protoc", "-o/dev/stdout", "--include_imports", "gunk-proto")
-	out, err := cmd.Output()
-	if err != nil {
-		if e, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("protoc %s: %s", e, e.Stderr)
-		}
-		return nil, err
-	}
-
-	var fset desc.FileDescriptorSet
-	if err := proto.Unmarshal(out, &fset); err != nil {
-		return nil, err
-	}
-	for i := 0; i < len(fset.File); {
-		if *fset.File[i].Name == "gunk-proto" {
-			fset.File = append(fset.File[:i], fset.File[i+1:]...)
-		} else {
-			i++
+	// Check to see if we are trying to load any libraries that we have
+	// bundled with Gunk. If so, load the generated libraries. If not, use
+	// protoc to load those libraries from disk.
+	for _, n := range names {
+		switch n {
+		case "google/api/annotations.proto":
+			generatedFilesToLoad = append(generatedFilesToLoad, "google_api_annotations.fdp")
+		case "google/protobuf/empty.proto":
+			generatedFilesToLoad = append(generatedFilesToLoad, "google_protobuf_empty.fdp")
+		case "google/protobuf/timestamp.proto":
+			generatedFilesToLoad = append(generatedFilesToLoad, "google_protobuf_timestamp.fdp")
+		case "google/protobuf/duration.proto":
+			generatedFilesToLoad = append(generatedFilesToLoad, "google_protobuf_duration.fdp")
+		default:
+			filteredNames = append(filteredNames, n)
 		}
 	}
-	return fset.File, nil
+	var combinedFset desc.FileDescriptorSet
+	// Use protoc to load any imports that aren't currently bundles with
+	// Gunk.
+	if len(filteredNames) > 0 {
+		importsFile, err := os.Create("gunk-proto")
+		if err != nil {
+			return nil, err
+		}
+		if err := tmpl.Execute(importsFile, filteredNames); err != nil {
+			return nil, err
+		}
+		if err := importsFile.Close(); err != nil {
+			return nil, err
+		}
+		defer os.Remove("gunk-proto")
+
+		// TODO: any way to specify stdout while being portable?
+		args := []string{
+			"-o/dev/stdout",
+			"--include_imports",
+			"gunk-proto",
+		}
+		cmd := log.ExecCommand("protoc", args...)
+		out, err := cmd.Output()
+		if err != nil {
+			if e, ok := err.(*exec.ExitError); ok {
+				return nil, fmt.Errorf("protoc %s: %s", e, e.Stderr)
+			}
+			return nil, err
+		}
+		var fset desc.FileDescriptorSet
+		if err := proto.Unmarshal(out, &fset); err != nil {
+			return nil, err
+		}
+		for i := 0; i < len(fset.File); i++ {
+			if *fset.File[i].Name != "gunk-proto" {
+				continue
+			}
+			combinedFset.File = append(fset.File[:i], fset.File[i+1:]...)
+		}
+	}
+	// Load any bundled libraries.
+	for _, fileToLoad := range generatedFilesToLoad {
+		file, err := assets.Assets.Open(fileToLoad)
+		if err != nil {
+			return nil, err
+		}
+		defer file.Close()
+		fi, err := file.Stat()
+		if err != nil {
+			return nil, err
+		}
+		f := make([]byte, fi.Size())
+		if _, err := file.Read(f); err != nil {
+			if err != io.EOF {
+				return nil, err
+			}
+		}
+		var fset desc.FileDescriptorSet
+		if err := proto.Unmarshal(f, &fset); err != nil {
+			return nil, err
+		}
+		combinedFset.File = append(combinedFset.File, fset.File...)
+	}
+	return combinedFset.File, nil
 }
 
 // splitGunkTags parses and typechecks gunk tags from the comments in a Gunk

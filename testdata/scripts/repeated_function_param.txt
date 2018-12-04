@@ -8,6 +8,7 @@ stderr 'error: parameter type should not be repeated'
 
 -- go.mod --
 module testdata.tld/util
+-- .gunkconfig --
 -- p1/doc.go --
 package util // make this directory a Go package
 -- p1/p1.gunk --

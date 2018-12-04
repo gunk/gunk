@@ -8,7 +8,7 @@ exec chmod a+x bin/protoc
 ! gunk generate .
 ! stdout .
 stderr 'exit status'
-stderr 'fatal failure'
+stderr 'error executing "protoc"'
 ! stderr 'error executing protoc-gen'
 ! stderr panicc
 
@@ -20,6 +20,8 @@ echo fatal failure >&2
 exit 1
 -- go.mod --
 module testdata.tld/util
+-- .gunkconfig --
+[generate python]
 -- doc.go --
 package util // make this directory a Go package
 -- echo.gunk --

@@ -11,8 +11,9 @@ require (
 	github.com/gunk/opt v0.0.0-20181129161359-767b03a66301 // indirect
 	github.com/knq/ini v0.0.0-20181118015158-a301e724bd35
 	github.com/knq/snaker v0.0.0-20180306023312-d9ad1e7f342a
+	github.com/kr/pty v1.1.3 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rogpeppe/go-internal v1.0.0
+	github.com/rogpeppe/go-internal v1.0.1-alpha.3
 	github.com/stretchr/testify v1.2.2 // indirect
 	golang.org/x/net v0.0.0-20181029044818-c44066c5c816
 	golang.org/x/sys v0.0.0-20180905080454-ebe1bf3edb33 // indirect

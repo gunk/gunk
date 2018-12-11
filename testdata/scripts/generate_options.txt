@@ -19,6 +19,10 @@ grep 'Msg .* // Deprecated: Do not use.' deprecated/all.pb.go
 
 -- go.mod --
 module testdata.tld/util
+
+require (
+	github.com/gunk/opt v0.0.0-20181129161359-767b03a66301
+)
 -- .gunkconfig --
 [generate]
 command=protoc-gen-go

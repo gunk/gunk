@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/gunk/gunk/generate"
+	"github.com/rogpeppe/go-internal/goproxytest"
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
@@ -35,12 +37,21 @@ func TestMain(m *testing.M) {
 		if err := cmd.Run(); err != nil {
 			panic(err)
 		}
+
+		// Start the Go proxy server running for all tests.
+		srv, err := goproxytest.NewServer("testdata/mod", "")
+		if err != nil {
+			log.Fatalf("cannot start proxy: %v", err)
+		}
+		proxyURL = srv.URL
 	}
 
 	os.Exit(testscript.RunMain(m, map[string]func() int{
 		"gunk": main1,
 	}))
 }
+
+var proxyURL string
 
 func TestGenerate(t *testing.T) {
 	pkgs := []string{
@@ -119,5 +130,9 @@ func generatedFiles(t *testing.T, dir string) (map[string]string, error) {
 func TestScripts(t *testing.T) {
 	testscript.Run(t, testscript.Params{
 		Dir: filepath.Join("testdata", "scripts"),
+		Setup: func(e *testscript.Env) error {
+			e.Vars = append(e.Vars, "GOPROXY="+proxyURL)
+			return nil
+		},
 	})
 }

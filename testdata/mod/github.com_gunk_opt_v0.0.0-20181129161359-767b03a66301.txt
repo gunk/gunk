@@ -1,0 +1,220 @@
+module github.com/gunk/opt@latest
+
+-- .mod --
+module github.com/gunk/opt
+-- .info --
+{"Version":"v0.0.0-20181129161359-767b03a66301","Time":"2018-11-29T16:13:59Z"}
+-- README.md --
+-- enum/doc.go --
+package enum
+-- enum/enum.gunk --
+package enum
+
+// AllowAlias is the allow_alias option.
+type AllowAlias bool
+
+// Deprecated is the deprecated option.
+type Deprecated bool
+-- enumvalues/doc.go --
+package enumvalues
+-- enumvalues/enumvalues.gunk --
+package enumvalues
+
+// Deprecated is the deprecated option.
+type Deprecated bool
+-- field/cc/cc.gunk --
+package cc
+
+type Type int
+
+const (
+    String Type = iota
+    Cord
+    StringPiece
+)
+-- field/cc/doc.go --
+package cc
+-- field/doc.go --
+package field
+-- field/field.gunk --
+package field
+
+// Packed is the packed option.
+type Packed bool
+
+// Lazy is the lazy option.
+type Lazy bool
+
+// Deprecated is the deprecated option.
+type Deprecated bool
+-- field/js/doc.go --
+package js
+-- field/js/js.gunk --
+package js
+
+type Type int
+
+const (
+    Normal Type = iota
+    String
+    Number
+)
+-- file/cc/cc.gunk --
+package cc
+
+// EnableArenas is the cc_enable_arenas option.
+type EnableArenas bool
+
+// GenericServices is the cc_generic_services option.
+type GenericServices bool
+-- file/cc/doc.go --
+package cc
+
+// make this directory a Go package
+-- file/csharp/csharp.gunk --
+package csharp
+
+// Namespace is the csharp_namespace option.
+type Namespace string
+-- file/csharp/doc.go --
+package csharp
+
+// make this directory a Go package
+-- file/doc.go --
+package file
+
+// make this directory a Go package
+-- file/file.gunk --
+package file
+
+// Deprecated is the deprecated option.
+type Deprecated bool
+
+// OptimizeFor is the optimize_for option.
+type OptimizeFor int
+
+// Values for OptimizeFor enum.
+const (
+    Speed       OptimizeFor = 1 // default
+    CodeSize    OptimizeFor = 2
+    LiteRuntime OptimizeFor = 3
+)
+-- file/java/doc.go --
+package java
+
+// make this directory a Go package
+-- file/java/java.gunk --
+package java
+
+// Package is the java_package option.
+type Package string
+
+// OuterClassname is the java_outer_classname option.
+type OuterClassname string
+
+// MultipleFiles is the java_multiple_files option.
+type MultipleFiles bool
+
+// StringCheckUtf8 is the java_string_check_utf8 option.
+type StringCheckUtf8 bool
+
+// GenericServices is the java_generic_services option.
+type GenericServices bool
+-- file/objc/doc.go --
+package objc
+
+// make this directory a Go package
+-- file/objc/objc.gunk --
+package objc
+
+// ClassPrefix is the objc_class_prefix option.
+type ClassPrefix string
+-- file/php/doc.go --
+package php
+
+// make this directory a Go package
+-- file/php/php.gunk --
+package php
+
+// ClassPrefix is the php_class_prefix option.
+type ClassPrefix string
+
+// Namespace is the php_namespace option.
+type Namespace string
+
+// MetadataNamespace is the php_metadata_namespace option.
+type MetadataNamespace string
+
+// GenericServices is the php_generic_services option.
+type GenericServices bool
+-- file/ruby/doc.go --
+package ruby
+
+// make this directory a Go package
+-- file/ruby/ruby.gunk --
+package ruby
+
+// Package is the ruby_package option.
+type Package string
+-- file/swift/doc.go --
+package swift
+
+// make this directory a Go package
+-- file/swift/swift.gunk --
+package swift
+
+// Prefix is the swift_prefix option.
+type Prefix string
+-- go.mod --
+module github.com/gunk/opt
+-- http/doc.go --
+package http
+
+// make this directory a Go package
+-- http/http.gunk --
+// Package http provides the http matching options for gunk.
+package http
+
+// Match is the http matching option.
+type Match struct {
+    Method string `pb:"1"`
+    Path   string `pb:"2"`
+    Body   string `pb:"3"`
+}
+-- message/doc.go --
+package message
+-- message/message.gunk --
+package message
+
+// MessageSetWireFormat is the message_set_wire_format option.
+type MessageSetWireFormat bool
+
+// NoStandardDecriptorAccessor is the no_standard_descriptor_accessor option.
+type NoStandardDescriptorAccessor bool
+
+// Deprecated is the deprecated option.
+type Deprecated bool
+-- method/doc.go --
+package method
+-- method/method.gunk --
+package method
+
+// Deprecated is the deprecated option.
+type Deprecated bool
+
+// IdempotencyLevel is the idempotency_level option.
+type IdempotencyLevel int
+
+// Values for IdempotencyLevel
+const (
+    Unknown IdempotencyLevel = iota
+    NoSideEffects
+    Idempotent
+)
+-- service/doc.go --
+package service
+-- service/service.gunk --
+package service
+
+// Deprecated is the deprecated option.
+type Deprecated bool

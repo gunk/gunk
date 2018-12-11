@@ -4,6 +4,10 @@ gunk generate ./util -v -x
 
 -- go.mod --
 module testdata.tld/util
+
+require (
+	github.com/gunk/opt v0.0.0-20181129161359-767b03a66301
+)
 -- v1/go/.empty --
 -- v1/python/.empty --
 -- v1/java/.empty --

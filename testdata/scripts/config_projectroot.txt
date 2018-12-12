@@ -25,8 +25,6 @@ exists gomod/all.pb.go
 [generate]
 command=protoc-gen-go
 plugins=grpc
--- gitfolder/doc.go --
-package util // make this directory a Go package
 -- gitfolder/util.gunk --
 package util
 
@@ -44,8 +42,6 @@ type Util interface {
 [generate]
 command=protoc-gen-go
 plugins=grpc
--- gitfile/doc.go --
-package util // make this directory a Go package
 -- gitfile/util.gunk --
 package util
 
@@ -63,8 +59,6 @@ type Util interface {
 [generate]
 command=protoc-gen-go
 plugins=grpc
--- gomod/doc.go --
-package util // make this directory a Go package
 -- gomod/util.gunk --
 package util
 

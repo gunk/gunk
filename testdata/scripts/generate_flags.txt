@@ -21,8 +21,6 @@ module testdata.tld/util
 -- .gunkconfig --
 [generate]
 command=bin/protoc
--- doc.go --
-package util // make this directory a Go package
 -- echo.gunk --
 package util // proto "testdata.v1.util"
 

@@ -8,16 +8,12 @@ stderr 'error/message.gunk:4:11: struct field tag for pb was empty, please remov
 
 -- go.mod --
 module testdata.tld/message
--- error/doc.go --
-package message
 -- error/message.gunk --
 package message
 
 type Message struct {
 	Code int `pb:""` // Currently we are unable to handle the case where pb is empty
 }
--- doc.go --
-package message
 -- message.gunk --
 package message
 

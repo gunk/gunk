@@ -16,12 +16,8 @@ cd ..
 
 -- go.mod --
 module testdata.tld/util
--- doc.go --
-package util // make this directory a Go package
--- empty/doc.go --
-package empty // make this directory a Go package
--- broken/doc.go --
-package broken // make this directory a Go package
+-- empty/empty.go --
+package empty // no Gunk files
 -- broken/echo.gunk --
 package
 -- echo.gunk --

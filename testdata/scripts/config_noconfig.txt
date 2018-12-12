@@ -7,9 +7,6 @@ stderr 'unable to load gunkconfig: no .gunkconfig found'
 -- go.mod --
 module testdata.tld/util
 
--- gunk/doc.go --
-package util // make this directory a Go package
-
 -- gunk/util.gunk --
 package util
 

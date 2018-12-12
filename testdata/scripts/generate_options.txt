@@ -29,13 +29,9 @@ command=protoc-gen-go
 
 [generate java]
 [generate python]
--- normal/doc.go --
-package normal
 -- normal/normal.gunk --
 package normal
 
--- deprecated/doc.go --
-package deprecated
 -- deprecated/deprecated.gunk --
 // +gunk file.Deprecated(true)
 // +gunk java.Package("com.example.deprecated")

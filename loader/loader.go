@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"encoding/hex"
 	"fmt"
 	"go/ast"
 	"go/constant"
@@ -10,11 +11,14 @@ import (
 	"go/types"
 	"html/template"
 	"io"
+	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
@@ -36,6 +40,94 @@ type Loader struct {
 	cache map[string]*GunkPackage // map from import path to pkg
 }
 
+var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+func hexRand(enclen int) string {
+	p := make([]byte, hex.DecodedLen(enclen))
+	// math/rand's Read can't error
+	_, _ = seededRand.Read(p)
+	return hex.EncodeToString(p)
+}
+
+// addTempGoFiles adds a temporary empty Go file with a random name to all Gunk
+// packages with no Go files, so that packages.Load can find them via patterns
+// like "./...". Check all directories within the current module, falling back
+// to all directories under the current directory.
+func (l *Loader) addTempGoFiles() (undo func(), _ error) {
+	// TODO(mvdan): Use go/packages.Config.Overlay once it supports adding
+	// new Go packages, as that removes the need for writing to disk and
+	// cleaning up after ourselves.
+	root := "."
+	cmd := exec.Command("go", "list", "-m", "-f={{.Dir}}")
+	cmd.Dir = l.Dir
+	// use "." if we encountered an error, for e.g. GOPATH mode
+	if out, err := cmd.Output(); err == nil {
+		root = strings.TrimSpace(string(out))
+	}
+
+	var toDelete []string
+	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			return nil
+		}
+		if strings.Contains(path, "@v") {
+			// in the module cache; skip, as that's read-only anyway
+			return filepath.SkipDir
+		}
+		infos, err := ioutil.ReadDir(path)
+		if err != nil {
+			return err
+		}
+		pkgName := info.Name() // default to the directory basename
+		anyGunk := false
+		for _, info := range infos {
+			name := info.Name()
+			if strings.HasSuffix(name, ".go") {
+				// has Go files; nothing to do
+				return nil
+			}
+			if strings.HasSuffix(name, ".gunk") {
+				f, err := parser.ParseFile(token.NewFileSet(),
+					filepath.Join(path, name), nil, parser.PackageClauseOnly)
+				// Ignore errors, since Gunk packages being
+				// walked but not being loaded might have
+				// invalid syntax.
+				if err == nil {
+					pkgName = f.Name.Name
+				}
+				anyGunk = true
+				break
+			}
+		}
+		if !anyGunk {
+			return nil
+		}
+		tmpPath := filepath.Join(path, "gunkpkg-"+hexRand(8)+".go")
+		if err := ioutil.WriteFile(tmpPath, []byte("package "+pkgName), 0666); err != nil {
+			return err
+		}
+		toDelete = append(toDelete, tmpPath)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return func() {
+		anyErr := false
+		for _, path := range toDelete {
+			if err := os.Remove(path); err != nil {
+				anyErr = true
+				fmt.Fprintf(os.Stderr, "could not delete gunkpkg file: %v", err)
+			}
+		}
+		if anyErr {
+			panic("could not delete some of the gunkpkg files")
+		}
+	}, nil
+}
+
 // Load loads the Gunk packages on the provided patterns from the given dir and
 // using the given fileset.
 //
@@ -53,7 +145,15 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 		// https://github.com/golang/go/issues/28767 is fixed
 		patterns = []string{"."}
 	}
-	// First, translate the patterns to package paths.
+
+	// First, make sure that all Gunk packages have Go files.
+	undo, err := l.addTempGoFiles()
+	if err != nil {
+		return nil, err
+	}
+	defer undo()
+
+	// Load the Gunk packages as Go packages.
 	cfg := &packages.Config{
 		Dir:  l.Dir,
 		Mode: packages.LoadFiles,

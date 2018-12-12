@@ -45,8 +45,6 @@ out=v1/cpp
 
 [generate objc]
 out=v1/objc
--- util/doc.go --
-package util
 -- util/util.gunk --
 package util
 

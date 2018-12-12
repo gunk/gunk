@@ -11,8 +11,6 @@ module testdata.tld/util
 -- .gunkconfig --
 [generate]
 command=protoc-gen-go
--- doc.go --
-package util // make this directory a Go package
 -- echo.gunk --
 package util // proto "testdata.v1.util"
 
@@ -28,8 +26,6 @@ type Code struct {
 type Util interface {
 	Echo(Code) Code
 }
--- v1/doc.go --
-package message // make this directory a Go package
 -- v1/message.gunk --
 package message
 
@@ -37,8 +33,6 @@ type Message struct {
 	Msg string `pb:"1"`
 }
 
--- v2/doc.go --
-package code // make this directory a Go package
 -- v2/message.gunk --
 package code
 

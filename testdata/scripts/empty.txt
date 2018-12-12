@@ -15,11 +15,9 @@ gunk generate ./...
 module testdata.tld/util
 -- .gunkconfig --
 # Empty gunkconfig
--- doc.go --
-package util // make this directory a Go package
--- p2/doc.go --
-package p2 // make this directory a Go package
--- p3/doc.go --
-package p3 // make this directory a Go package
+-- empty.go --
+package util // no Gunk files
+-- p2/empty.go --
+package p2 // no Gunk files
 -- p3/echo.gunk --
 package p3

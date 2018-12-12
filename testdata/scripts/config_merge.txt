@@ -18,9 +18,6 @@ plugins=grpc
 [generate]
 protoc=python
 
--- gunk/doc.go --
-package util // make this directory a Go package
-
 -- gunk/util.gunk --
 package util
 

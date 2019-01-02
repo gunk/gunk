@@ -895,13 +895,23 @@ func (g *Generator) qualifiedTypeName(typeName string, pkg *types.Package) strin
 func (g *Generator) convertType(typ types.Type) (desc.FieldDescriptorProto_Type, desc.FieldDescriptorProto_Label, string) {
 	switch typ := typ.(type) {
 	case *types.Basic:
-		// Map Go types to proto types via
+		// Map Go types to proto types:
 		// https://developers.google.com/protocol-buffers/docs/proto3#scalar
 		switch typ.Kind() {
 		case types.String:
 			return desc.FieldDescriptorProto_TYPE_STRING, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
 		case types.Int, types.Int32:
 			return desc.FieldDescriptorProto_TYPE_INT32, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
+		case types.Uint, types.Uint32:
+			return desc.FieldDescriptorProto_TYPE_UINT32, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
+		case types.Int64:
+			return desc.FieldDescriptorProto_TYPE_INT64, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
+		case types.Uint64:
+			return desc.FieldDescriptorProto_TYPE_UINT64, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
+		case types.Float32:
+			return desc.FieldDescriptorProto_TYPE_FLOAT, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
+		case types.Float64:
+			return desc.FieldDescriptorProto_TYPE_DOUBLE, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
 		case types.Bool:
 			return desc.FieldDescriptorProto_TYPE_BOOL, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
 		}

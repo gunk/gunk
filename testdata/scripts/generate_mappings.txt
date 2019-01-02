@@ -1,0 +1,38 @@
+env HOME=$WORK/home
+
+gunk generate .
+exists all.pb.go
+
+# Check that the types conversion from gunk -> proto -> go
+# are the correct type mappings.
+grep 'Bool.*bool' all.pb.go
+grep 'String.*string' all.pb.go
+grep 'Int.*int32' all.pb.go
+grep 'Int32.*int32' all.pb.go
+grep 'Uint.*uint32' all.pb.go
+grep 'Uint32.*uint32' all.pb.go
+grep 'Int64.*int64' all.pb.go
+grep 'Uint64.*uint64' all.pb.go
+grep 'Float.*float32' all.pb.go
+grep 'Double.*float64' all.pb.go
+grep 'Slice.*\[\]int32' all.pb.go
+
+-- .gunkconfig --
+[generate]
+command=protoc-gen-go
+-- mappings.gunk --
+package mappings
+
+type Message struct {
+    Bool bool `pb:"1"`
+	String string `pb:"2"`
+    Int int `pb:"3"`
+    Int32 int32 `pb:"4"`
+    Uint uint `pb:"5"`
+    Uint32 uint32 `pb:"6"`
+    Int64 int64 `pb:"7"`
+    Uint64 uint64 `pb:"8"`
+    Float float32 `pb:"9"`
+    Double float64 `pb:"10"`
+    Slice []int `pb:"11"`
+}

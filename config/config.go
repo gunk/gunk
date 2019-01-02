@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -180,14 +181,25 @@ func load(reader io.Reader) (*Config, error) {
 		case name == "generate":
 			gen, err = handleGenerate(s)
 		case strings.HasPrefix(name, "generate"):
+			// Check to see if we have the shorten version of a generate config:
+			// [generate js].
 			sParts := strings.Split(name, " ")
 			if len(sParts) != 2 {
 				return nil, fmt.Errorf("generate section name should have 2 values, not %d", len(sParts))
 			}
-			// Check to see if we have the shorten version of a generate config:
-			// [generate js].
+
 			gen, err = handleGenerate(s)
-			gen.ProtocGen = strings.Trim(sParts[1], "\"")
+			generator := strings.Trim(sParts[1], "\"")
+			// Is this shortened generator a protoc-gen-* binary, or
+			// should it be passed to protoc.
+			// We ignore the binary path since we don't do the same for the
+			// normal generate section. If we start using the binary path here
+			// we should also use it for the normal generate section.
+			if _, err := exec.LookPath("protoc-gen-" + generator); err == nil {
+				gen.Command = "protoc-gen-" + generator
+			} else {
+				gen.ProtocGen = generator
+			}
 		default:
 			return nil, fmt.Errorf("unknown section %q", s.Name())
 		}

@@ -18,9 +18,8 @@ require (
 -- v1/cpp/.empty --
 -- v1/objc/.empty --
 -- .gunkconfig --
-[generate]
+[generate go]
 out=v1/go
-command=protoc-gen-go
 
 [generate python]
 out=v1/python

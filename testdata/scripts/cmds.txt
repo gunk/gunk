@@ -2,20 +2,35 @@ gunk
 stderr '^usage: gunk \['
 ! stdout .
 
-gunk help
+gunk -h
 stderr '^usage: gunk \['
 ! stdout .
 
-gunk generate --help
-stderr '^usage: gunk generate'
+gunk --help
+stderr '^usage: gunk \['
+! stdout .
+
+gunk help
+stderr '^usage: gunk \['
 ! stdout .
 
 gunk help generate
 stderr '^usage: gunk generate'
 ! stdout .
 
+! gunk help missing
+stderr 'expected command'
+
 ! gunk missing
 stderr 'expected command'
+
+gunk generate -h
+stderr '^usage: gunk generate'
+! stdout .
+
+gunk generate --help
+stderr '^usage: gunk generate'
+! stdout .
 
 ! gunk generate --missing
 stderr 'unknown long flag'

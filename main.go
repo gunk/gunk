@@ -31,6 +31,8 @@ func main() {
 }
 
 func main1() int {
+	app.HelpFlag.Short('h') // allow -h as well as --help
+
 	gen.Flag("print-commands", "print the commands").Short('x').BoolVar(&log.PrintCommands)
 	gen.Flag("verbose", "print the names of packages as they are generated").Short('v').BoolVar(&log.Verbose)
 

@@ -18,9 +18,9 @@ import (
 var write = flag.Bool("w", false, "overwrite testdata output files")
 
 func TestMain(m *testing.M) {
-	flag.Parse()
 
 	if os.Getenv("TESTSCRIPT_COMMAND") == "" {
+		flag.Parse()
 		// Don't put the binaries in a temporary directory to delete, as that
 		// means we have to re-link them every single time. That's quite
 		// expensive, at around half a second per 'go test' invocation.

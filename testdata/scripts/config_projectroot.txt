@@ -54,7 +54,7 @@ type Util interface {
 	Echo(Message) Message
 }
 
--- gomod/.git --
+-- gomod/go.mod --
 -- gomod/.gunkconfig --
 [generate]
 command=protoc-gen-go

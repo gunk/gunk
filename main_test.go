@@ -54,6 +54,7 @@ func TestMain(m *testing.M) {
 var proxyURL string
 
 func TestGenerate(t *testing.T) {
+	t.Parallel()
 	pkgs := []string{
 		".", "./imported",
 	}
@@ -128,6 +129,7 @@ func generatedFiles(t *testing.T, dir string) (map[string]string, error) {
 }
 
 func TestScripts(t *testing.T) {
+	t.Parallel()
 	testscript.Run(t, testscript.Params{
 		Dir: filepath.Join("testdata", "scripts"),
 		Setup: func(e *testscript.Env) error {

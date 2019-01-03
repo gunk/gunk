@@ -46,6 +46,10 @@ and handled by the `go/*` package. As such, Gunk definitions are a subset of
 the Go programming language:
 
 ```
+package message
+
+import "github.com/gunk/opt/http"
+
 // Message is a Echo message.
 type Message struct {
 	// Msg holds a message.
@@ -213,6 +217,42 @@ This will convert your proto file to the equivalent Gunk file. Currently
 this only works for single proto files.
 
 ## Gunk Annotations
+
+Gunk provides annotations to configure proto options as well as other external
+annotations, such as Google Api Annotations. Gunk annotations can be found at
+[github.com/gunk/opt](https://github.com/gunk/opt).
+
+Gunk annotations are specified as comments in Gunk code, the annotations should
+be valid Go code prefixed with `+gunk`.
+
+Gunk has annotations for all built-in proto options.
+
+### Example
+
+```
+// +gunk java.Package("com.example.message")
+// +gunk java.MultipleFiles(true)
+package message
+
+import (
+    "github.com/gunk/opt/http"
+    "github.com/gunk/opt/file/java"
+)
+
+type Util interface {
+	// +gunk http.Match{
+	//		Method:	"POST",
+	// 		Path:	"/v1/echo",
+	// 		Body:	"*",
+	//	}
+	Echo()
+}
+```
+
+`java.Package` will set the proto file option [java_package](https://github.com/golang/protobuf/blob/882cf97a83ad205fd22af574246a3bc647d7a7d2/protoc-gen-go/descriptor/descriptor.proto#L324)
+
+`http.Match` will generate Google Api Annotations and add them as extensions that will
+can be used for any protoc generators, such as `grpc-gateway`.
 
 [go-install]: https://golang.org/doc/install
 [go-modules]: https://github.com/golang/go/wiki/Modules

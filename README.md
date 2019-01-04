@@ -1,3 +1,5 @@
+[![GoDoc][card-godoc]][godoc]
+
 # Gunk
 
 Gunk is an acronym for "Gunk Unified N-terface Kompiler."
@@ -104,6 +106,7 @@ comes with Go 1.11 and above. After adding a new dependency, please run the foll
 
     $ GO111MODULE=on go mod tidy
 
+[card-godoc]: https://godoc.org/github.com/gunk/gunk?status.svg
 [godoc]: https://godoc.org/github.com/gunk/gunk
 [go-modules]: https://github.com/golang/go/wiki/Modules
 [go-project]: https://golang.org/project

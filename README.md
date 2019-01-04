@@ -1,4 +1,5 @@
 [![GoDoc][card-godoc]][godoc]
+[![Build Status][card-travis]][travis]
 
 # Gunk
 
@@ -107,7 +108,9 @@ comes with Go 1.11 and above. After adding a new dependency, please run the foll
     $ GO111MODULE=on go mod tidy
 
 [card-godoc]: https://godoc.org/github.com/gunk/gunk?status.svg
+[card-travis]: https://travis-ci.org/gunk/gunk.svg?branch=master
 [godoc]: https://godoc.org/github.com/gunk/gunk
 [go-modules]: https://github.com/golang/go/wiki/Modules
 [go-project]: https://golang.org/project
 [issue-tracker]: https://github.com/gunk/gunk/issues
+[travis]: https://travis-ci.org/gunk/gunk

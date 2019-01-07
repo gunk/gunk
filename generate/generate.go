@@ -81,6 +81,50 @@ func Run(dir string, args ...string) error {
 	return nil
 }
 
+// FileDescriptorSet will load a single Gunk package, and return the
+// proto FileDescriptor set of the Gunk package.
+//
+// Currently, we only generate a FileDescriptorSet for one Gunk package.
+func FileDescriptorSet(dir string, args ...string) (*desc.FileDescriptorSet, error) {
+	g := &Generator{
+		Loader: loader.Loader{
+			Dir:   dir,
+			Fset:  token.NewFileSet(),
+			Types: true,
+		},
+
+		gunkPkgs: make(map[string]*loader.GunkPackage),
+		allProto: make(map[string]*desc.FileDescriptorProto),
+	}
+
+	pkgs, err := g.Load(args...)
+	if err != nil {
+		return nil, err
+	}
+	if len(pkgs) != 1 {
+		return nil, fmt.Errorf("can only get filedescriptorset for a single Gunk package")
+	}
+
+	// Record the loaded packages in gunkPkgs.
+	g.recordPkgs(pkgs...)
+
+	// Translate the packages from Gunk to Proto.
+	for _, pkg := range pkgs {
+		if err := g.translatePkg(pkg.PkgPath); err != nil {
+			return nil, err
+		}
+	}
+
+	// Load any non-Gunk proto dependencies.
+	if err := g.loadProtoDeps(); err != nil {
+		return nil, err
+	}
+
+	// Generate the filedescriptorset for the Gunk package.
+	req := g.requestForPkg(pkgs[0].PkgPath)
+	return g.generateFileDescriptorSet(*req), nil
+}
+
 type Generator struct {
 	loader.Loader
 
@@ -134,11 +178,9 @@ func (g *Generator) GeneratePkg(path string, gens []config.Generator) error {
 	return nil
 }
 
-func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.Generator) error {
-	// The proto files we are asking protoc to generate. This should be
-	// a formatted list of what is in req.FileToGenerate.
-	protoFilenames := []string{}
-
+// generateFileDescriptoSet takes a CodeGeneratorRequest and formats it
+// into a FileDescriptorSet that the protoc command expects.
+func (g *Generator) generateFileDescriptorSet(req plugin.CodeGeneratorRequest) *desc.FileDescriptorSet {
 	// Make copies of the req.ProtoFile so we don't accidentally change
 	// the values of the pointers which will affect all other protoc
 	// generator runs.
@@ -166,24 +208,14 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 	// Keep a record of the proto file names, and what we want to change
 	// them to.
 	namesToChange := make(map[string]string)
-	// Default location to output protoc generated files.
-	protocOutputPath := ""
 	for _, f := range fds.File {
 		for _, ftg := range req.GetFileToGenerate() {
 			if f.GetName() != ftg {
 				continue
 			}
-			pkgPath, basename := filepath.Split(ftg)
+			_, basename := filepath.Split(ftg)
 			outPath := strings.Replace(basename, ".gunk", ".proto", 1)
 			namesToChange[ftg] = outPath
-			protoFilenames = append(protoFilenames, outPath)
-
-			// Because we merge all .gunk files into one 'all.proto' file,
-			// we can use that package path on disk as the default location
-			// to output generated files.
-			pkgPath = filepath.Clean(pkgPath)
-			gpkg := g.gunkPkgs[pkgPath]
-			protocOutputPath = gpkg.Dir
 		}
 	}
 
@@ -204,7 +236,40 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 		}
 	}
 
-	bs, err := proto.Marshal(&fds)
+	return &fds
+}
+
+func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.Generator) error {
+	// Get the file descriptor set to use with protoc
+	fds := g.generateFileDescriptorSet(req)
+
+	// The proto files we are asking protoc to generate. This should be
+	// a formatted list of what is in req.FileToGenerate.
+	protoFilenames := []string{}
+
+	// Default location to output protoc generated files.
+	protocOutputPath := ""
+	for _, ftg := range req.GetFileToGenerate() {
+		pkgPath, basename := filepath.Split(ftg)
+		// Check to see which proto files we need protoc to generate.
+		// We only need to generate the all.proto file, which should
+		// be the only file in req.FileToGenerate at the moment.
+		for _, f := range fds.File {
+			if f.GetName() != basename {
+				continue
+			}
+			protoFilenames = append(protoFilenames, f.GetName())
+		}
+
+		// Because we merge all .gunk files into one 'all.proto' file,
+		// we can use that package path on disk as the default location
+		// to output generated files.
+		pkgPath = filepath.Clean(pkgPath)
+		gpkg := g.gunkPkgs[pkgPath]
+		protocOutputPath = gpkg.Dir
+	}
+
+	bs, err := proto.Marshal(fds)
 	if err != nil {
 		return err
 	}
@@ -233,7 +298,6 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.G
 	if err != nil {
 		return err
 	}
-
 	cmd := log.ExecCommand(gen.Command)
 	cmd.Stdin = bytes.NewReader(bs)
 	out, err := cmd.Output()

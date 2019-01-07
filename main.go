@@ -7,6 +7,7 @@ import (
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/gunk/gunk/convert"
+	"github.com/gunk/gunk/dump"
 	"github.com/gunk/gunk/format"
 	"github.com/gunk/gunk/generate"
 	"github.com/gunk/gunk/log"
@@ -24,6 +25,10 @@ var (
 
 	frmt         = app.Command("format", "Format Gunk code.")
 	frmtPatterns = frmt.Arg("patterns", "patterns of Gunk packages").Strings()
+
+	dmp         = app.Command("dump", "Write a FileDescriptorSet (a protocol buffer, defined in descriptor.proto)")
+	dmpPatterns = dmp.Arg("patterns", "patterns of Gunk packages").Strings()
+	dmpFormat   = dmp.Flag("format", "output format to write FileDescriptorSet as (options are 'raw' or 'json'").String()
 )
 
 func main() {
@@ -44,6 +49,8 @@ func main1() int {
 		err = convert.Run(*convProtoFile, *convOverwriteGunkFile)
 	case frmt.FullCommand():
 		err = format.Run("", *frmtPatterns...)
+	case dmp.FullCommand():
+		err = dump.Run(*dmpFormat, "", *dmpPatterns...)
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

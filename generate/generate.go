@@ -279,6 +279,20 @@ func (g *Generator) requestForPkg(pkgPath string) *plugin.CodeGeneratorRequest {
 		return *req.ProtoFile[i].Name < *req.ProtoFile[j].Name
 	})
 
+	// Super dumb approach to get which ProtoFile's depend on
+	// other ProtoFiles. This works because we don't load
+	// many protofiles at the moment and the ones we do load
+	// don't depend on each other.
+	independentProtoFiles := make([]*desc.FileDescriptorProto, 0, len(req.GetProtoFile()))
+	dependentProtoFiles := make([]*desc.FileDescriptorProto, 0, len(req.GetProtoFile()))
+	for _, f := range req.GetProtoFile() {
+		if len(f.GetDependency()) == 0 {
+			independentProtoFiles = append(independentProtoFiles, f)
+		} else {
+			dependentProtoFiles = append(dependentProtoFiles, f)
+		}
+	}
+	req.ProtoFile = append(independentProtoFiles, dependentProtoFiles...)
 	return req
 }
 

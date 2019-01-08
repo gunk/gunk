@@ -397,15 +397,18 @@ func (b *builder) handleService(s *proto.Service) error {
 				// for now?
 				return b.formatError(r.Position, "%s option is not yet handled", n)
 			}
-
-			// If the request type is the known empty parameter we can convert
-			// this to gunk as an empty function parameter.
-			if r.RequestType != "google.protobuf.Empty" {
-				b.format(w, 1, comment, "%s(%s) %s\n", r.Name, r.RequestType, r.ReturnsType)
-			} else {
-				b.format(w, 1, comment, "%s() %s\n", r.Name, r.ReturnsType)
-			}
 		}
+		// If the request type is the known empty parameter we can convert
+		// this to gunk as an empty function parameter.
+		requestType := r.RequestType
+		returnsType := r.ReturnsType
+		if requestType == "google.protobuf.Empty" {
+			requestType = ""
+		}
+		if returnsType == "google.protobuf.Empty" {
+			returnsType = ""
+		}
+		b.format(w, 1, comment, "%s(%s) %s\n", r.Name, requestType, returnsType)
 	}
 	b.format(w, 0, nil, "}")
 	b.translatedDeclarations = append(b.translatedDeclarations, w.String())

@@ -1,0 +1,91 @@
+env HOME=$WORK/home
+
+gunk convert util.proto
+cmp util.gunk util.gunk.golden
+
+-- util.proto --
+syntax = "proto3";
+
+package util;
+
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+
+enum Status {
+    UnknownStatus = 0;
+    Created       = 1;
+    Pending       = 2;
+    SUCCESS       = 3;
+    Failed        = 4;
+};
+
+message Msg {
+    string msg = 1;
+}
+
+service MsgService {
+    rpc Echo(Msg) returns (Msg) {}
+    rpc Handle(Msg) returns (google.protobuf.Empty) {}
+    rpc Result(google.protobuf.Empty) returns (Msg) {}
+}
+
+service HttpService {
+    rpc Get(Msg) returns (Msg) {
+        option (google.api.http) = {
+            get: "/v1/util"
+        }
+    }
+    rpc Post(Msg) returns (google.protobuf.Empty) {
+        option (google.api.http) = {
+            post: "/v1/util"
+            body: "*"
+        }
+    }
+}
+
+-- util.gunk.golden --
+package util
+
+import (
+	"github.com/gunk/opt"
+	"github.com/gunk/opt/http"
+	// "google/protobuf/empty.proto"
+	// "google/api/annotations.proto"
+)
+
+type Status int
+
+const (
+	UnknownStatus Status = iota
+	Created
+	Pending
+	SUCCESS
+	Failed
+)
+
+type Msg struct {
+	Msg string `pb:"1" json:"msg"`
+}
+
+type MsgService interface {
+	Echo(Msg) Msg
+
+	Handle(Msg)
+
+	Result() Msg
+}
+
+type HttpService interface {
+	// +gunk http.Match{
+	//     Method: "GET",
+	//     Path: "/v1/util",
+	// }
+	Get(Msg) Msg
+
+	// +gunk http.Match{
+	//     Method: "POST",
+	//     Path: "/v1/util",
+	//     Body: "*",
+	// }
+	Post(Msg)
+}

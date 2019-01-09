@@ -28,14 +28,11 @@ Gunk requires [Go][go-project] to be installed on your machine. To install Go,
 follow the [installation instructions][go-install] for your specific operating
 systems.
 
-Gunk can then be installed in the usual Go fashion:
+Gunk can then be installed in the usual Go fashion, with Go 1.11 or later:
 
 	go get -u github.com/gunk/gunk
 
-## Required installs
-
-    - Go (any specific version?)
-    - Protoc
+You'll also need `protoc` version 3.6 or later to run Gunk.
 
 ## Usage
 
@@ -90,43 +87,22 @@ turn, those are passed to `protoc-gen-*` tools, along with any passed options.
 
 ## Contributing
 
-### Bug Reports & Feature Requests
-
-Please use the [issue tracker][issue-tracker] to report any bugs or file feature requests.
-
-### Developing
-
-PRs are welcome. To begin developing, do this:
+Issues and pull requests are welcome. Building Gunk is simple:
 
 ```bash
-$ git clone https://github.com/gunk/gunk.git
-$ export GO111MODULE=on
-$ cd gunk/
-$ go build
+$ git clone https://github.com/gunk/gunk
+$ cd gunk
+$ GO111MODULE=on go build
 $ ./gunk
 usage: gunk [<flags>] <command> [<args> ...]
 
 Gunk Unified N-terface Kompiler command-line tool.
 
-Flags:
-  -h, --help  Show context-sensitive help (also try --help-long and --help-man).
-
-Commands:
-  help [<command>...]
-    Show help.
-
-  generate [<flags>] [<patterns>...]
-    Generate code from Gunk packages.
-
-  convert [<flags>] [<file>]
-    Convert Proto file to Gunk file.
-
-  format [<patterns>...]
-    Format Gunk code.
+[...]
 ```
 
 This project uses [go modules][go-modules] for managing dependencies, which
-comes with Go 1.11 and above. Before sending a PR, please do the following:
+comes with Go 1.11 and above. Before sending a PR, remember to run `mod tidy`:
 
     GO111MODULE=on go mod tidy
 
@@ -211,7 +187,7 @@ binary
 
 Gunk provides functionality to convert a proto file to a Gunk file.
 
-    $ gunk convert /path/to/file.proto
+    gunk convert path/to/file.proto
 
 This will convert your proto file to the equivalent Gunk file. Currently
 this only works for single proto files.
@@ -257,4 +233,3 @@ can be used for any protoc generators, such as `grpc-gateway`.
 [go-install]: https://golang.org/doc/install
 [go-modules]: https://github.com/golang/go/wiki/Modules
 [go-project]: https://golang.org/project
-[issue-tracker]: https://github.com/gunk/gunk/issues

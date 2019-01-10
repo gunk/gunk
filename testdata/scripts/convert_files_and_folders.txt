@@ -1,0 +1,65 @@
+env home=$work/home
+
+gunk convert util.proto ./util
+cmp util.gunk util.gunk.golden
+cmp util/util2.gunk util/util2.gunk.golden
+
+-- util.proto --
+syntax = "proto3";
+
+package util;
+
+enum status {
+    unknownstatus = 0;
+    created       = 1;
+    pending       = 2;
+    success       = 3;
+    failed        = 4;
+};
+
+-- util.gunk.golden --
+package util
+
+import (
+	"github.com/gunk/opt"
+	"github.com/gunk/opt/http"
+)
+
+type status int
+
+const (
+	unknownstatus status = iota
+	created
+	pending
+	success
+	failed
+)
+-- util/non-proto-file --
+-- util/util2.proto --
+syntax = "proto3";
+
+package util;
+
+enum status {
+    unknownstatus = 0;
+    created       = 1;
+    pending       = 2;
+    failed        = 4;
+};
+
+-- util/util2.gunk.golden --
+package util
+
+import (
+	"github.com/gunk/opt"
+	"github.com/gunk/opt/http"
+)
+
+type status int
+
+const (
+	unknownstatus status = 0
+	created       status = 1
+	pending       status = 2
+	failed        status = 4
+)

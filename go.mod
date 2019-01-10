@@ -12,9 +12,11 @@ require (
 	github.com/knq/snaker v0.0.0-20181215144011-2bc8a4db4687
 	github.com/rogpeppe/go-internal v1.0.1-alpha.6
 	github.com/stretchr/testify v1.3.0 // indirect
+	golang.org/x/net v0.0.0-20181106065722-10aee1819953
 	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
 	golang.org/x/tools v0.0.0-20190111214448-fc1d57b08d7b
 	google.golang.org/genproto v0.0.0-20190111180523-db91494dd46c
+	google.golang.org/grpc v1.16.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 )

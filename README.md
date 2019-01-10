@@ -185,12 +185,12 @@ binary
 
 ## Convert
 
-Gunk provides functionality to convert a proto file to a Gunk file.
+Gunk provides functionality to convert proto files or folders to a Gunk file.
 
-    gunk convert path/to/file.proto
+    gunk convert path/to/file.proto other/path/to/file.proto
+    gunk convert ./path/to/proto/dir
 
-This will convert your proto file to the equivalent Gunk file. Currently
-this only works for single proto files.
+This will convert your proto file to the equivalent Gunk file.
 
 ## Gunk Annotations
 

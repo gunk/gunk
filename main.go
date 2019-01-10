@@ -19,9 +19,9 @@ var (
 	gen         = app.Command("generate", "Generate code from Gunk packages.")
 	genPatterns = gen.Arg("patterns", "patterns of Gunk packages").Strings()
 
-	conv                  = app.Command("convert", "Convert Proto file to Gunk file.")
-	convProtoFile         = conv.Arg("file", "Proto file to convert to Gunk").String()
-	convOverwriteGunkFile = conv.Flag("overwrite", "overwrite the converted Gunk file if it exists.").Bool()
+	conv                    = app.Command("convert", "Convert Proto file to Gunk file.")
+	convProtoFilesOrFolders = conv.Arg("files_or_folders", "Proto files or folders to convert to Gunk").Strings()
+	convOverwriteGunkFile   = conv.Flag("overwrite", "overwrite the converted Gunk file if it exists.").Bool()
 
 	frmt         = app.Command("format", "Format Gunk code.")
 	frmtPatterns = frmt.Arg("patterns", "patterns of Gunk packages").Strings()
@@ -46,7 +46,7 @@ func main1() int {
 	case gen.FullCommand():
 		err = generate.Run("", *genPatterns...)
 	case conv.FullCommand():
-		err = convert.Run(*convProtoFile, *convOverwriteGunkFile)
+		err = convert.Run(*convProtoFilesOrFolders, *convOverwriteGunkFile)
 	case frmt.FullCommand():
 		err = format.Run("", *frmtPatterns...)
 	case dmp.FullCommand():

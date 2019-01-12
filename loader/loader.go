@@ -140,11 +140,6 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 			return []*GunkPackage{pkg}, nil
 		}
 	}
-	if len(patterns) == 0 {
-		// TODO(mvdan): remove once
-		// https://github.com/golang/go/issues/28767 is fixed
-		patterns = []string{"."}
-	}
 
 	// First, make sure that all Gunk packages have Go files.
 	undo, err := l.addTempGoFiles()

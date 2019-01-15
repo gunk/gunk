@@ -74,6 +74,7 @@ func (g Generator) OutPath(packageDir string) string {
 
 type Config struct {
 	Dir        string
+	Out        string
 	Generators []Generator
 }
 
@@ -106,9 +107,13 @@ func Load(dir string) (*Config, error) {
 
 			cfg.Dir = dir
 			// Patch in the directory of where to output the generated
-			// files.
-			for i := range cfg.Generators {
+			// files. And patch in the 'out' path if it has been set globally,
+			// and not in the generate section.
+			for i, gen := range cfg.Generators {
 				cfg.Generators[i].ConfigDir = dir
+				if cfg.Out != "" && gen.Out == "" {
+					cfg.Generators[i].Out = cfg.Out
+				}
 			}
 			cfgs = append(cfgs, cfg)
 		}
@@ -240,7 +245,10 @@ func handleGenerate(section *parser.Section) (*Generator, error) {
 
 func handleGlobal(config *Config, section *parser.Section) error {
 	for _, k := range section.RawKeys() {
+		v := section.GetRaw(k)
 		switch k {
+		case "out":
+			config.Out = v
 		default:
 			return fmt.Errorf("unexpected key %q in global section", k)
 		}

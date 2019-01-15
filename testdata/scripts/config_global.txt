@@ -1,0 +1,38 @@
+env HOME=$WORK/home
+
+gunk generate ./gunk
+
+# Check that that files were generated in the correct folder
+exists gunk/v1/all.pb.go gunk/v2/all_pb2.py
+
+-- go.mod --
+module testdata.tld/util
+
+-- gunk/v1/.empty --
+-- gunk/v2/.empty --
+
+-- gunk/.gunkconfig --
+# Set global out
+out=v1/
+
+[generate]
+command=protoc-gen-go
+plugins=grpc
+
+[generate]
+# Override global out
+out=v2/
+protoc=python
+
+-- gunk/util.gunk --
+package util
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
+type Util interface {
+	// Echo echoes a message.
+	Echo(Message) Message
+}
+

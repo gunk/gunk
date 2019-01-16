@@ -1,0 +1,40 @@
+env HOME=$WORK/home
+
+gunk generate -v .
+
+-- go.mod --
+module testdata.tld/util
+-- .gunkconfig --
+[generate]
+command=protoc-gen-strict
+-- echo.gunk --
+package util // proto "testdata.v1.util"
+
+import (
+	"time"
+
+	"testdata.tld/util/p1"
+	"testdata.tld/util/p2"
+)
+
+type Message struct {
+	Time time.Time `pb:"1"`
+}
+
+type Util interface {
+	Echo() Message
+
+	UseImports(p2.Foo) p1.Bar
+}
+-- p2/foo.gunk --
+package p2
+
+type Foo struct {
+	Field string `pb:"1"`
+}
+-- p1/bar.gunk --
+package p1
+
+type Bar struct {
+	Field string `pb:"1"`
+}

@@ -11,7 +11,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -344,30 +343,50 @@ func (g *Generator) requestForPkg(pkgPath string) *plugin.CodeGeneratorRequest {
 		req.ProtoFile = append(req.ProtoFile, pfile)
 	}
 
-	// Sort all the files by name to get deterministic output. For example,
-	// the first file in each package gets an extra package godoc from
-	// protoc-gen-go. And protoc-gen-grpc-gateway cares about the order of
-	// the ProtoFile list.
-	sort.Strings(req.FileToGenerate)
-	sort.Slice(req.ProtoFile, func(i, j int) bool {
-		return *req.ProtoFile[i].Name < *req.ProtoFile[j].Name
-	})
-
-	// Super dumb approach to get which ProtoFile's depend on
-	// other ProtoFiles. This works because we don't load
-	// many protofiles at the moment and the ones we do load
-	// don't depend on each other.
-	independentProtoFiles := make([]*desc.FileDescriptorProto, 0, len(req.GetProtoFile()))
-	dependentProtoFiles := make([]*desc.FileDescriptorProto, 0, len(req.GetProtoFile()))
-	for _, f := range req.GetProtoFile() {
-		if len(f.GetDependency()) == 0 {
-			independentProtoFiles = append(independentProtoFiles, f)
-		} else {
-			dependentProtoFiles = append(dependentProtoFiles, f)
-		}
-	}
-	req.ProtoFile = append(independentProtoFiles, dependentProtoFiles...)
+	// ProtoFile must be sorted in topological order, so that each file's
+	// dependencies are satisfied by previous files. This is a requirement
+	// of some generators.
+	req.ProtoFile = topologicalSort(req.ProtoFile)
 	return req
+}
+
+// topologicalSort sorts a number of protobuf descriptor files so that each
+// file's dependencies can be satisfied by previous files in the list. In other
+// words, it sorts the files incrementally by their dependencies.
+//
+// The algorithm isn't optimal, as it is a form of quadratic insertion sort with
+// the help of a map. However, we won't be dealing with large numbers of proto
+// files as each Gunk package is a single "all.proto" file, so this will likely
+// be enough for a while. The advantage is that the implementation is very
+// simple.
+func topologicalSort(files []*desc.FileDescriptorProto) []*desc.FileDescriptorProto {
+	previous := make(map[string]bool)
+	result := make([]*desc.FileDescriptorProto, 0, len(files))
+
+_addLoop:
+	for len(result) < len(files) {
+	_fileLoop:
+		for _, pfile := range files {
+			name := *pfile.Name
+			if previous[name] {
+				// Already part of the result.
+				continue
+			}
+			for _, dep := range pfile.Dependency {
+				if !previous[dep] {
+					// Depends on files not in result yet.
+					continue _fileLoop
+				}
+			}
+			// Add this file.
+			previous[name] = true
+			result = append(result, pfile)
+			continue _addLoop
+		}
+		// We didn't find a file we could add.
+		panic("could not sort proto files by dependencies. dependency cycle?")
+	}
+	return result
 }
 
 // translatePkg translates all the gunk files in a gunk package to the

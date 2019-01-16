@@ -8,6 +8,7 @@ import (
 	"go/token"
 	"go/types"
 	"io/ioutil"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -285,11 +286,20 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 
 	cmd := log.ExecCommand(command, args...)
 	cmd.Stdin = bytes.NewReader(bs)
-	out, err := cmd.Output()
-	if err != nil {
-		return fmt.Errorf("error executing %q: %q, %v", command, out, err)
+	if _, err := cmd.Output(); err != nil {
+		return execError(command, err)
 	}
 	return nil
+}
+
+func execError(command string, err error) error {
+	if xerr, ok := err.(*exec.ExitError); ok && len(xerr.Stderr) > 0 {
+		// If the error contains some stderr, include it.
+		// If we're running in verbose mode, stderr was already written
+		// directly to os.Stderr, so it may not be here.
+		err = fmt.Errorf("%v: %s", xerr.ProcessState, xerr.Stderr)
+	}
+	return fmt.Errorf("error executing %q: %v", command, err)
 }
 
 func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.Generator) error {
@@ -302,7 +312,7 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.G
 	cmd.Stdin = bytes.NewReader(bs)
 	out, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("error executing %s: %s, %v", gen.Command, out, err)
+		return execError(gen.Command, err)
 	}
 	var resp plugin.CodeGeneratorResponse
 	if err := proto.Unmarshal(out, &resp); err != nil {

@@ -561,7 +561,7 @@ func (b *builder) handleImports() string {
 	b.format(w, 0, nil, "import (")
 
 	// Imports that have been used during convert
-	for i, _ := range b.importsUsed {
+	for i := range b.importsUsed {
 		b.format(w, 0, nil, "\n")
 		b.format(w, 1, nil, fmt.Sprintf("%q", i))
 	}

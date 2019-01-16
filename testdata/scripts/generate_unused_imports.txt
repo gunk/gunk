@@ -20,7 +20,7 @@ import (
 )
 
 type Code struct {
-    Code v2.Code `pb:"1"`
+	Code v2.Code `pb:"1"`
 }
 
 type Util interface {

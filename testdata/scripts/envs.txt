@@ -7,17 +7,24 @@ exec chmod a+x bin/protoc
 # we should stop before any generators are run
 ! gunk generate .
 ! stdout .
-stderr 'exit status'
 stderr 'error executing "protoc"'
-! stderr 'error executing protoc-gen'
-! stderr panicc
+stderr 'exit status 34: fatal failure' # include stderr
+! stderr 'error executing protoc-gen' # we're not running any protoc-gen plugin
+! stderr 'some stdout' # stdout is likely uninteresting
+! stderr panic
+
+# in verbose mode, stderr was written out directly
+! gunk generate -v .
+stderr 'exit status 34$'
+stderr '^fatal failure$'
 
 -- bin/protoc --
 #!/bin/sh
 
+echo some stdout
 echo fatal failure >&2
 
-exit 1
+exit 34
 -- go.mod --
 module testdata.tld/util
 -- .gunkconfig --

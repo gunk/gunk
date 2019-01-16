@@ -24,15 +24,15 @@ command=protoc-gen-go
 package mappings
 
 type Message struct {
-    Bool bool `pb:"1"`
+	Bool bool `pb:"1"`
 	String string `pb:"2"`
-    Int int `pb:"3"`
-    Int32 int32 `pb:"4"`
-    Uint uint `pb:"5"`
-    Uint32 uint32 `pb:"6"`
-    Int64 int64 `pb:"7"`
-    Uint64 uint64 `pb:"8"`
-    Float float32 `pb:"9"`
-    Double float64 `pb:"10"`
-    Slice []int `pb:"11"`
+	Int int `pb:"3"`
+	Int32 int32 `pb:"4"`
+	Uint uint `pb:"5"`
+	Uint32 uint32 `pb:"6"`
+	Int64 int64 `pb:"7"`
+	Uint64 uint64 `pb:"8"`
+	Float float32 `pb:"9"`
+	Double float64 `pb:"10"`
+	Slice []int `pb:"11"`
 }

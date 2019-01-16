@@ -1,0 +1,25 @@
+env HOME=$WORK/home
+
+gunk convert util.proto
+cmp util.gunk util.gunk.golden
+
+-- util.proto --
+syntax = "proto3";
+
+package util;
+
+option optimize_for = 2;
+
+option java_package = "com.example.util"
+option java_outer_classname = "JavaOuterClassname"
+
+-- util.gunk.golden --
+// +gunk file.OptimizeFor(2)
+// +gunk java.Package("com.example.util")
+// +gunk java.OuterClassname("JavaOuterClassname")
+package util
+
+import (
+	"github.com/gunk/opt/file"
+	"github.com/gunk/opt/file/java"
+)

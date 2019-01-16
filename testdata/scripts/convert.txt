@@ -47,7 +47,6 @@ service HttpService {
 package util
 
 import (
-	"github.com/gunk/opt"
 	"github.com/gunk/opt/http"
 	// "google/protobuf/empty.proto"
 	// "google/api/annotations.proto"

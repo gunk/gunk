@@ -22,11 +22,6 @@ enum Status {
 -- util.gunk.golden --
 package util
 
-import (
-	"github.com/gunk/opt"
-	"github.com/gunk/opt/http"
-)
-
 type Status int
 
 const (
@@ -50,11 +45,6 @@ enum Status {
 
 -- util2.gunk.golden --
 package util
-
-import (
-	"github.com/gunk/opt"
-	"github.com/gunk/opt/http"
-)
 
 type Status int
 

@@ -33,6 +33,10 @@ type builder struct {
 	pkg     *proto.Package
 	pkgOpts []pkgOpt
 	imports []*proto.Import
+
+	// Imports that are required to ro generate a valid Gunk file.
+	// Mostly these will be Gunk annotations.
+	importsUsed map[string]bool
 }
 
 // Run converts proto files or folders to gunk files, saving the files in
@@ -102,7 +106,9 @@ func convertFile(path string, overwrite bool) error {
 	}
 
 	// Start converting the proto declarations to gunk.
-	b := builder{}
+	b := builder{
+		importsUsed: map[string]bool{},
+	}
 	for _, e := range d.Elements {
 		if err := b.handleProtoType(e); err != nil {
 			return fmt.Errorf("%v\n", err)
@@ -110,7 +116,10 @@ func convertFile(path string, overwrite bool) error {
 	}
 
 	// Convert the proto package and imports to gunk.
-	translatedPkg := b.handlePackage()
+	translatedPkg, err := b.handlePackage()
+	if err != nil {
+		return err
+	}
 	translatedImports := b.handleImports()
 
 	// Add the converted package and imports, and then
@@ -119,8 +128,11 @@ func convertFile(path string, overwrite bool) error {
 	w := &strings.Builder{}
 	w.WriteString(translatedPkg)
 	w.WriteString("\n\n")
-	w.WriteString(translatedImports)
-	w.WriteString("\n")
+	// If we have imports, output them.
+	if translatedImports != "" {
+		w.WriteString(translatedImports)
+		w.WriteString("\n")
+	}
 	for _, l := range b.translatedDeclarations {
 		w.WriteString("\n")
 		w.WriteString(l)
@@ -173,6 +185,8 @@ func (b *builder) format(w *strings.Builder, indent int, comments *proto.Comment
 
 // formatError will return an error formatted to include the current position in
 // the file.
+// TODO(vishen): Add filename information now that 'gunk convert' can handle more than
+// one file.
 func (b *builder) formatError(pos scanner.Position, s string, args ...interface{}) error {
 	return fmt.Errorf("%d:%d: %v\n", pos.Line, pos.Column, fmt.Errorf(s, args...))
 }
@@ -231,14 +245,10 @@ func (b *builder) handleProtoType(typ proto.Visitee) error {
 		err = b.handleService(typ.(*proto.Service))
 	case *proto.Option:
 		o := typ.(*proto.Option)
-		lit := o.Constant
-		value, err := b.handleLiteralString(lit)
-		if err != nil {
-			return b.formatError(lit.Position, "expected string literal in top level option: %v", err)
-		}
+		// TODO(vishen): add the line info, or don't use a custom struct.
 		b.pkgOpts = append(b.pkgOpts, pkgOpt{
 			typeName: o.Name,
-			value:    value,
+			value:    o.Constant.Source,
 			comment:  o.Comment,
 		})
 	default:
@@ -430,6 +440,7 @@ func (b *builder) handleService(s *proto.Service) error {
 						b.format(w, 1, nil, "//     Body: %q,\n", body)
 					}
 					b.format(w, 1, nil, "// }\n")
+					b.importsUsed["github.com/gunk/opt/http"] = true
 				}
 			default:
 				// TODO(vishen): Should this emit an error? Or should we ignore
@@ -455,17 +466,81 @@ func (b *builder) handleService(s *proto.Service) error {
 	return nil
 }
 
-func (b *builder) handlePackage() string {
+func (b *builder) genAnnotation(name, value string) string {
+	return fmt.Sprintf("%s(%s)", name, value)
+}
+
+func (b *builder) genAnnotationString(name, value string) string {
+	return fmt.Sprintf("%s(%q)", name, value)
+}
+
+func (b *builder) handlePackage() (string, error) {
 	w := &strings.Builder{}
 	var opt pkgOpt
+	gunkAnnotations := []string{}
 	for _, o := range b.pkgOpts {
-		if o.typeName == "go_package" {
+		var impt string
+		var value string
+		switch n := o.typeName; n {
+		case "go_package":
 			opt = o
-			break
+			continue
+		case "deprecated":
+			impt = "github.com/gunk/opt/file"
+			value = b.genAnnotation("Deprecated", o.value)
+		case "optimize_for":
+			impt = "github.com/gunk/opt/file"
+			value = b.genAnnotation("OptimizeFor", o.value)
+		case "java_package":
+			impt = "github.com/gunk/opt/file/java"
+			value = b.genAnnotationString("Package", o.value)
+		case "java_outer_classname":
+			impt = "github.com/gunk/opt/file/java"
+			value = b.genAnnotationString("OuterClassname", o.value)
+		case "java_multiple_files":
+			impt = "github.com/gunk/opt/file/java"
+			value = b.genAnnotation("MultipleFiles", o.value)
+		case "java_string_check_utf8":
+			impt = "github.com/gunk/opt/file/java"
+			value = b.genAnnotation("StringCheckUtf8", o.value)
+		case "java_generic_services":
+			impt = "github.com/gunk/opt/file/java"
+			value = b.genAnnotation("GenericServices", o.value)
+		case "swift_prefix":
+			impt = "github.com/gunk/opt/file/swift"
+		case "csharp_namespace":
+			impt = "github.com/gunk/opt/file/csharp"
+			value = b.genAnnotationString("Namespace", o.value)
+		case "objc_class_prefix":
+			impt = "github.com/gunk/opt/file/objc"
+			value = b.genAnnotationString("ClassPrefix", o.value)
+		case "php_generic_services":
+			impt = "github.com/gunk/opt/file/php"
+			value = b.genAnnotation("GenericServices", o.value)
+		case "cc_generic_services":
+			impt = "github.com/gunk/opt/file/cc"
+			value = b.genAnnotation("GenericServices", o.value)
+		case "cc_enable_arenas":
+			impt = "github.com/gunk/opt/file/cc"
+			value = b.genAnnotation("EnableArenas", o.value)
+		default:
+			// TODO(vishen): we have lost the position information when we converted
+			// to custom struct 'pkgOpt'; either include the position information or don't
+			// convert to custom struct.
+			return "", fmt.Errorf("%q is an unhandle proto file option", n)
 		}
+
+		b.importsUsed[impt] = true
+		pkg := filepath.Base(impt)
+		gunkAnnotations = append(gunkAnnotations, fmt.Sprintf("%s.%s", pkg, value))
 	}
-	// TODO(vishen): Handle other package options when Gunk can handle other
-	// options.
+
+	// Output the gunk annotations above the package comment. This
+	// should be first lines in the file.
+	for _, ga := range gunkAnnotations {
+		b.format(w, 0, nil, fmt.Sprintf("// +gunk %s\n", ga))
+	}
+
 	p := b.pkg
 	b.format(w, 0, p.Comment, "")
 	b.format(w, 0, opt.comment, "")
@@ -474,16 +549,24 @@ func (b *builder) handlePackage() string {
 		b.format(w, 0, nil, " // proto %s", opt.value)
 	}
 
-	return w.String()
+	return w.String(), nil
 }
 
 func (b *builder) handleImports() string {
-	w := &strings.Builder{}
-	b.format(w, 0, nil, `import (
-	"github.com/gunk/opt"
-	"github.com/gunk/opt/http"
-`)
+	if len(b.importsUsed) == 0 && len(b.imports) == 0 {
+		return ""
+	}
 
+	w := &strings.Builder{}
+	b.format(w, 0, nil, "import (")
+
+	// Imports that have been used during convert
+	for i, _ := range b.importsUsed {
+		b.format(w, 0, nil, "\n")
+		b.format(w, 1, nil, fmt.Sprintf("%q", i))
+	}
+
+	// Add any proto imports as comments.
 	for _, i := range b.imports {
 		b.format(w, 0, nil, "\n")
 		b.format(w, 1, nil, "// %q", i.Filename)

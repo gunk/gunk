@@ -183,7 +183,7 @@ func (b *builder) format(w *strings.Builder, indent int, comments *proto.Comment
 // formatError will return an error formatted to include the current position in
 // the file.
 func (b *builder) formatError(pos scanner.Position, s string, args ...interface{}) error {
-	return fmt.Errorf("%s:%d:%d: %v\n", b.filename, pos.Line, pos.Column, fmt.Errorf(s, args...))
+	return fmt.Errorf("%s:%d:%d: %v", b.filename, pos.Line, pos.Column, fmt.Errorf(s, args...))
 }
 
 // goType will turn a proto type to a known Go type. If the
@@ -255,6 +255,7 @@ func (b *builder) handleMessageField(w *strings.Builder, field proto.Visitee) er
 		sequence int
 		repeated bool
 		comment  *proto.Comment
+		options  []*proto.Option
 	)
 
 	switch field.(type) {
@@ -265,6 +266,7 @@ func (b *builder) handleMessageField(w *strings.Builder, field proto.Visitee) er
 		sequence = ft.Sequence
 		comment = ft.Comment
 		repeated = ft.Repeated
+		options = ft.Options
 	case *proto.MapField:
 		ft := field.(*proto.MapField)
 		name = ft.Field.Name
@@ -273,12 +275,17 @@ func (b *builder) handleMessageField(w *strings.Builder, field proto.Visitee) er
 		keyType := b.goType(ft.KeyType)
 		fieldType := b.goType(ft.Field.Type)
 		typ = fmt.Sprintf("map[%s]%s", keyType, fieldType)
+		options = ft.Options
 	default:
 		return fmt.Errorf("unhandled message field type %T", field)
 	}
 
 	if repeated {
 		typ = "[]" + typ
+	}
+
+	for _, o := range options {
+		fmt.Fprintln(os.Stderr, b.formatError(o.Position, "unhandled field option %q", o.Name))
 	}
 
 	// TODO(vishen): Is this correct to explicitly camelcase the variable name and
@@ -314,6 +321,9 @@ func (b *builder) handleMessage(m *proto.Message) error {
 			if err := b.handleMessageField(w, mf); err != nil {
 				return b.formatError(mf.Position, "error with message field: %v", err)
 			}
+		case *proto.Option:
+			o := e.(*proto.Option)
+			fmt.Fprintln(os.Stderr, b.formatError(o.Position, "unhandled message option %q", o.Name))
 		default:
 			return b.formatError(m.Position, "unexpected type %T in message", e)
 		}
@@ -337,24 +347,43 @@ func (b *builder) handleEnum(e *proto.Enum) error {
 	// from the previous enum value.
 	outputIota := true
 	for i, c := range e.Elements {
-		ef, ok := c.(*proto.EnumField)
-		if !ok {
+		switch c.(type) {
+		case *proto.EnumField:
+			ef := c.(*proto.EnumField)
+			if i != ef.Integer {
+				outputIota = false
+			}
+		case *proto.Option:
+			o := c.(*proto.Option)
+			fmt.Fprintln(os.Stderr, b.formatError(o.Position, "unhandled enum option %q", o.Name))
+		default:
 			return b.formatError(e.Position, "unexpected type %T in enum, expected enum field", c)
-		}
-		if i != ef.Integer {
-			outputIota = false
-			break
 		}
 	}
 
 	// Now we can output the enum as a const.
 	for i, c := range e.Elements {
-		ef := c.(*proto.EnumField)
+		ef, ok := c.(*proto.EnumField)
+		if !ok {
+			// We should have caught any errors when checking if we can output as
+			// iota (above).
+			// TODO(vishen): handle enum option
+			continue
+		}
+
+		for _, e := range ef.Elements {
+			if o, ok := e.(*proto.Option); ok && o != nil {
+				fmt.Fprintln(os.Stderr, b.formatError(o.Position, "unhandled enumvalue option %q", o.Name))
+			}
+
+		}
+
 		// If we can't output as an iota.
 		if !outputIota {
 			b.format(w, 1, ef.Comment, "%s %s = %d\n", ef.Name, e.Name, ef.Integer)
 			continue
 		}
+
 		// If we can output as an iota, output the first element as the
 		// iota and output the rest as just the enum field name.
 		if i == 0 {
@@ -372,8 +401,15 @@ func (b *builder) handleService(s *proto.Service) error {
 	w := &strings.Builder{}
 	b.format(w, 0, s.Comment, "type %s interface {\n", s.Name)
 	for i, e := range s.Elements {
-		r, ok := e.(*proto.RPC)
-		if !ok {
+		var r *proto.RPC
+		switch e.(type) {
+		case *proto.RPC:
+			r = e.(*proto.RPC)
+		case *proto.Option:
+			o := e.(*proto.Option)
+			fmt.Fprintln(os.Stderr, b.formatError(o.Position, "unhandled service option %q", o.Name))
+			continue
+		default:
 			return b.formatError(s.Position, "unexpected type %T in service, expected rpc", e)
 		}
 		// Add a newline between each new function declaration on the interface.
@@ -433,10 +469,7 @@ func (b *builder) handleService(s *proto.Service) error {
 					b.importsUsed["github.com/gunk/opt/http"] = true
 				}
 			default:
-				// TODO(vishen): Should this emit an error? Or should we ignore
-				// options that aren't handled by Gunk yet, or just log an error
-				// for now?
-				return b.formatError(r.Position, "%s option is not yet handled", n)
+				fmt.Fprintln(os.Stderr, b.formatError(opt.Position, "unhandled method option %q", n))
 			}
 		}
 		// If the request type is the known empty parameter we can convert

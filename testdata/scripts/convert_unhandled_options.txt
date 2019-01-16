@@ -1,0 +1,34 @@
+env HOME=$WORK/home
+
+gunk convert util.proto
+stderr 'unhandled enum option "allow_alias"'
+stderr 'unhandled enumvalue option "deprecated"'
+stderr 'unhandled message option "message_set_wire_format"'
+stderr 'unhandled field option "lazy"'
+stderr 'unhandled service option "deprecated"'
+stderr 'unhandled method option "idempotency_level"'
+
+-- util.proto --
+syntax = "proto3";
+
+package util;
+
+enum Status {
+    option allow_alias = true;
+    NoStatus = 0;
+    Success = 1;
+    SuccessOld = 2 [deprecated = true];
+    Error = 3;
+}
+
+message Msg {
+    option message_set_wire_format = true;
+    string value = 1 [lazy = true];
+}
+
+service MsgService {
+    option deprecated = true;
+    rpc Echo(Msg) returns (Msg) {
+        option idempotency_level = 1;
+    }
+}

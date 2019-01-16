@@ -4,11 +4,11 @@ env PATH=$WORK/bin:$PATH
 exec chmod a+x bin/protoc
 
 gunk generate . -x
-stdout bin/protoc
+stderr bin/protoc
 
 gunk generate . -v
-stdout 'hello gunk'
-stdout testdata.tld/util
+stderr 'hello gunk'
+stderr testdata.tld/util
 
 -- bin/protoc --
 #!/bin/sh

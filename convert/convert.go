@@ -13,15 +13,10 @@ import (
 	"github.com/knq/snaker"
 )
 
-// pkgOpt stores a package option and its comments.
-// eg: "go_package" or "java_package".
-type pkgOpt struct {
-	typeName string // go_package or java_package, etc.
-	value    string
-	comment  *proto.Comment
-}
-
 type builder struct {
+	// The current filename of file being converted
+	filename string
+
 	// The converted proto to gunk declarations. This only stores
 	// the messages, enums and services. These get converted to as
 	// they are found.
@@ -31,7 +26,7 @@ type builder struct {
 	// These are converted to gunk after we have converted
 	// the rest of the proto declarations.
 	pkg     *proto.Package
-	pkgOpts []pkgOpt
+	pkgOpts []*proto.Option
 	imports []*proto.Import
 
 	// Imports that are required to ro generate a valid Gunk file.
@@ -98,7 +93,8 @@ func convertFile(path string, overwrite bool) error {
 		return fmt.Errorf("unable to parse proto file %q: %v", path, err)
 	}
 
-	fileToWrite := strings.Replace(filepath.Base(path), ".proto", ".gunk", 1)
+	filename := filepath.Base(path)
+	fileToWrite := strings.Replace(filename, ".proto", ".gunk", 1)
 	fullpath := filepath.Join(filepath.Dir(path), fileToWrite)
 
 	if _, err := os.Stat(fullpath); !os.IsNotExist(err) && !overwrite {
@@ -107,6 +103,7 @@ func convertFile(path string, overwrite bool) error {
 
 	// Start converting the proto declarations to gunk.
 	b := builder{
+		filename:    filename,
 		importsUsed: map[string]bool{},
 	}
 	for _, e := range d.Elements {
@@ -185,10 +182,8 @@ func (b *builder) format(w *strings.Builder, indent int, comments *proto.Comment
 
 // formatError will return an error formatted to include the current position in
 // the file.
-// TODO(vishen): Add filename information now that 'gunk convert' can handle more than
-// one file.
 func (b *builder) formatError(pos scanner.Position, s string, args ...interface{}) error {
-	return fmt.Errorf("%d:%d: %v\n", pos.Line, pos.Column, fmt.Errorf(s, args...))
+	return fmt.Errorf("%s:%d:%d: %v\n", b.filename, pos.Line, pos.Column, fmt.Errorf(s, args...))
 }
 
 // goType will turn a proto type to a known Go type. If the
@@ -245,12 +240,7 @@ func (b *builder) handleProtoType(typ proto.Visitee) error {
 		err = b.handleService(typ.(*proto.Service))
 	case *proto.Option:
 		o := typ.(*proto.Option)
-		// TODO(vishen): add the line info, or don't use a custom struct.
-		b.pkgOpts = append(b.pkgOpts, pkgOpt{
-			typeName: o.Name,
-			value:    o.Constant.Source,
-			comment:  o.Comment,
-		})
+		b.pkgOpts = append(b.pkgOpts, o)
 	default:
 		return fmt.Errorf("unhandled proto type %T", typ)
 	}
@@ -476,58 +466,56 @@ func (b *builder) genAnnotationString(name, value string) string {
 
 func (b *builder) handlePackage() (string, error) {
 	w := &strings.Builder{}
-	var opt pkgOpt
+	var opt *proto.Option
 	gunkAnnotations := []string{}
 	for _, o := range b.pkgOpts {
+		val := o.Constant.Source
 		var impt string
 		var value string
-		switch n := o.typeName; n {
+		switch n := o.Name; n {
 		case "go_package":
 			opt = o
 			continue
 		case "deprecated":
 			impt = "github.com/gunk/opt/file"
-			value = b.genAnnotation("Deprecated", o.value)
+			value = b.genAnnotation("Deprecated", val)
 		case "optimize_for":
 			impt = "github.com/gunk/opt/file"
-			value = b.genAnnotation("OptimizeFor", o.value)
+			value = b.genAnnotation("OptimizeFor", val)
 		case "java_package":
 			impt = "github.com/gunk/opt/file/java"
-			value = b.genAnnotationString("Package", o.value)
+			value = b.genAnnotationString("Package", val)
 		case "java_outer_classname":
 			impt = "github.com/gunk/opt/file/java"
-			value = b.genAnnotationString("OuterClassname", o.value)
+			value = b.genAnnotationString("OuterClassname", val)
 		case "java_multiple_files":
 			impt = "github.com/gunk/opt/file/java"
-			value = b.genAnnotation("MultipleFiles", o.value)
+			value = b.genAnnotation("MultipleFiles", val)
 		case "java_string_check_utf8":
 			impt = "github.com/gunk/opt/file/java"
-			value = b.genAnnotation("StringCheckUtf8", o.value)
+			value = b.genAnnotation("StringCheckUtf8", val)
 		case "java_generic_services":
 			impt = "github.com/gunk/opt/file/java"
-			value = b.genAnnotation("GenericServices", o.value)
+			value = b.genAnnotation("GenericServices", val)
 		case "swift_prefix":
 			impt = "github.com/gunk/opt/file/swift"
 		case "csharp_namespace":
 			impt = "github.com/gunk/opt/file/csharp"
-			value = b.genAnnotationString("Namespace", o.value)
+			value = b.genAnnotationString("Namespace", val)
 		case "objc_class_prefix":
 			impt = "github.com/gunk/opt/file/objc"
-			value = b.genAnnotationString("ClassPrefix", o.value)
+			value = b.genAnnotationString("ClassPrefix", val)
 		case "php_generic_services":
 			impt = "github.com/gunk/opt/file/php"
-			value = b.genAnnotation("GenericServices", o.value)
+			value = b.genAnnotation("GenericServices", val)
 		case "cc_generic_services":
 			impt = "github.com/gunk/opt/file/cc"
-			value = b.genAnnotation("GenericServices", o.value)
+			value = b.genAnnotation("GenericServices", val)
 		case "cc_enable_arenas":
 			impt = "github.com/gunk/opt/file/cc"
-			value = b.genAnnotation("EnableArenas", o.value)
+			value = b.genAnnotation("EnableArenas", val)
 		default:
-			// TODO(vishen): we have lost the position information when we converted
-			// to custom struct 'pkgOpt'; either include the position information or don't
-			// convert to custom struct.
-			return "", fmt.Errorf("%q is an unhandle proto file option", n)
+			return "", b.formatError(o.Position, "%q is an unhandled proto file option", n)
 		}
 
 		b.importsUsed[impt] = true
@@ -543,10 +531,12 @@ func (b *builder) handlePackage() (string, error) {
 
 	p := b.pkg
 	b.format(w, 0, p.Comment, "")
-	b.format(w, 0, opt.comment, "")
+	if opt != nil {
+		b.format(w, 0, opt.Comment, "")
+	}
 	b.format(w, 0, nil, "package %s", p.Name)
-	if opt.value != "" {
-		b.format(w, 0, nil, " // proto %s", opt.value)
+	if opt != nil && opt.Constant.Source != "" {
+		b.format(w, 0, nil, " // proto %s", opt.Constant.Source)
 	}
 
 	return w.String(), nil

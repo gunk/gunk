@@ -376,8 +376,11 @@ func (b *builder) handleService(s *proto.Service) error {
 		if !ok {
 			return b.formatError(s.Position, "unexpected type %T in service, expected rpc", e)
 		}
-		// Add a newline between each new function declaration on the interface.
-		if i > 0 {
+		// Add a newline between each new function declaration on the interface, only
+		// if there is comments or gunk annotations seperating them. We can assume that
+		// anything in `Elements` will be a gunk annotation, otherwise an error is
+		// returned below.
+		if i > 0 && (r.Comment != nil || len(r.Elements) > 0) {
 			b.format(w, 0, nil, "\n")
 		}
 		// The comment to translate. It is possible that when we write

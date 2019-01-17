@@ -25,6 +25,7 @@ message Msg {
 
 service MsgService {
     rpc Echo(Msg) returns (Msg) {}
+    // Handle handles a msg
     rpc Handle(Msg) returns (google.protobuf.Empty) {}
     rpc Result(google.protobuf.Empty) returns (Msg) {}
 }
@@ -69,8 +70,8 @@ type Msg struct {
 type MsgService interface {
 	Echo(Msg) Msg
 
+	// Handle handles a msg
 	Handle(Msg)
-
 	Result() Msg
 }
 

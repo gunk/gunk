@@ -5,13 +5,12 @@
 
 Gunk is an acronym for "Gunk Unified N-terface Kompiler".
 
-Gunk primarily works as a frontend for `protobuf`'s, `protoc` compiler. `gunk`
-aims is to provide a way to work with `protobuf` files / projects in the same
-way as the Go programming language's toolchain allows for working with Go
-projects.
+Gunk primarily works as a frontend for ProtoBuf's `protoc` compiler. `gunk` aims
+to provide a way to work with proto files and projects in the same way as the Go
+programming language's toolchain allows for working with Go projects.
 
-Gunk provides an alternative Go-derived syntax for defining `protobuf`'s, that
-is simpler and easier to work with. Additionally, for developers familar with
+Gunk provides an alternative Go-derived syntax for defining Protocol Buffers,
+which is simpler and easier to work with. Additionally, developers familar with
 the Go programming language will be instantly comfortable with Gunk files and
 syntax.
 

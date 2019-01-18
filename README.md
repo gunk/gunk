@@ -1,47 +1,161 @@
-[![GoDoc](https://godoc.org/github.com/gunk/gunk?status.svg)](https://godoc.org/github.com/gunk/gunk)
-[![Build Status](https://travis-ci.org/gunk/gunk.svg?branch=master)](https://travis-ci.org/gunk/gunk)
+# Gunk ![GoDoc][godoc] ![Build Status][travis-ci]
 
-# Gunk
+Gunk is a modern frontend and updated syntax for [Protocol Buffers][protobuf].
 
-Gunk is an acronym for "Gunk Unified N-terface Kompiler".
+[travis-ci]: https://travis-ci.org/gunk/gunk.svg?branch=master (https://travis-ci.org/gunk/gunk)
+[godoc]: https://godoc.org/github.com/gunk/gunk?status.svg (https://godoc.org/github.com/gunk/gunk)
 
-Gunk primarily works as a frontend for ProtoBuf's `protoc` compiler. `gunk` aims
-to provide a way to work with proto files and projects in the same way as the Go
-programming language's toolchain allows for working with Go projects.
+[Quickstart][] | [Installing][] | [Syntax][] | [Configuring][] | [About][] | [Releases][]
 
-Gunk provides an alternative Go-derived syntax for defining Protocol Buffers,
-which is simpler and easier to work with. Additionally, developers familar with
-the Go programming language will be instantly comfortable with Gunk files and
-syntax.
+[Quickstart]: #quickstart (Quickstart)
+[Installing]: #installing (Installing)
+[Syntax]: #protocol-types-and-messages (Protocol Types and Messages Syntax)
+[Configuring]: #project-configuration-files (Project Configuration Files)
+[About]: #about (About)
+[Releases]: https://github.com/gunk/gunk/releases (Releases)
 
-### Contents
+## Overview
 
-* [Installing](#installing)
-* [Usage](#usage)
-* [Contributing](#contributing)
-* [How it works](#how-it-works)
+Gunk provides a modern project-based workflow along with a [Go-derived][go-project]
+syntax for defining types and services for use with [Protocol
+Buffers][protobuf]. Gunk is designed to integrate cleanly with existing
+[`protoc`][protobuf] based build pipelines, while standardizing workflows in a
+way that is familiar/accessible to Go developers.
+
+## Quickstart
+
+Create a working directory for a project:
+
+```sh
+$ mkdir -p ~/src/example && cd ~/src/example
+```
+
+[Install `gunk` and `protoc`][Installing] and place the following [Gunk
+definitions][Syntax] in `example/util.gunk`:
+
+[Gunk definition]: #syntax (Gunk Protocol Syntax)
+
+```go
+package util
+
+// Util is a utility service.
+type Util interface {
+	// Echo returns the passed message.
+	Echo(Message) Message
+}
+
+// Message contains an echo message.
+type Message struct {
+	// Msg is a message from a client.
+	Msg string `pb:"1"`
+}
+```
+
+Create the corresponding [project configuration][] in `example/.gunkconfig`:
+
+[project configuration]: #gunk-project-config (Gunk Project Configuration File)
+
+```ini
+[generate go]
+
+[generate js]
+import_style=commonjs
+binary
+```
+
+Then, generate [protocol buffer][protobuf] definitions/code:
+
+```sh
+$ ls -A
+.gunkconfig  util.gunk
+
+$ gunk generate
+
+$ ls -A
+all.pb.go  all_pb.js  .gunkconfig  util.gunk
+```
+
+As seen above, `gunk` generated the corresponding Go and JavaScript [protobuf
+code][protobuf] using the options defined in the `.gunkconfig`.
+
+#### Debugging `protoc` commands
+
+Underlying commands executed by `gunk` can be viewed with the following:
+
+```sh
+$ gunk generate -x
+protoc-gen-go
+protoc --js_out=import_style=commonjs,binary:/home/user/example --descriptor_set_in=/dev/stdin all.proto
+```
 
 ## Installing
 
-Gunk requires [Go][go-project] to be installed on your machine. To install Go,
-follow the [installation instructions][go-install] for your specific operating
-systems.
+### Installing `protoc`
 
-Gunk can then be installed in the usual Go fashion, with Go 1.11 or later:
+`gunk` requires the `protoc` command-line tool. Please [download and
+install][protobuf-releases] the corresponding a `.tar.gz` or `.zip` file Linux,
+macOS, or Windows, and extract the files to `$PATH` / `%PATH%`. Alternately,
+download the `protobuf` source tree (or `git clone`) and install from source.
 
-	go get -u github.com/gunk/gunk
+**Note:** future releases of Gunk will automatically download and use `protoc`.
 
-You'll also need `protoc` version 3.6 or later to run Gunk.
+### Installing `gunk`
 
-## Usage
+The `gunk` command-line tool can be installed [via Release][], [via Homebrew][], [via Scoop][] or [via Go][]:
 
-### Syntax
+[via Release]: #installing-via-release
+[via Homebrew]: #installing-via-homebrew-macos
+[via Scoop]: #installing-via-scoop-windows
+[via Go]: #installing-via-go
 
-The aim of Gunk is to provide Go-compatible syntax that can be natively read
-and handled by the `go/*` package. As such, Gunk definitions are a subset of
-the Go programming language:
+### Installing via Release
 
+1. [Download a release for your platform][Releases]
+2. Extract the `gunk` or `gunk.exe` file from the `.tar.bz2` or `.zip` file
+3. Move the extracted executable to somewhere on your `$PATH` (Linux/macOS) or
+   `%PATH%` (Windows)
+
+### Installing via Homebrew (macOS)
+
+`gunk` is available in the [`gunk/gunk` tap][gunk-tap], and can be installed in
+the usual way with the [`brew` command][homebrew]:
+
+```sh
+# add tap
+$ brew tap gunk/gunk
+
+# install gunk
+$ brew install gunk
 ```
+
+### Installing via Scoop (Windows)
+
+`gunk` can be installed using [Scoop](https://scoop.sh):
+
+```powershell
+# install scoop if not already installed
+iex (new-object net.webclient).downloadstring('https://get.scoop.sh')
+
+scoop install gunk
+```
+
+### Installing via Go
+
+`gunk` can be installed in the usual Go fashion:
+
+```sh
+# install gunk
+$ go get -u github.com/gunk/gunk
+```
+
+## Protocol Types and Messages
+
+Gunk provides an alternate, Go-derived syntax for defining [protocol
+buffers][protobuf]. As such, Gunk definitions are a subset of the Go
+programming language. Additionally, a special `+gunk` annotation is recognized
+by `gunk`, to allow the declaration of [protocol buffer options][protobuf-options]:
+
+```go
 package message
 
 import "github.com/gunk/opt/http"
@@ -66,103 +180,153 @@ type Util interface {
 }
 ```
 
-### Working with `*.gunk` files
+### Scalars
 
-Working with the `gunk` command line tool should be instantly recognizable to
-experienced Go developers:
+Gunk's Go-derived syntax uses the canonical [Go scalar types][protobuf-types]
+of the `proto3` syntax, defined by the [protocol buffer project][protobuf]:
 
-	gunk generate ./examples/util
+| Proto3 Type | Go Type |
+|-------------|---------|
+| double      | float64 |
+| float       | float32 |
+| uint32      | uint32  |
+| uint64      | uint64  |
+| bool        | bool    |
+| string      | string  |
+| bytes       | []byte  |
 
-### More information
+**Note:** Variable-length scalars will be enabled in the future using a tag
+parameter.
 
-Please see [the GoDoc API page][godoc] for a full API listing.
+[Gunk annotations]: #gunk-annotations (Gunk Annotation Syntax)
 
-## How it works
+### Messages
 
-Gunk works by using Go's standard library `go/ast` package (and related
-packages) to parse all `*.gunk` files in a "Gunk Package" (and applying the
-same kinds of rules as Go package), building the appropos protobuf messages. In
-turn, those are passed to `protoc-gen-*` tools, along with any passed options.
+Gunk's Go-derived syntax uses Go's `struct` type declarations for declaring
+messages, and require a `pb:"<field_number>"` tag to indicate the field number:
 
-## Contributing
+```go
+type Message struct {
+	FieldA string `pb:"1"`
+}
 
-Issues and pull requests are welcome. Building Gunk is simple:
-
-```bash
-$ git clone https://github.com/gunk/gunk
-$ cd gunk
-$ GO111MODULE=on go build
-$ ./gunk
-usage: gunk [<flags>] <command> [<args> ...]
-
-Gunk Unified N-terface Kompiler command-line tool.
-
-[...]
+type Envelope struct {
+	Message Message  `pb:"1" json:"msg"`
+}
 ```
 
-This project uses [go modules][go-modules] for managing dependencies, which
-comes with Go 1.11 and above. Before sending a PR, remember to run `mod tidy`:
+There are additional tags (for example, the `json:` tag above), that will be
+recognized by `gunk format`, and passed on to generators, where possible.
 
-    GO111MODULE=on go mod tidy
+**Note:** When using [`gunk format`][], a valid `pb:"<field_number>"` tag will be automatically
+inserted if not declared.
 
-## Gunk Config
+[`gunk format`]: #formatting-gunk-files
 
-Gunk is configurable by a `.gunkconfig` file. The `.gunkconfig` file or files
-can be placed anywhere in the project and Gunk will attempt to find these
-`.gunkconfig` files and merge them together. Gunk starts looking in the package
-path and will continue looking up directories for any `.gunkconfig` until it
-reaches the project root (the project root is where `.git` file or directory
-or a `go.mod` file is).
+### Services
 
-Gunk uses an ini-style config file for declaring how Gunk should operate.
-Each `[generate]` or `[generate <lang>]` section in the `.gunkconfig`
-is a separate protoc generator run. A generate section can look like
-the following:
+Gunk's Go-derived syntax uses Go's `interface` syntax for declaring services:
 
-```
-[generate]
-command=protoc-gen-go
-
-[generate]
-out=v1/js
-protoc=js
+```go
+type SearchService interface {
+	Search(SearchRequest) SearchResponse
+}
 ```
 
-`command` is a `protoc-gen-*` generator, it should be the binary name
-of the generator to be run. The binary should be findable on your
-`PATH`, otherwise the path to the binary can be used.
+The above is equivalent to the following protobuf syntax:
 
-`protoc` will make Gunk call `protoc` with the out cli parameter
-specified; `protoc=js` will call `protoc --js_out=OUT_PATH`
-
-`out` is the file location the generated files should be outputted.
-
-Any other key-values specified in a `generate` section will be
-passed as plugin parameters to `protoc` or the `protoc-gen-*` generator.
-
-You can also use a shortened generate section syntax:
-
-```
-[generate go]
-
-[generate js]
-out=v1/js
+```proto3
+service SearchService {
+  rpc Search (SearchRequest) returns (SearchResponse);
+}
 ```
 
-This is equivalent to:
+### Enums
 
+Gunk's Go-derived syntax uses Go `const`'s for declaring enums:
+
+```go
+type MyEnum int
+
+const (
+    MYENUM  MyEnum = iota
+    MYENUM2
+)
 ```
-[generate]
-command=protoc-gen-go
 
-[generate]
-out=v1/js
-protoc=js
+**Note:** values can also be fixed numeric values or a calculated value (using
+`iota`).
+
+### Maps
+
+Gunk's Go-derived syntax uses Go `map`'s for declaring `map` fields:
+
+```go
+type Project struct {
+    ProjectID string `pb:"1" json:"project_id"`
+}
+
+type GetProjectResponse struct {
+    Projects map[string]Project `pb:"1"`
+}
 ```
 
-### Example
+### Repeated Values
 
+Gunk's Go-derived syntax uses Go's slice syntax (`[]`) for declaring a
+repeated field:
+
+```go
+type MyMessage struct {
+    FieldA []string `pb:"1"`
+}
 ```
+
+### Message Streams
+
+Gunk's Go-derived syntax uses Go `chan` syntax for declaring streams:
+
+```go
+type MessageService interface {
+    List(chan Message) chan Message
+}
+```
+
+The above is equivalent to the following protobuf syntax:
+
+```proto3
+service MessageService {
+  rpc List(stream Message) returns (stream Message);
+}
+```
+
+### Protocol Options
+
+[Protocol buffer options][protobuf-options] are standard messages (ie, a
+`struct`), and can be attached to any service, message, enum, or other other
+type declaration in a Gunk file via the doccomment preceding the type, field,
+or service:
+
+```go
+// MyOption is an option.
+type MyOption struct {
+    Name string `pb:"1"`
+}
+
+// +gunk MyOption {
+//   Name: "test",
+// }
+type MyMessage struct {
+    /* ... */
+}
+```
+
+## Project Configuration Files
+
+Gunk uses a top-level `.gunkconfig` configuration file for managing the Gunk
+protocol definitons for a project:
+
+```ini
 # Example .gunkconfig for Go, grpc-gateway, Python and JS
 [generate go]
 out=v1/go
@@ -182,27 +346,86 @@ import_style=commonjs
 binary
 ```
 
-## Convert
 
-Gunk provides functionality to convert proto files or folders to a Gunk file.
+### Project Search Path
 
-    gunk convert path/to/file.proto other/path/to/file.proto
-    gunk convert ./path/to/proto/dir
+When `gunk` is invoked from the command-line, it searches the passed package
+spec (or current working directory) for a `.gunkconfig` file, and walks up the
+directory hierarchy until a `.gunkconfig` is found, or the project's root is
+encountered. The project root is defined as the top-most directory containing a
+`.git` subdirectory, or where a `go.mod` file is located.
 
-This will convert your proto file to the equivalent Gunk file.
+### Format
 
-## Gunk Annotations
+The `.gunkconfig` file format is compatible with [Git config syntax][git-config],
+and in turn is compatible with the INI file format:
 
-Gunk provides annotations to configure proto options as well as other external
-annotations, such as Google Api Annotations. Gunk annotations can be found at
-[github.com/gunk/opt](https://github.com/gunk/opt).
+```ini
+[generate]
+command=protoc-gen-go
 
-Gunk annotations are specified as comments in Gunk code, the annotations should
-be valid Go code prefixed with `+gunk`.
+[generate]
+out=v1/js
+protoc=js
+```
 
-Gunk has annotations for all built-in proto options.
+#### Section `[generate[ <lang>]`
 
-### Example
+Each `[generate]` or `[generate <lang>]` section in a `.gunkconfig`
+corresponds to a separate invocation of the `protoc-gen-<lang>` tool.
+
+##### Parameters
+
+Each `name[=value]` parameter defined within a `[generate]` section will be
+passed as a parameter to the `protoc-gen-<lang>` tool, with the exception of
+the following special parameters that override the behavior of the `gunk
+generate` tool:
+
+* `command` - overrides the `protoc-gen-*` command executable used by
+  `gunk generate`.  The executable must be findable on `$PATH` (Linux/macOS) or
+  `%PATH%` (Windows), or may be the full path to the executable. If not
+  defined, then `command` will be `protoc-gen-<lang>`, when `<lang>` is the
+  value in `[generate <lang>]`.
+
+* `protoc` - overrides the `<lang>` value, causing `gunk generate` to use the
+  `protoc` value in place of `<lang>`.
+
+* `out` - overrides the output path of `protoc`. If not defined, output will be
+  the same directory as the location of the `.gunk` files.
+
+All other `name[=value]` pairs specified within the `generate` section will be
+passed as plugin parameters to `protoc` and the `protoc-gen-<lang>` generators.
+
+##### Short Form
+
+The following `.gunkconfig`:
+
+```ini
+[generate go]
+
+[generate js]
+out=v1/js
+```
+
+is equivalent to:
+
+```ini
+[generate]
+command=protoc-gen-go
+
+[generate]
+out=v1/js
+protoc=js
+```
+
+## Third-Party Protobuf Options
+
+Gunk provides the [`+gunk` annotation syntax][] for declaring [protobuf
+options][protobuf-options], and specially recognizes some third-party API
+annotations, such as Google HTTP options, including all builtin/standard
+`protoc` options for code generation:
+
+[`+gunk` annotation syntax]: #protocol-options (Gunk Annotation Syntax)
 
 ```
 // +gunk java.Package("com.example.message")
@@ -224,11 +447,86 @@ type Util interface {
 }
 ```
 
-`java.Package` will set the proto file option [java_package](https://github.com/golang/protobuf/blob/882cf97a83ad205fd22af574246a3bc647d7a7d2/protoc-gen-go/descriptor/descriptor.proto#L324)
+Further documentation on available options can be found at the [Gunk options
+project][gunk-options].
 
-`http.Match` will generate Google Api Annotations and add them as extensions that will
-can be used for any protoc generators, such as `grpc-gateway`.
+## Formatting Gunk Files
 
-[go-install]: https://golang.org/doc/install
+Gunk provides the `gunk format` command to format `.gunk` files (akin to `gofmt`):
+
+```sh
+$ gunk format /path/to/file.gunk
+$ gunk format <pathspec>
+```
+
+## Converting Existing Protobuf Files
+
+Gunk provides the `gunk convert` command that will converting existing `.proto`
+files (or a directory) to the Go-derived Gunk syntax:
+
+```sh
+$ gunk convert /path/to/file.proto
+$ gunk convert /path/to/protobuf/directory
+```
+
+## About
+
+Gunk is developed by the team at [Brankas][brankas], and was designed to
+streamline API design and development.
+
+### History
+
+From the beginning of the company, the Brankas team defined API types and
+services in `.proto` files, leveraging ad-hoc `Makefile`'s, shell scripts, and
+other non-standardized mechanisms for generating [Protocol Buffer code][protobuf].
+
+As development exploded in 2017 (and beyond) with continued addition of backend
+microservices/APIs, more code repositories and projects, and team members, it
+became necessary to standarize tooling for the organization as well as reduce
+the cognitive load of developers (who for the most part were working almost
+exclusively with Go) when declaring gRPC and REST services.
+
+### Naming
+
+The Gunk name has a cheeky, backronym "Gunk Unified N-terface Kompiler",
+however the name was chosen because it was possible to secure the GitHub `gunk`
+project name, was short, concise, and not used by other projects.
+
+Additionally, "gunk" is an apt description for the "gunk" surrounding protocol
+definition, generation, compilation, and delivery.
+
+## Contributing
+
+Issues, Pull Requests, and other contributions are greatly welcomed and
+appreciated! Get started with building and running `gunk`:
+
+```sh
+# clone source repository
+$ git clone https://github.com/gunk/gunk.git && cd gunk
+
+# force GO111MODULES
+$ export GO111MODULE=on
+
+# build and run
+$ go build && ./gunk
+```
+
+`gunk` uses [Go modules][go-modules] for dependency management, and as such
+requires Go 1.11+. Please run `go mod tidy` before submitting any PRs:
+
+```sh
+$ export GO111MODULE=on
+$ cd gunk && go mod tidy
+```
+
+[brankas]: https://brank.as/
+[git-config]: https://git-scm.com/docs/git-config
 [go-modules]: https://github.com/golang/go/wiki/Modules
 [go-project]: https://golang.org/project
+[gunk-tap]: https://github.com/gunk/homebrew-gunk
+[gunk-options]: https://github.com/gunk/opt
+[homebrew]: https://brew.sh/
+[protobuf]: https://developers.google.com/protocol-buffers/
+[protobuf-options]: https://developers.google.com/protocol-buffers/docs/proto#options
+[protobuf-releases]: https://github.com/protocolbuffers/protobuf/releases
+[protobuf-types]: https://developers.google.com/protocol-buffers/docs/proto3#scalar

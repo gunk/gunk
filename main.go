@@ -14,7 +14,9 @@ import (
 )
 
 var (
-	app = kingpin.New("gunk", "Gunk Unified N-terface Kompiler command-line tool.")
+	version = "v0.0.0-dev"
+
+	app = kingpin.New("gunk", "The modern frontend and syntax for Protocol Buffers.")
 
 	gen         = app.Command("generate", "Generate code from Gunk packages.")
 	genPatterns = gen.Arg("patterns", "patterns of Gunk packages").Strings()
@@ -29,6 +31,8 @@ var (
 	dmp         = app.Command("dump", "Write a FileDescriptorSet (a protocol buffer, defined in descriptor.proto)")
 	dmpPatterns = dmp.Arg("patterns", "patterns of Gunk packages").Strings()
 	dmpFormat   = dmp.Flag("format", "output format to write FileDescriptorSet as (options are 'raw' or 'json'").String()
+
+	ver = app.Command("version", "Show Gunk version.")
 )
 
 func main() {
@@ -43,6 +47,8 @@ func main1() int {
 
 	var err error
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
+	case ver.FullCommand():
+		fmt.Fprintf(os.Stdout, "gunk %s\n", version)
 	case gen.FullCommand():
 		err = generate.Run("", *genPatterns...)
 	case conv.FullCommand():

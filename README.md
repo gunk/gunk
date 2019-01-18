@@ -1,6 +1,6 @@
 # Gunk ![GoDoc][godoc] ![Build Status][travis-ci]
 
-Gunk is a modern frontend and updated syntax for [Protocol Buffers][protobuf].
+Gunk is a modern frontend and syntax for [Protocol Buffers][protobuf].
 
 [travis-ci]: https://travis-ci.org/gunk/gunk.svg?branch=master (https://travis-ci.org/gunk/gunk)
 [godoc]: https://godoc.org/github.com/gunk/gunk?status.svg (https://godoc.org/github.com/gunk/gunk)
@@ -427,7 +427,7 @@ annotations, such as Google HTTP options, including all builtin/standard
 
 [`+gunk` annotation syntax]: #protocol-options (Gunk Annotation Syntax)
 
-```
+```go
 // +gunk java.Package("com.example.message")
 // +gunk java.MultipleFiles(true)
 package message

@@ -369,12 +369,12 @@ out=v1/js
 protoc=js
 ```
 
-#### Section `[generate[ <lang>]`
+### Section `[generate[ <lang>]]`
 
-Each `[generate]` or `[generate <lang>]` section in a `.gunkconfig`
-corresponds to a separate invocation of the `protoc-gen-<lang>` tool.
+Each `[generate]` or `[generate <lang>]` section in a `.gunkconfig` corresponds
+to a invocation of the `protoc-gen-<lang>` tool.
 
-##### Parameters
+#### Parameters
 
 Each `name[=value]` parameter defined within a `[generate]` section will be
 passed as a parameter to the `protoc-gen-<lang>` tool, with the exception of
@@ -396,7 +396,7 @@ generate` tool:
 All other `name[=value]` pairs specified within the `generate` section will be
 passed as plugin parameters to `protoc` and the `protoc-gen-<lang>` generators.
 
-##### Short Form
+#### Short Form
 
 The following `.gunkconfig`:
 
@@ -482,7 +482,7 @@ other non-standardized mechanisms for generating [Protocol Buffer code][protobuf
 
 As development exploded in 2017 (and beyond) with continued addition of backend
 microservices/APIs, more code repositories and projects, and team members, it
-became necessary to standarize tooling for the organization as well as reduce
+became necessary to standardize tooling for the organization as well as reduce
 the cognitive load of developers (who for the most part were working almost
 exclusively with Go) when declaring gRPC and REST services.
 
@@ -511,7 +511,9 @@ $ export GO111MODULE=on
 $ go build && ./gunk
 ```
 
-`gunk` uses [Go modules][go-modules] for dependency management, and as such
+### Dependency Management
+
+Gunk uses [Go modules][go-modules] for dependency management, and as such
 requires Go 1.11+. Please run `go mod tidy` before submitting any PRs:
 
 ```sh

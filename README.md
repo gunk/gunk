@@ -1,9 +1,11 @@
-# Gunk [![GoDoc][godoc]](https://godoc.org/github.com/gunk/gunk) [![Build Status][travis-ci]](https://travis-ci.org/gunk/gunk)
+# Gunk [![GoDoc][godoc]][godoc-link] [![Build Status][travis-ci]][travis-ci-link]
+
+[godoc]: https://godoc.org/github.com/gunk/gunk?status.svg (GoDoc)
+[travis-ci]: https://travis-ci.org/gunk/gunk.svg?branch=master (Travis CI)
+[godoc-link]: https://godoc.org/github.com/gunk/gunk
+[travis-ci-link]: https://travis-ci.org/gunk/gunk
 
 Gunk is a modern frontend and syntax for [Protocol Buffers][protobuf].
-
-[godoc]: https://godoc.org/github.com/gunk/gunk?status.svg "GoDoc"
-[travis-ci]: https://travis-ci.org/gunk/gunk.svg?branch=master "Travis CI"
 
 [Quickstart][] | [Installing][] | [Syntax][] | [Configuring][] | [About][] | [Releases][]
 
@@ -17,10 +19,10 @@ Gunk is a modern frontend and syntax for [Protocol Buffers][protobuf].
 ## Overview
 
 Gunk provides a modern project-based workflow along with a [Go-derived][go-project]
-syntax for defining types and services for use with [Protocol
-Buffers][protobuf]. Gunk is designed to integrate cleanly with existing
-[`protoc`][protobuf] based build pipelines, while standardizing workflows in a
-way that is familiar/accessible to Go developers.
+syntax for defining types and services for use with [Protocol Buffers][protobuf].
+Gunk is designed to integrate cleanly with existing [`protoc`][protobuf] based
+build pipelines, while standardizing workflows in a way that is
+familiar/accessible to Go developers.
 
 ## Quickstart
 
@@ -77,6 +79,11 @@ all.pb.go  all_pb.js  .gunkconfig  util.gunk
 
 As seen above, `gunk` generated the corresponding Go and JavaScript [protobuf
 code][protobuf] using the options defined in the `.gunkconfig`.
+
+#### End-to-end Example
+
+A end-to-end example gRPC server implementation, using Gunk definitions [is
+available for review][gunk-server-example].
 
 #### Debugging `protoc` commands
 
@@ -350,7 +357,6 @@ import_style=commonjs
 binary
 ```
 
-
 ### Project Search Path
 
 When `gunk` is invoked from the command-line, it searches the passed package
@@ -529,8 +535,9 @@ $ cd gunk && go mod tidy
 [git-config]: https://git-scm.com/docs/git-config
 [go-modules]: https://github.com/golang/go/wiki/Modules
 [go-project]: https://golang.org/project
-[gunk-tap]: https://github.com/gunk/homebrew-gunk
 [gunk-options]: https://github.com/gunk/opt
+[gunk-server-example]: https://github.com/gunk/gunk-server-example
+[gunk-tap]: https://github.com/gunk/homebrew-gunk
 [homebrew]: https://brew.sh/
 [protobuf]: https://developers.google.com/protocol-buffers/
 [protobuf-options]: https://developers.google.com/protocol-buffers/docs/proto#options

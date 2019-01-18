@@ -8,6 +8,7 @@ require (
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/golang/protobuf v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway v1.6.4
+	github.com/gunk/opt v0.0.0-20181129161359-767b03a66301 // indirect
 	github.com/knq/ini v0.0.0-20181118015158-a301e724bd35
 	github.com/knq/snaker v0.0.0-20181215144011-2bc8a4db4687
 	github.com/rogpeppe/go-internal v1.0.1-alpha.6

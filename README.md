@@ -185,15 +185,19 @@ type Util interface {
 Gunk's Go-derived syntax uses the canonical [Go scalar types][protobuf-types]
 of the `proto3` syntax, defined by the [protocol buffer project][protobuf]:
 
-| Proto3 Type | Go Type |
-|-------------|---------|
-| double      | float64 |
-| float       | float32 |
-| uint32      | uint32  |
-| uint64      | uint64  |
-| bool        | bool    |
-| string      | string  |
-| bytes       | []byte  |
+| Proto3 Type | Gunk Type |
+|-------------|-----------|
+| `double`    | `float64` |
+| `float`     | `float32` |
+| `int32`     | `int`     |
+| `int32`     | `int32`   |
+| `int64`     | `int64`   |
+| `uint32`    | `uint`    |
+| `uint32`    | `uint32`  |
+| `uint64`    | `uint64`  |
+| `bool`      | `bool`    |
+| `string`    | `string`  |
+| `bytes`     | `[]byte`  |
 
 **Note:** Variable-length scalars will be enabled in the future using a tag
 parameter.

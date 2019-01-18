@@ -83,7 +83,7 @@ code][protobuf] using the options defined in the `.gunkconfig`.
 #### End-to-end Example
 
 A end-to-end example gRPC server implementation, using Gunk definitions [is
-available for review][gunk-server-example].
+available for review][gunk-example-server].
 
 #### Debugging `protoc` commands
 
@@ -536,7 +536,7 @@ $ cd gunk && go mod tidy
 [go-modules]: https://github.com/golang/go/wiki/Modules
 [go-project]: https://golang.org/project
 [gunk-options]: https://github.com/gunk/opt
-[gunk-server-example]: https://github.com/gunk/gunk-server-example
+[gunk-example-server]: https://github.com/gunk/gunk-example-server
 [gunk-tap]: https://github.com/gunk/homebrew-gunk
 [homebrew]: https://brew.sh/
 [protobuf]: https://developers.google.com/protocol-buffers/

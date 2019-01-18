@@ -38,6 +38,12 @@ func Run(dir string, args ...string) error {
 		allProto: make(map[string]*desc.FileDescriptorProto),
 	}
 
+	// Check that protoc exists, if not download it.
+	protocPath, err := checkOrDownloadProtoc()
+	if err != nil {
+		return err
+	}
+
 	pkgs, err := g.Load(args...)
 	if err != nil {
 		return err
@@ -72,7 +78,7 @@ func Run(dir string, args ...string) error {
 	// Finally, run the code generators.
 	for _, pkg := range pkgs {
 		cfg := pkgConfigs[pkg.Dir]
-		if err := g.GeneratePkg(pkg.PkgPath, cfg.Generators); err != nil {
+		if err := g.GeneratePkg(pkg.PkgPath, cfg.Generators, protocPath); err != nil {
 			return err
 		}
 		log.PackageGenerated(pkg.PkgPath)
@@ -161,12 +167,12 @@ func (g *Generator) recordPkgs(pkgs ...*loader.GunkPackage) {
 // It is fine to pass the plugin.CodeGeneratorRequest to every protoc generator
 // unaltered; this is what protoc does when calling out to the generators and
 // the generators should already handle the case where they have nothing to do.
-func (g *Generator) GeneratePkg(path string, gens []config.Generator) error {
+func (g *Generator) GeneratePkg(path string, gens []config.Generator, protocPath string) error {
 	req := g.requestForPkg(path)
 	// Run any other configured generators.
 	for _, gen := range gens {
 		if gen.IsProtoc() {
-			if err := g.generateProtoc(*req, gen); err != nil {
+			if err := g.generateProtoc(*req, gen, protocPath); err != nil {
 				return err
 			}
 		} else {
@@ -239,7 +245,7 @@ func (g *Generator) generateFileDescriptorSet(req plugin.CodeGeneratorRequest) *
 	return &fds
 }
 
-func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.Generator) error {
+func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.Generator, protocCommandPath string) error {
 	// Get the file descriptor set to use with protoc
 	fds := g.generateFileDescriptorSet(req)
 
@@ -275,7 +281,6 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 	}
 
 	// Build up the protoc command line arguments.
-	command := "protoc"
 	args := []string{
 		fmt.Sprintf("--%s_out=%s", gen.ProtocGen, gen.ParamStringWithOut(protocOutputPath)),
 		"--descriptor_set_in=/dev/stdin",
@@ -283,10 +288,16 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 
 	args = append(args, protoFilenames...)
 
-	cmd := log.ExecCommand(command, args...)
+	cmd := log.ExecCommand(protocCommandPath, args...)
 	cmd.Stdin = bytes.NewReader(bs)
 	if _, err := cmd.Output(); err != nil {
-		return execError(command, err)
+		// TODO: For now, output the command name directly as
+		// we actually use the /path/to/protoc when executing
+		// the command, but this gives slightly uglier error
+		// messages. Not sure what is best to do here, but
+		// it should be consistent with running protoc-gen-*
+		// errors (which currently don't use the /path/to/protoc-gen).
+		return execError("protoc", err)
 	}
 	return nil
 }

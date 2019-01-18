@@ -44,3 +44,10 @@ func ExecCommand(command string, args ...string) *exec.Cmd {
 	}
 	return cmd
 }
+
+func DownloadedProtoc(downloadPath string) {
+	if !Verbose {
+		return
+	}
+	fmt.Fprintf(Out, "downloaded protoc to %s\n", downloadPath)
+}

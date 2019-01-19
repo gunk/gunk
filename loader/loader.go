@@ -57,6 +57,7 @@ func (l *Loader) addTempGoFiles() (undo func(), _ error) {
 	// TODO(mvdan): Use go/packages.Config.Overlay once it supports adding
 	// new Go packages, as that removes the need for writing to disk and
 	// cleaning up after ourselves.
+	// See https://github.com/golang/go/issues/29047.
 	root := "."
 	cmd := exec.Command("go", "list", "-m", "-f={{.Dir}}")
 	cmd.Dir = l.Dir
@@ -410,7 +411,8 @@ syntax = "proto3";
 		}
 		defer os.Remove("gunk-proto")
 
-		// TODO: any way to specify stdout while being portable?
+		// TODO(mvdan): any way to specify stdout while being portable?
+		// See https://github.com/protocolbuffers/protobuf/issues/4163.
 		args := []string{
 			"-o/dev/stdout",
 			"--include_imports",

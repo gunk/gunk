@@ -46,6 +46,7 @@ type UtilTestRequest struct {
 
 	MapSimple map[string]int `pb:"7"`
 	MapComplex map[int]CheckStatusResponse `pb:"8"`
+	Bytes []byte `pb:"9"`
 }
 
 // UtilTests contains a variety of types.

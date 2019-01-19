@@ -8,8 +8,8 @@ github.com/golang/protobuf v1.2.0 h1:P3YflyNX/ehuJFLhxviNdFxQPkGK5cDcApsge1SqnvM
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
 github.com/grpc-ecosystem/grpc-gateway v1.6.4 h1:xlu6C2WU6gvXt3XLyVpsgweaIL4VCmTjEsEAIt7qFqQ=
 github.com/grpc-ecosystem/grpc-gateway v1.6.4/go.mod h1:RSKVYQBd5MCa4OVpNdGskqpgL2+G+NZTnrVHpWWfpdw=
-github.com/gunk/opt v0.0.0-20181129161359-767b03a66301 h1:xYPvSvrt8947CVz6PAK0/bz/BhWk4erT6zMiFXzOBys=
-github.com/gunk/opt v0.0.0-20181129161359-767b03a66301/go.mod h1:mwnDF6IXLCA4xXLUMmG7usTLB6Mk+KGQelNF1u390gc=
+github.com/gunk/opt v0.0.0-20190118082020-1439f71a8644 h1:16Cq50c+bi4n4qRyjsExt4WwULdMppYi8HpURssnnQQ=
+github.com/gunk/opt v0.0.0-20190118082020-1439f71a8644/go.mod h1:mwnDF6IXLCA4xXLUMmG7usTLB6Mk+KGQelNF1u390gc=
 github.com/kisielk/gotool v1.0.0/go.mod h1:XhKaO+MFFWcvkIS/tQcRk01m1F5IRFswLeQ+oQHNcck=
 golang.org/x/lint v0.0.0-20180702182130-06c8688daad7/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=
 golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=

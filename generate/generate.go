@@ -1054,6 +1054,11 @@ func (g *Generator) convertType(typ types.Type) (desc.FieldDescriptorProto_Type,
 			return desc.FieldDescriptorProto_TYPE_MESSAGE, desc.FieldDescriptorProto_LABEL_OPTIONAL, fullName
 		}
 	case *types.Slice:
+		if eTyp, ok := typ.Elem().(*types.Basic); ok {
+			if eTyp.Kind() == types.Byte {
+				return desc.FieldDescriptorProto_TYPE_BYTES, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
+			}
+		}
 		dtyp, _, name := g.convertType(typ.Elem())
 		if dtyp == 0 {
 			return 0, 0, ""

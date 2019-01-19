@@ -969,9 +969,20 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto,
 			if g.curPkg.TypesInfo.TypeOf(name) != enumType {
 				continue
 			}
-			// SomeVal will be exported as SomeType_SomeVal
-			docText := tspec.Name.Name + "_" + vs.Doc.Text()
-			g.addDoc(docText, enumPath, g.enumIndex, enumValuePath, int32(i))
+			docText := vs.Doc.Text()
+			switch {
+			case docText == "":
+				// The original comment only had gunk tags, and
+				// no actual documentation for us to keep.
+			case strings.HasPrefix(docText, name.Name):
+				// SomeVal will be exported as SomeType_SomeVal
+				docText = tspec.Name.Name + "_" + vs.Doc.Text()
+				fallthrough
+			default:
+				g.addDoc(docText, enumPath, g.enumIndex,
+					enumValuePath, int32(i))
+			}
+
 			val := g.curPkg.TypesInfo.Defs[name].(*types.Const).Val()
 			ival, _ := constant.Int64Val(val)
 			enumValueOptions, err := g.enumValueOptions(vs)

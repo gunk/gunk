@@ -14,7 +14,7 @@ grep 'string Msg = 1 \[ctype = STRING, deprecated = true, lazy = false, jstype =
 
 grep 'all.proto is a deprecated file' deprecated/all.pb.go
 grep 'type Status int32 // Deprecated: Do not use.' deprecated/all.pb.go
-grep 'Status_Error Status = 2 // Deprecated: Do not use.' deprecated/all.pb.go
+grep 'Status_Error *Status = 2 *// Deprecated: Do not use.' deprecated/all.pb.go
 grep 'Msg .* // Deprecated: Do not use.' deprecated/all.pb.go
 
 -- go.mod --

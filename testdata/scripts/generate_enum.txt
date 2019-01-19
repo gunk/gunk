@@ -1,0 +1,35 @@
+env HOME=$WORK/home
+
+gunk generate .
+! stdout .
+
+exists all.pb.go
+! grep '// Foo_$' all.pb.go # adding prefix to otherwise empty docs
+grep '// Foo_Documented is' all.pb.go
+grep '// this comment does not contain' all.pb.go
+
+-- go.mod --
+module testdata.tld/util
+
+require (
+	github.com/gunk/opt v0.0.0-20181129161359-767b03a66301
+)
+-- .gunkconfig --
+[generate]
+command=protoc-gen-go
+-- echo.gunk --
+package util
+
+import "github.com/gunk/opt/enumvalues"
+
+type Foo int
+
+const (
+	// Documented is documented.
+	Documented Foo = iota
+	// this comment does not contain the type name.
+	BadComment
+	// +gunk enumvalues.Deprecated(true)
+	OnlyTag
+	NoComment
+)

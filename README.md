@@ -32,8 +32,8 @@ Create a working directory for a project:
 $ mkdir -p ~/src/example && cd ~/src/example
 ```
 
-[Install `gunk` and `protoc`][Installing] and place the following [Gunk
-definitions][Syntax] in `example/util.gunk`:
+[Install `gunk`][Installing] and place the following [Gunk definitions][Syntax]
+in `example/util.gunk`:
 
 [Gunk definition]: #syntax (Gunk Protocol Syntax)
 
@@ -97,17 +97,6 @@ protoc --js_out=import_style=commonjs,binary:/home/user/example --descriptor_set
 
 ## Installing
 
-### Installing `protoc`
-
-`gunk` requires the `protoc` command-line tool. Please [download and
-install][protobuf-releases] the corresponding a `.tar.gz` or `.zip` file Linux,
-macOS, or Windows, and extract the files to `$PATH` / `%PATH%`. Alternately,
-download the `protobuf` source tree (or `git clone`) and install from source.
-
-**Note:** future releases of Gunk will automatically download and use `protoc`.
-
-### Installing `gunk`
-
 The `gunk` command-line tool can be installed [via Release][], [via Homebrew][], [via Scoop][] or [via Go][]:
 
 [via Release]: #installing-via-release
@@ -154,6 +143,16 @@ scoop install gunk
 # install gunk
 $ go get -u github.com/gunk/gunk
 ```
+
+## Protobuf Dependency and Caching
+
+The `gunk` command-line tool uses the `protoc` command-line tool. If `protoc`
+is not available on `$PATH` (Linux/macOS) / `%PATH%` (Windows), `gunk` will
+[download the latest protobuf release][protobuf-releases] to the user's cache,
+for use.
+
+**Note:** future releases of Gunk may provide the ability to configure a
+specific version of the `protoc` binary.
 
 ## Protocol Types and Messages
 

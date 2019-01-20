@@ -436,7 +436,7 @@ func (g *Generator) translatePkg(pkgPath string) error {
 	g.enumIndex = 0
 
 	for i, fpath := range gpkg.GunkNames {
-		if err := g.appendFile(pkgPath, fpath, gpkg.GunkSyntax[i]); err != nil {
+		if err := g.appendFile(fpath, gpkg.GunkSyntax[i]); err != nil {
 			return err
 		}
 	}
@@ -536,7 +536,7 @@ func (g *Generator) fileOptions(pkg *loader.GunkPackage) (*desc.FileOptions, err
 
 // appendFile translates a single gunk file to protobuf, appending its contents
 // to the package's proto file.
-func (g *Generator) appendFile(pkgPath, fpath string, file *ast.File) error {
+func (g *Generator) appendFile(fpath string, file *ast.File) error {
 	if _, ok := g.allProto[fpath]; ok {
 		// already translated
 		return nil

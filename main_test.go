@@ -61,7 +61,7 @@ func TestGenerate(t *testing.T) {
 		".", "./imported",
 	}
 	dir := filepath.Join("testdata", "generate")
-	wantFiles, err := generatedFiles(t, dir)
+	wantFiles, err := generatedFiles(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +78,7 @@ func TestGenerate(t *testing.T) {
 		return
 	}
 
-	gotFiles, err := generatedFiles(t, dir)
+	gotFiles, err := generatedFiles(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func TestGenerate(t *testing.T) {
 
 var rxGeneratedFile = regexp.MustCompile(`\.pb.*\.go$`)
 
-func generatedFiles(t *testing.T, dir string) (map[string]string, error) {
+func generatedFiles(dir string) (map[string]string, error) {
 	files := make(map[string]string)
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {

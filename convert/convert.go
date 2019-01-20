@@ -57,13 +57,16 @@ func run(path string, overwrite bool) error {
 		return convertFile(path, overwrite)
 	} else if filepath.Ext(path) == ".proto" {
 		// If the path is a directory and has a .proto extension then error.
-		return fmt.Errorf("%s is a directory, should be a proto file.", path)
+		return fmt.Errorf("%s is a directory, should be a proto file", path)
 	}
 
 	// Handle the case where it is a directory. Loop through
 	// the files and if we have a .proto file attempt to
 	// convert it.
 	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return err
+	}
 	for _, f := range files {
 		// If the file is not a .proto file
 		if f.IsDir() || filepath.Ext(f.Name()) != ".proto" {
@@ -108,7 +111,7 @@ func convertFile(path string, overwrite bool) error {
 	}
 	for _, e := range d.Elements {
 		if err := b.handleProtoType(e); err != nil {
-			return fmt.Errorf("%v\n", err)
+			return err
 		}
 	}
 

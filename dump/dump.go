@@ -24,6 +24,9 @@ func Run(format, dir string, patterns ...string) error {
 	switch format {
 	case "json":
 		bs, err = json.Marshal(fds)
+		if err != nil {
+			return err
+		}
 	case "", "raw":
 		// The default format.
 		bs, err = proto.Marshal(fds)

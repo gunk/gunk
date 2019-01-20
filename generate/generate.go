@@ -314,7 +314,11 @@ func execError(command string, err error) error {
 }
 
 func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.Generator) error {
-	req.Parameter = proto.String(gen.ParamString())
+	// Due to problems with some generators (grpc-gateway),
+	// we need to ensure we either send a non-empty string or nil.
+	if ps := gen.ParamString(); ps != "" {
+		req.Parameter = proto.String(gen.ParamString())
+	}
 	bs, err := proto.Marshal(&req)
 	if err != nil {
 		return err

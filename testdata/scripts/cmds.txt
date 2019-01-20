@@ -3,6 +3,10 @@ stderr '^usage: gunk \['
 ! stderr 'command not specified'
 ! stdout .
 
+gunk version
+stdout '^gunk v0.*'
+! stderr .
+
 gunk -h
 stderr '^usage: gunk \['
 ! stdout .

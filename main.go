@@ -39,14 +39,30 @@ func main() {
 	os.Exit(main1())
 }
 
-func main1() int {
+func main1() (code int) {
+	// Replace kingpin's use of os.Exit, as testscript requires that we
+	// return exit codes instead of exiting the entire program.
+	terminated := false
+	app.Terminate(func(c int) {
+		if !terminated {
+			code = c
+			terminated = true
+		}
+	})
 	app.HelpFlag.Short('h') // allow -h as well as --help
 
 	gen.Flag("print-commands", "print the commands").Short('x').BoolVar(&log.PrintCommands)
 	gen.Flag("verbose", "print the names of packages as they are generated").Short('v').BoolVar(&log.Verbose)
 
-	var err error
-	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
+	command, err := app.Parse(os.Args[1:])
+	if terminated {
+		// simulate the os.Exit that would have happened
+		return code
+	} else if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		return 1
+	}
+	switch command {
 	case ver.FullCommand():
 		fmt.Fprintf(os.Stdout, "gunk %s\n", version)
 	case gen.FullCommand():

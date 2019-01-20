@@ -8,16 +8,13 @@ require (
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/golang/protobuf v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway v1.6.4
-	github.com/gunk/opt v0.0.0-20181129161359-767b03a66301 // indirect
 	github.com/knq/ini v0.0.0-20181118015158-a301e724bd35
 	github.com/knq/snaker v0.0.0-20181215144011-2bc8a4db4687
-	github.com/rogpeppe/go-internal v1.0.1-alpha.6
+	github.com/rogpeppe/go-internal v1.1.0
 	github.com/stretchr/testify v1.3.0 // indirect
-	golang.org/x/net v0.0.0-20181106065722-10aee1819953
 	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
-	golang.org/x/tools v0.0.0-20190111214448-fc1d57b08d7b
+	golang.org/x/tools v0.0.0-20190118193359-16909d206f00
 	google.golang.org/genproto v0.0.0-20190111180523-db91494dd46c
-	google.golang.org/grpc v1.16.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 )

@@ -4,6 +4,7 @@ language: go
 
 go:
   - 1.11.x
+  - 1.12beta2
 
 env:
   - GO111MODULE=on
@@ -24,4 +25,4 @@ before_install:
 install: true
 
 script:
-  - go test -v ./...
+  - go test -coverprofile=cover.out -v ./...

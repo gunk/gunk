@@ -1,5 +1,6 @@
 gunk
 stderr '^usage: gunk \['
+! stderr 'command not specified'
 ! stdout .
 
 gunk -h

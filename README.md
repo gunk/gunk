@@ -379,32 +379,32 @@ out=v1/js
 protoc=js
 ```
 
-### Section `[generate[ <lang>]]`
+### Section `[generate[ <type>]]`
 
-Each `[generate]` or `[generate <lang>]` section in a `.gunkconfig` corresponds
-to a invocation of the `protoc-gen-<lang>` tool.
+Each `[generate]` or `[generate <type>]` section in a `.gunkconfig` corresponds
+to a invocation of the `protoc-gen-<type>` tool.
 
 #### Parameters
 
 Each `name[=value]` parameter defined within a `[generate]` section will be
-passed as a parameter to the `protoc-gen-<lang>` tool, with the exception of
+passed as a parameter to the `protoc-gen-<type>` tool, with the exception of
 the following special parameters that override the behavior of the `gunk
 generate` tool:
 
 * `command` - overrides the `protoc-gen-*` command executable used by
   `gunk generate`.  The executable must be findable on `$PATH` (Linux/macOS) or
   `%PATH%` (Windows), or may be the full path to the executable. If not
-  defined, then `command` will be `protoc-gen-<lang>`, when `<lang>` is the
-  value in `[generate <lang>]`.
+  defined, then `command` will be `protoc-gen-<type>`, when `<type>` is the
+  value in `[generate <type>]`.
 
-* `protoc` - overrides the `<lang>` value, causing `gunk generate` to use the
-  `protoc` value in place of `<lang>`.
+* `protoc` - overrides the `<type>` value, causing `gunk generate` to use the
+  `protoc` value in place of `<type>`.
 
 * `out` - overrides the output path of `protoc`. If not defined, output will be
   the same directory as the location of the `.gunk` files.
 
 All other `name[=value]` pairs specified within the `generate` section will be
-passed as plugin parameters to `protoc` and the `protoc-gen-<lang>` generators.
+passed as plugin parameters to `protoc` and the `protoc-gen-<type>` generators.
 
 #### Short Form
 

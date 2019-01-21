@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"go/ast"
@@ -16,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -27,6 +29,23 @@ import (
 	"github.com/gunk/gunk/assets"
 	"github.com/gunk/gunk/log"
 )
+
+type ValidateError struct {
+	errors []error
+}
+
+func (ve ValidateError) Error() string {
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "got %d errors:\n", len(ve.errors))
+	for i, err := range ve.errors {
+		fmt.Fprintf(&buf, "%v", err)
+		if i < len(ve.errors)-1 {
+			fmt.Fprintf(&buf, "\n")
+		}
+	}
+	return buf.String()
+
+}
 
 type Loader struct {
 	Dir  string
@@ -170,14 +189,70 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 			// A Go package that isn't a Gunk package - skip it.
 			continue
 		}
+		if err := validatePackage(pkg); err != nil {
+			return nil, err
+		}
 		if l.cache == nil {
 			l.cache = make(map[string]*GunkPackage)
 		}
 		l.cache[pkg.PkgPath] = pkg
 		pkgs = append(pkgs, pkg)
 	}
-
 	return pkgs, nil
+}
+
+// validatePackage will validate that a given GunkPackage. It should
+// check sanity checks and common error cases that are shared with
+// the format and generate packages.
+func validatePackage(gunkPackage *GunkPackage) *ValidateError {
+	// TODO(vishen): include file location information.
+	errors := []error{}
+	for _, file := range gunkPackage.GunkSyntax {
+		ast.Inspect(file, func(node ast.Node) bool {
+			st, ok := node.(*ast.StructType)
+			if !ok {
+				return true
+			}
+			if st.Fields == nil {
+				return true
+			}
+
+			// Check for struct tag 'pb' and ensure that if it does exist
+			// it is a valid integer, and it is unique in that struct.
+			// The other validation should happen in format and generate
+			// as they both treat the same error cases differently.
+			usedSequences := make(map[int]bool, len(st.Fields.List))
+			for _, f := range st.Fields.List {
+				if f.Tag == nil {
+					continue
+				}
+				fieldName := f.Names[0].Name
+				str, _ := strconv.Unquote(f.Tag.Value)
+				stag := reflect.StructTag(str)
+				val, ok := stag.Lookup("pb")
+				if !ok || val == "" {
+					continue
+				}
+				sequence, err := strconv.Atoi(val)
+				if err != nil {
+					err := fmt.Errorf("unable to convert tag to number on %s: %v", fieldName, err)
+					errors = append(errors, err)
+					continue
+				}
+				if usedSequences[sequence] {
+					err := fmt.Errorf("sequence %q on %s has already been used in this struct", val, fieldName)
+					errors = append(errors, err)
+					continue
+				}
+				usedSequences[sequence] = true
+			}
+			return true
+		})
+	}
+	if len(errors) > 0 {
+		return &ValidateError{errors: errors}
+	}
+	return nil
 }
 
 // Import satisfies the go/types.Importer interface.

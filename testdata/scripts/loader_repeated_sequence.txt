@@ -1,0 +1,16 @@
+env HOME=$WORK/home
+
+! gunk format ./
+stderr 'sequence "1" on Text has already been used in this struct'
+stderr 'sequence "1" on Msg has already been used in this struct'
+
+-- go.mod --
+module testdata.tld/util
+-- echo.gunk --
+package util
+
+type Message struct {
+    Name string    `pb:"1" json:"name"`
+    Text string    `pb:"1" json:"text"`
+    Msg  string    `pb:"1" json:"msg"`
+}

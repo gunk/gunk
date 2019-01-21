@@ -27,7 +27,7 @@ func Run(format, dir string, patterns ...string) error {
 		if err != nil {
 			return err
 		}
-	case "", "raw":
+	case "", "proto":
 		// The default format.
 		bs, err = proto.Marshal(fds)
 		if err != nil {

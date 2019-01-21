@@ -28,9 +28,9 @@ var (
 	frmt         = app.Command("format", "Format Gunk code.")
 	frmtPatterns = frmt.Arg("patterns", "patterns of Gunk packages").Strings()
 
-	dmp         = app.Command("dump", "Write a FileDescriptorSet (a protocol buffer, defined in descriptor.proto)")
+	dmp         = app.Command("dump", "Write a FileDescriptorSet, defined in descriptor.proto")
 	dmpPatterns = dmp.Arg("patterns", "patterns of Gunk packages").Strings()
-	dmpFormat   = dmp.Flag("format", "output format to write FileDescriptorSet as (options are 'raw' or 'json'").String()
+	dmpFormat   = dmp.Flag("format", "output format: proto (default), or json").String()
 
 	ver = app.Command("version", "Show Gunk version.")
 )

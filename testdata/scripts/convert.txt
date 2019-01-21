@@ -77,15 +77,15 @@ type MsgService interface {
 
 type HttpService interface {
 	// +gunk http.Match{
-	//     Method: "GET",
-	//     Path: "/v1/util",
+	//         Method: "GET",
+	//         Path:   "/v1/util",
 	// }
 	Get(Msg) Msg
 
 	// +gunk http.Match{
-	//     Method: "POST",
-	//     Path: "/v1/util",
-	//     Body: "*",
+	//         Method: "POST",
+	//         Path:   "/v1/util",
+	//         Body:   "*",
 	// }
 	Post(Msg)
 }

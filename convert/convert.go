@@ -2,7 +2,6 @@ package convert
 
 import (
 	"fmt"
-	"go/format"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -11,6 +10,8 @@ import (
 
 	"github.com/emicklei/proto"
 	"github.com/knq/snaker"
+
+	"github.com/gunk/gunk/format"
 )
 
 type builder struct {
@@ -466,10 +467,10 @@ func (b *builder) handleService(s *proto.Service) error {
 						comment = nil
 					}
 					b.format(w, 1, nil, "// +gunk http.Match{\n")
-					b.format(w, 1, nil, "//     Method: %q,\n", strings.ToUpper(method))
-					b.format(w, 1, nil, "//     Path: %q,\n", url)
+					b.format(w, 1, nil, "// Method: %q,\n", strings.ToUpper(method))
+					b.format(w, 1, nil, "// Path: %q,\n", url)
 					if body != "" {
-						b.format(w, 1, nil, "//     Body: %q,\n", body)
+						b.format(w, 1, nil, "// Body: %q,\n", body)
 					}
 					b.format(w, 1, nil, "// }\n")
 					b.importsUsed["github.com/gunk/opt/http"] = true

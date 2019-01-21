@@ -128,7 +128,8 @@ func FileDescriptorSet(dir string, args ...string) (*desc.FileDescriptorSet, err
 
 	// Generate the filedescriptorset for the Gunk package.
 	req := g.requestForPkg(pkgs[0].PkgPath)
-	return g.generateFileDescriptorSet(*req), nil
+	fds := &desc.FileDescriptorSet{File: req.ProtoFile}
+	return fds, nil
 }
 
 type Generator struct {
@@ -185,70 +186,12 @@ func (g *Generator) GeneratePkg(path string, gens []config.Generator, protocPath
 	return nil
 }
 
-// generateFileDescriptoSet takes a CodeGeneratorRequest and formats it
-// into a FileDescriptorSet that the protoc command expects.
-func (g *Generator) generateFileDescriptorSet(req plugin.CodeGeneratorRequest) *desc.FileDescriptorSet {
-	// Make copies of the req.ProtoFile so we don't accidentally change
-	// the values of the pointers which will affect all other protoc
-	// generator runs.
-	protoFiles := make([]*desc.FileDescriptorProto, len(req.ProtoFile))
-	for i, pf := range req.ProtoFile {
-		tmpPf := *pf
-		protoFiles[i] = &tmpPf
-	}
-
-	fds := desc.FileDescriptorSet{
-		File: protoFiles,
-	}
-	// Determine the files that protoc will be generating and
-	// remove the package directory path and change .gunk to .proto.
-	// This is needed because there is no way to specify the output
-	// filename, and protoc will use the FileDescriptorSet.File.Name
-	// to determine the filename. In our case, that would be the
-	// package path, but it would be created from the current relative
-	// directory, rather than an absolute path.
-	//
-	// We also replace .gunk with .proto. protoc will turn
-	// 'echo.gunk' into 'echo.gunk_pb.js' which makes it a bit
-	// hard to replace afterwards. This seemed like the easier approach.
-	//
-	// Keep a record of the proto file names, and what we want to change
-	// them to.
-	namesToChange := make(map[string]string)
-	for _, f := range fds.File {
-		for _, ftg := range req.GetFileToGenerate() {
-			if f.GetName() != ftg {
-				continue
-			}
-			_, basename := filepath.Split(ftg)
-			outPath := strings.Replace(basename, ".gunk", ".proto", 1)
-			namesToChange[ftg] = outPath
-		}
-	}
-
-	// Go through all the files and change the proto file names if
-	// we have a name to change. We then also check all the dependencies
-	// and change any that are pointing to the name we want to change.
-	for i, f := range fds.File {
-		name := f.GetName()
-		changeTo, ok := namesToChange[name]
-		if ok {
-			fds.File[i].Name = proto.String(changeTo)
-		}
-		for i, d := range f.GetDependency() {
-			changeTo, ok := namesToChange[d]
-			if ok {
-				f.Dependency[i] = changeTo
-			}
-		}
-	}
-
-	return &fds
-}
-
 func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.Generator, protocCommandPath string) error {
-	// Get the file descriptor set to use with protoc
-	fds := g.generateFileDescriptorSet(req)
+	fds := &desc.FileDescriptorSet{}
+	// Make a copy of the slice, as we may modify the elements within. See
+	// the pf2 copying below.
+	fds.File = make([]*desc.FileDescriptorProto, len(req.ProtoFile))
+	copy(fds.File, req.ProtoFile)
 
 	// The proto files we are asking protoc to generate. This should be
 	// a formatted list of what is in req.FileToGenerate.
@@ -258,14 +201,20 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 	protocOutputPath := ""
 	for _, ftg := range req.GetFileToGenerate() {
 		pkgPath, basename := filepath.Split(ftg)
-		// Check to see which proto files we need protoc to generate.
-		// We only need to generate the all.proto file, which should
-		// be the only file in req.FileToGenerate at the moment.
-		for _, f := range fds.File {
-			if f.GetName() != basename {
-				continue
+		protoFilenames = append(protoFilenames, basename)
+
+		// protoc writes the output files directly, unlike the
+		// protoc-gen-* plugin generators.
+		// As such, we need to give it the right basenames and output
+		// directory, so that it writes the files in the right place.
+		for i, pf := range fds.File {
+			if pf.GetName() == ftg {
+				// Make a copy, to not modify the files for
+				// other generators too.
+				pf2 := *pf
+				pf2.Name = proto.String(basename)
+				fds.File[i] = &pf2
 			}
-			protoFilenames = append(protoFilenames, f.GetName())
 		}
 
 		// Because we merge all .gunk files into one 'all.proto' file,

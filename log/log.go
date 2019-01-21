@@ -15,39 +15,26 @@ var (
 	Verbose       = false
 )
 
-func Command(command string, args ...string) {
-	if !PrintCommands {
-		return
-	}
-	fmt.Fprintf(Out, "%s %s\n", command, strings.Join(args, " "))
-}
-
-func Log(format string, args ...interface{}) {
-	if !Verbose {
-		return
+func Printf(format string, args ...interface{}) {
+	if !strings.HasSuffix(format, "\n") {
+		format += "\n"
 	}
 	fmt.Fprintf(Out, format, args...)
 }
 
-func PackageGenerated(pkgPath string) {
-	if !Verbose {
-		return
+func Verbosef(format string, args ...interface{}) {
+	if Verbose {
+		Printf(format, args...)
 	}
-	fmt.Fprintln(Out, pkgPath)
 }
 
 func ExecCommand(command string, args ...string) *exec.Cmd {
-	Command(command, args...)
+	if PrintCommands {
+		Printf("%s %s", command, strings.Join(args, " "))
+	}
 	cmd := exec.Command(command, args...)
 	if Verbose {
 		cmd.Stderr = Out
 	}
 	return cmd
-}
-
-func DownloadedProtoc(downloadPath string) {
-	if !Verbose {
-		return
-	}
-	fmt.Fprintf(Out, "downloaded protoc to %s\n", downloadPath)
 }

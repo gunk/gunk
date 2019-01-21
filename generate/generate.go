@@ -81,8 +81,7 @@ func Run(dir string, args ...string) error {
 		if err := g.GeneratePkg(pkg.PkgPath, cfg.Generators, protocPath); err != nil {
 			return err
 		}
-		log.PackageGenerated(pkg.PkgPath)
-
+		log.Verbosef("%s", pkg.PkgPath)
 	}
 	return nil
 }

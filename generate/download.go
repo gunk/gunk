@@ -53,7 +53,7 @@ func checkOrDownloadProtoc() (string, error) {
 	if err := downloadAndExtractProtoc(protocCachePath); err != nil {
 		return "", err
 	}
-	log.DownloadedProtoc(protocCachePath)
+	log.Verbosef("downloaded protoc to %s", protocCachePath)
 	return protocCachePath, nil
 }
 

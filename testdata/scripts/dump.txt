@@ -1,0 +1,22 @@
+env HOME=$WORK/home
+
+! gunk dump --format xxx
+! stdout .
+stderr 'unknown output format'
+
+gunk dump --format=json
+stdout '^{' # json
+stdout 'SomeMessage'
+
+gunk dump
+! stdout '^{' # the default format is proto
+stdout 'SomeMessage'
+
+-- go.mod --
+module testdata.tld/util
+-- normal.gunk --
+package util
+
+type SomeMessage struct {
+	Text string `pb:"1"`
+}

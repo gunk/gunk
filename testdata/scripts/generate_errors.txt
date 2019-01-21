@@ -1,0 +1,23 @@
+env HOME=$WORK/home
+
+! gunk generate ./message_invalid
+stderr 'message_invalid/foo.gunk:4:5: missing required tag on InValid'
+
+! gunk generate ./service_invalid
+stderr 'service_invalid/foo.gunk:5:5: multiple parameters are not supported'
+
+-- .gunkconfig --
+[generate go]
+-- message_invalid/foo.gunk --
+package util
+
+type Message struct {
+    InValid bool
+}
+-- service_invalid/foo.gunk --
+package util
+
+type FooService interface {
+
+    Foo(int, string)
+}

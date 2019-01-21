@@ -135,6 +135,7 @@ type Generator struct {
 	loader.Loader
 
 	curPkg      *loader.GunkPackage // current package being translated or generated
+	curPos      token.Pos           // current position of the token being evaluated
 	gfile       *ast.File
 	pfile       *desc.FileDescriptorProto
 	usedImports map[string]bool // imports being used for the current package
@@ -437,7 +438,7 @@ func (g *Generator) translatePkg(pkgPath string) error {
 
 	for i, fpath := range gpkg.GunkNames {
 		if err := g.appendFile(fpath, gpkg.GunkSyntax[i]); err != nil {
-			return err
+			return fmt.Errorf("%s: %v", g.Loader.Fset.Position(g.curPos), err)
 		}
 	}
 
@@ -544,6 +545,7 @@ func (g *Generator) appendFile(fpath string, file *ast.File) error {
 	g.gfile = file
 	g.addDoc(file.Doc.Text(), packagePath)
 	for _, decl := range file.Decls {
+		g.curPos = decl.Pos()
 		if err := g.translateDecl(decl); err != nil {
 			return err
 		}
@@ -571,6 +573,7 @@ func (g *Generator) translateDecl(decl ast.Decl) error {
 	}
 	for _, spec := range gd.Specs {
 		ts := spec.(*ast.TypeSpec)
+		g.curPos = ts.Pos()
 		switch ts.Type.(type) {
 		case *ast.StructType:
 			msg, err := g.convertMessage(ts)
@@ -659,6 +662,7 @@ func (g *Generator) fieldOptions(field *ast.Field) (*desc.FieldOptions, error) {
 
 func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, error) {
 	g.addDoc(tspec.Doc.Text(), messagePath, g.messageIndex)
+
 	msg := &desc.DescriptorProto{
 		Name: proto.String(tspec.Name.Name),
 	}
@@ -675,6 +679,7 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, 
 		fieldName := field.Names[0].Name
 		g.addDoc(field.Doc.Text(), messagePath, g.messageIndex, messageFieldPath, int32(i))
 		ftype := g.curPkg.TypesInfo.TypeOf(field.Type)
+		g.curPos = field.Pos()
 
 		var ptype desc.FieldDescriptorProto_Type
 		var plabel desc.FieldDescriptorProto_Label
@@ -821,6 +826,7 @@ func (g *Generator) convertService(tspec *ast.TypeSpec) (*desc.ServiceDescriptor
 			return nil, fmt.Errorf("need all methods to have one name")
 		}
 		g.addDoc(method.Doc.Text(), servicePath, g.serviceIndex, serviceMethodPath, int32(i))
+		g.curPos = method.Pos()
 		pmethod := &desc.MethodDescriptorProto{
 			Name: proto.String(method.Names[0].Name),
 		}
@@ -969,6 +975,7 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto,
 			if g.curPkg.TypesInfo.TypeOf(name) != enumType {
 				continue
 			}
+			g.curPos = vs.Pos()
 			docText := vs.Doc.Text()
 			switch {
 			case docText == "":

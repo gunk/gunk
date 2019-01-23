@@ -26,6 +26,9 @@ func Run(dir string, args ...string) error {
 	if len(pkgs) == 0 {
 		return fmt.Errorf("no Gunk packages to format")
 	}
+	if loader.PrintErrors(pkgs) > 0 {
+		return fmt.Errorf("encountered package loading errors")
+	}
 	for _, pkg := range pkgs {
 		for i, file := range pkg.GunkSyntax {
 			path := pkg.GunkFiles[i]

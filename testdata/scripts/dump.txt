@@ -12,6 +12,10 @@ gunk dump
 ! stdout '^{' # the default format is proto
 stdout 'SomeMessage'
 
+! gunk dump ./badsyntax
+stderr 'expected .}., found .EOF.'
+! stdout .
+
 -- go.mod --
 module testdata.tld/util
 -- normal.gunk --
@@ -20,3 +24,7 @@ package util
 type SomeMessage struct {
 	Text string `pb:"1"`
 }
+-- badsyntax/badsyntax.gunk --
+package util
+
+type SomeMessage struct {

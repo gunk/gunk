@@ -51,6 +51,9 @@ func Run(dir string, args ...string) error {
 	if len(pkgs) == 0 {
 		return fmt.Errorf("no Gunk packages to generate")
 	}
+	if loader.PrintErrors(pkgs) > 0 {
+		return fmt.Errorf("encountered package loading errors")
+	}
 
 	// Record the loaded packages in gunkPkgs.
 	g.recordPkgs(pkgs...)
@@ -91,6 +94,7 @@ func Run(dir string, args ...string) error {
 //
 // Currently, we only generate a FileDescriptorSet for one Gunk package.
 func FileDescriptorSet(dir string, args ...string) (*desc.FileDescriptorSet, error) {
+	// TODO: share code with Run; much of this function is identical.
 	g := &Generator{
 		Loader: loader.Loader{
 			Dir:   dir,
@@ -108,6 +112,9 @@ func FileDescriptorSet(dir string, args ...string) (*desc.FileDescriptorSet, err
 	}
 	if len(pkgs) != 1 {
 		return nil, fmt.Errorf("can only get filedescriptorset for a single Gunk package")
+	}
+	if loader.PrintErrors(pkgs) > 0 {
+		return nil, fmt.Errorf("encountered package loading errors")
 	}
 
 	// Record the loaded packages in gunkPkgs.

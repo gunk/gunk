@@ -1,0 +1,25 @@
+env HOME=$WORK/home
+
+! gunk format ./...
+stderr 'expected .}., found .EOF.'
+! stderr 'undeclared name: MissingType' # no typechecking
+stderr 'package loading errors'
+
+! gunk generate ./...
+stderr 'expected .}., found .EOF.'
+stderr 'undeclared name: MissingType'
+stderr 'package loading errors'
+
+-- go.mod --
+module testdata.tld/util
+-- p1/parseerror.gunk --
+package p1
+
+type Message struct {
+	Field int `pb:"1"`
+-- p2/typeerror.gunk --
+package p1
+
+type Message struct {
+	Field MissingType `pb:"1"`
+}

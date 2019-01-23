@@ -1,7 +1,6 @@
 package loader
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"go/ast"
@@ -29,23 +28,6 @@ import (
 	"github.com/gunk/gunk/assets"
 	"github.com/gunk/gunk/log"
 )
-
-type ValidateError struct {
-	errors []error
-}
-
-func (ve ValidateError) Error() string {
-	var buf bytes.Buffer
-	fmt.Fprintf(&buf, "got %d errors:\n", len(ve.errors))
-	for i, err := range ve.errors {
-		fmt.Fprintf(&buf, "%v", err)
-		if i < len(ve.errors)-1 {
-			fmt.Fprintf(&buf, "\n")
-		}
-	}
-	return buf.String()
-
-}
 
 type Loader struct {
 	Dir  string
@@ -181,17 +163,12 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 	// Add the Gunk files to each package.
 	pkgs := make([]*GunkPackage, 0, len(lpkgs))
 	for _, lpkg := range lpkgs {
-		pkg, err := l.toGunkPackage(lpkg)
-		if err != nil {
-			return nil, err
-		}
+		pkg := l.toGunkPackage(lpkg)
 		if len(pkg.GunkFiles) == 0 {
 			// A Go package that isn't a Gunk package - skip it.
 			continue
 		}
-		if err := validatePackage(pkg); err != nil {
-			return nil, err
-		}
+		validatePackage(pkg)
 		if l.cache == nil {
 			l.cache = make(map[string]*GunkPackage)
 		}
@@ -201,19 +178,23 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 	return pkgs, nil
 }
 
-// validatePackage will validate that a given GunkPackage. It should
-// check sanity checks and common error cases that are shared with
-// the format and generate packages.
-func validatePackage(gunkPackage *GunkPackage) *ValidateError {
-	// TODO(vishen): include file location information.
-	errors := []error{}
-	for _, file := range gunkPackage.GunkSyntax {
+const (
+	UnknownError = packages.UnknownError
+	ListError    = packages.ListError
+	ParseError   = packages.ParseError
+	TypeError    = packages.TypeError
+	// Our kinds of errors. Add a gap of 10 to be sure we won't conflict
+	// with previous enum values.
+	ValidateError = packages.TypeError + 10 + iota
+)
+
+// validatePackage sanity checks a gunk package, to find common errors which are
+// shared among all gunk commands.
+func validatePackage(pkg *GunkPackage) {
+	for _, file := range pkg.GunkSyntax {
 		ast.Inspect(file, func(node ast.Node) bool {
 			st, ok := node.(*ast.StructType)
-			if !ok {
-				return true
-			}
-			if st.Fields == nil {
+			if !ok || st.Fields == nil {
 				return true
 			}
 
@@ -235,13 +216,11 @@ func validatePackage(gunkPackage *GunkPackage) *ValidateError {
 				}
 				sequence, err := strconv.Atoi(val)
 				if err != nil {
-					err := fmt.Errorf("unable to convert tag to number on %s: %v", fieldName, err)
-					errors = append(errors, err)
+					pkg.addError(ValidateError, "unable to convert tag to number on %s: %v", fieldName, err)
 					continue
 				}
 				if usedSequences[sequence] {
-					err := fmt.Errorf("sequence %q on %s has already been used in this struct", val, fieldName)
-					errors = append(errors, err)
+					pkg.addError(ValidateError, "sequence %q on %s has already been used in this struct", val, fieldName)
 					continue
 				}
 				usedSequences[sequence] = true
@@ -249,10 +228,6 @@ func validatePackage(gunkPackage *GunkPackage) *ValidateError {
 			return true
 		})
 	}
-	if len(errors) > 0 {
-		return &ValidateError{errors: errors}
-	}
-	return nil
 }
 
 // Import satisfies the go/types.Importer interface.
@@ -306,6 +281,14 @@ type GunkPackage struct {
 	ProtoName string // protobuf package name
 }
 
+func (g *GunkPackage) addError(kind packages.ErrorKind, format string, args ...interface{}) {
+	g.Errors = append(g.Errors, packages.Error{
+		Pos:  "", // TODO: include position information.
+		Msg:  fmt.Sprintf(format, args...),
+		Kind: kind,
+	})
+}
+
 type GunkTag struct {
 	ast.Expr            // original expression
 	Type     types.Type // type of the expression
@@ -313,38 +296,35 @@ type GunkTag struct {
 	Value constant.Value // constant value of the expression, if any
 }
 
-func (l *Loader) toGunkPackage(lpkg *packages.Package) (*GunkPackage, error) {
-	if len(lpkg.Errors) > 0 {
-		return nil, lpkg.Errors[0]
+func (l *Loader) toGunkPackage(lpkg *packages.Package) *GunkPackage {
+	pkg := &GunkPackage{
+		Package: *lpkg,
 	}
 
-	pkgDir := ""
 	for _, gofile := range lpkg.GoFiles {
 		dir := filepath.Dir(gofile)
-		if pkgDir == "" {
-			pkgDir = dir
-		} else if dir != pkgDir {
-			return nil, fmt.Errorf("multiple dirs for %s: %s %s",
-				lpkg.PkgPath, pkgDir, dir)
+		if pkg.Dir == "" {
+			pkg.Dir = dir
+		} else if dir != pkg.Dir {
+			pkg.addError(ListError, "multiple dirs for %s: %s %s",
+				lpkg.PkgPath, pkg.Dir, dir)
+			return pkg // we can't continue
 		}
 	}
 
-	matches, err := filepath.Glob(filepath.Join(pkgDir, "*.gunk"))
+	matches, err := filepath.Glob(filepath.Join(pkg.Dir, "*.gunk"))
 	if err != nil {
-		return nil, err
+		// can only be a malformed pattern; should never happen.
+		panic(err.Error())
 	}
-
-	pkg := &GunkPackage{
-		Package:   *lpkg,
-		Dir:       pkgDir,
-		GunkFiles: matches,
-	}
+	pkg.GunkFiles = matches
 
 	// parse the gunk files
 	for _, fpath := range pkg.GunkFiles {
 		file, err := parser.ParseFile(l.Fset, fpath, nil, parser.ParseComments)
 		if err != nil {
-			return nil, err
+			pkg.addError(ParseError, "%s", err)
+			continue
 		}
 		// to make the generated code independent of the current
 		// directory when running gunk
@@ -354,13 +334,15 @@ func (l *Loader) toGunkPackage(lpkg *packages.Package) (*GunkPackage, error) {
 
 		name, err := protoPackageName(l.Fset, file)
 		if err != nil {
-			return nil, err
+			pkg.addError(ParseError, "%s", err)
+			continue
 		}
 		if pkg.ProtoName == "" {
 			pkg.ProtoName = name
 		} else if name != "" {
-			return nil, fmt.Errorf("proto package name mismatch: %q %q",
+			pkg.addError(ValidateError, "proto package name mismatch: %q %q",
 				pkg.ProtoName, name)
+			continue
 		}
 	}
 	if pkg.ProtoName == "" {
@@ -368,7 +350,7 @@ func (l *Loader) toGunkPackage(lpkg *packages.Package) (*GunkPackage, error) {
 	}
 
 	if !l.Types {
-		return pkg, nil
+		return pkg
 	}
 
 	pkg.Types = types.NewPackage(pkg.PkgPath, pkg.Name)
@@ -387,19 +369,19 @@ func (l *Loader) toGunkPackage(lpkg *packages.Package) (*GunkPackage, error) {
 
 	check := types.NewChecker(tconfig, l.Fset, pkg.Types, pkg.TypesInfo)
 	if err := check.Files(pkg.GunkSyntax); err != nil {
-		return nil, err
+		pkg.addError(TypeError, "%s", err)
+		return pkg
 	}
 	pkg.Imports = make(map[string]*GunkPackage)
 	for _, file := range pkg.GunkSyntax {
-		if err := l.splitGunkTags(pkg, file); err != nil {
-			return nil, err
-		}
+		l.splitGunkTags(pkg, file)
 		for _, spec := range file.Imports {
 			// we can't error, since the file parsed correctly
 			pkgPath, _ := strconv.Unquote(spec.Path.Value)
 			pkgs, err := l.Load(pkgPath)
 			if err != nil {
-				return nil, err
+				// shouldn't happen?
+				panic(err)
 			}
 			if len(pkgs) == 1 {
 				pkg.Imports[pkgPath] = pkgs[0]
@@ -407,7 +389,7 @@ func (l *Loader) toGunkPackage(lpkg *packages.Package) (*GunkPackage, error) {
 		}
 	}
 
-	return pkg, nil
+	return pkg
 }
 
 const protoCommentPrefix = "// proto "
@@ -541,12 +523,8 @@ syntax = "proto3";
 // splitGunkTags parses and typechecks gunk tags from the comments in a Gunk
 // file, adding them to pkg.GunkTags and removing the source lines from each
 // comment.
-func (l *Loader) splitGunkTags(pkg *GunkPackage, file *ast.File) error {
-	var inspectErr error
+func (l *Loader) splitGunkTags(pkg *GunkPackage, file *ast.File) {
 	ast.Inspect(file, func(node ast.Node) bool {
-		if inspectErr != nil {
-			return false
-		}
 		if gd, ok := node.(*ast.GenDecl); ok {
 			if len(gd.Specs) != 1 {
 				return true
@@ -564,7 +542,7 @@ func (l *Loader) splitGunkTags(pkg *GunkPackage, file *ast.File) error {
 		}
 		docText, exprs, err := SplitGunkTag(pkg, l.Fset, *doc)
 		if err != nil {
-			inspectErr = err
+			pkg.addError(ParseError, "%s", err)
 			return false
 		}
 		if len(exprs) > 0 {
@@ -578,7 +556,6 @@ func (l *Loader) splitGunkTags(pkg *GunkPackage, file *ast.File) error {
 	})
 	// TODO(mvdan): check that we aren't ignoring any other +gunk comments,
 	// to prevent human error.
-	return inspectErr
 }
 
 func nodeDoc(node ast.Node) **ast.CommentGroup {

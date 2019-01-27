@@ -16,7 +16,7 @@ import (
 var (
 	version = "v0.0.0-dev"
 
-	app = kingpin.New("gunk", "The modern frontend and syntax for Protocol Buffers.")
+	app = kingpin.New("gunk", "The modern frontend and syntax for Protocol Buffers.").UsageTemplate(kingpin.CompactUsageTemplate)
 
 	gen         = app.Command("generate", "Generate code from Gunk packages.")
 	genPatterns = gen.Arg("patterns", "patterns of Gunk packages").Strings()

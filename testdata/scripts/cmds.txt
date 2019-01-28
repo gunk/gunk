@@ -8,7 +8,7 @@ stdout '^gunk v0.*'
 ! stderr .
 
 gunk -h
-stderr '^usage: gunk \['
+stderr -count=1 '^usage: gunk \['
 ! stdout .
 
 gunk --help

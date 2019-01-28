@@ -39,7 +39,7 @@ func Run(dir string, args ...string) error {
 	}
 
 	// Check that protoc exists, if not download it.
-	protocPath, err := checkOrDownloadProtoc()
+	protocPath, err := CheckOrDownloadProtoc()
 	if err != nil {
 		return err
 	}

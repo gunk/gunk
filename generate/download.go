@@ -20,10 +20,10 @@ const (
 	protocURL = "https://github.com/protocolbuffers/protobuf/releases/download/v%s/protoc-%s-%s.zip"
 )
 
-// checkOrDownloadProtoc will check the $PATH for 'protoc', if it doesn't
+// CheckOrDownloadProtoc will check the $PATH for 'protoc', if it doesn't
 // exist it checks to see if it has previously been downloaded to the
 // gunk cache, if not download protoc.
-func checkOrDownloadProtoc() (string, error) {
+func CheckOrDownloadProtoc() (string, error) {
 	// First check $PATH for protoc
 	if path, err := exec.LookPath("protoc"); err == nil && path != "" {
 		return path, nil

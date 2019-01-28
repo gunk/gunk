@@ -32,6 +32,8 @@ var (
 	dmpPatterns = dmp.Arg("patterns", "patterns of Gunk packages").Strings()
 	dmpFormat   = dmp.Flag("format", "output format: proto (default), or json").String()
 
+	download = app.Command("download", "Download required tools for Gunk, e.g., protoc")
+
 	ver = app.Command("version", "Show Gunk version.")
 )
 
@@ -54,6 +56,8 @@ func main1() (code int) {
 	gen.Flag("print-commands", "print the commands").Short('x').BoolVar(&log.PrintCommands)
 	gen.Flag("verbose", "print the names of packages as they are generated").Short('v').BoolVar(&log.Verbose)
 
+	download.Flag("verbose", "print details of downloaded tools").Short('v').BoolVar(&log.Verbose)
+
 	command, err := app.Parse(os.Args[1:])
 	if terminated {
 		// simulate the os.Exit that would have happened
@@ -73,6 +77,8 @@ func main1() (code int) {
 		err = format.Run("", *frmtPatterns...)
 	case dmp.FullCommand():
 		err = dump.Run(*dmpFormat, "", *dmpPatterns...)
+	case download.FullCommand():
+		_, err = generate.CheckOrDownloadProtoc()
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

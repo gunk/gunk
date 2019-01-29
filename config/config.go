@@ -60,8 +60,8 @@ func (g Generator) ParamStringWithOut(packageDir string) string {
 	return params + ":" + outPath
 }
 
-// Determine an out path for a generator to write generated files to.
-// It will use 'packageDir' if no 'out' key was set in the config.
+// OutPath determines the path for a generator to write generated files to. It
+// will use 'packageDir' if no 'out' key was set in the config.
 func (g Generator) OutPath(packageDir string) string {
 	if g.Out == "" {
 		return packageDir

@@ -41,7 +41,7 @@ type Loader struct {
 	cache map[string]*GunkPackage // map from import path to pkg
 }
 
-var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 func hexRand(enclen int) string {
 	p := make([]byte, hex.DecodedLen(enclen))
@@ -183,8 +183,10 @@ const (
 	ListError    = packages.ListError
 	ParseError   = packages.ParseError
 	TypeError    = packages.TypeError
+
 	// Our kinds of errors. Add a gap of 10 to be sure we won't conflict
 	// with previous enum values.
+
 	ValidateError = packages.TypeError + 10 + iota
 )
 
@@ -597,7 +599,7 @@ func CommentFromText(orig ast.Node, text string) *ast.CommentGroup {
 	return group
 }
 
-// splitGunkTag splits '+gunk' tags from a comment group, returning the leading
+// SplitGunkTag splits '+gunk' tags from a comment group, returning the leading
 // documentation and the tags Go expressions.
 //
 // If pkg is not nil, the tag is also type-checked using the package's type

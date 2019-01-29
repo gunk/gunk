@@ -1,0 +1,29 @@
+env HOME=$WORK/home
+
+cp p2/p2.gunk p2/p2.gunk.orig
+
+# loading a single file
+gunk format p1/p1.gunk
+! stdout .
+cmp p1/p1.gunk p1/p1.gunk.golden
+cmp p2/p2.gunk p2/p2.gunk.orig
+
+# loading files from different packages without types is okay
+gunk format p1/p1.gunk p2/p2.gunk
+cmp p1/p1.gunk p1/p1.gunk.golden
+cmp p2/p2.gunk p2/p2.gunk.golden
+
+# loading files from different packages with types should error
+! gunk generate p1/p1.gunk p2/p2.gunk
+stderr 'package p2; expected p1'
+
+-- go.mod --
+module testdata.tld/util
+-- p1/p1.gunk --
+package p1  // extra spaces
+-- p1/p1.gunk.golden --
+package p1 // extra spaces
+-- p2/p2.gunk --
+package p2  // extra spaces
+-- p2/p2.gunk.golden --
+package p2 // extra spaces

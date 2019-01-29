@@ -143,39 +143,85 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 		}
 	}
 
-	// First, make sure that all Gunk packages have Go files.
-	undo, err := l.addTempGoFiles()
-	if err != nil {
-		return nil, err
-	}
-	defer undo()
+	var pkgs []*GunkPackage
+	loadFiles := len(patterns) > 0 && strings.HasSuffix(patterns[0], ".gunk")
+	if loadFiles {
+		// If we're given a number of files, construct a
+		// packages.Package manually. go/packages will treat foo.gunk as
+		// an import path instead of a file, as it's not a Go file.
+		pkgs = append(pkgs, &GunkPackage{
+			Package: packages.Package{
+				ID:      "command-line-arguments",
+				Name:    "", // TODO?
+				PkgPath: "command-line-arguments",
+			},
+			GunkFiles: patterns,
+		})
+	} else {
+		// First, make sure that all Gunk packages have Go files.
+		undo, err := l.addTempGoFiles()
+		if err != nil {
+			return nil, err
+		}
+		defer undo()
 
-	// Load the Gunk packages as Go packages.
-	cfg := &packages.Config{
-		Dir:  l.Dir,
-		Mode: packages.LoadFiles,
-	}
-	lpkgs, err := packages.Load(cfg, patterns...)
-	if err != nil {
-		return nil, err
+		// Load the Gunk packages as Go packages.
+		cfg := &packages.Config{
+			Dir:  l.Dir,
+			Mode: packages.LoadFiles,
+		}
+		lpkgs, err := packages.Load(cfg, patterns...)
+		if err != nil {
+			return nil, err
+		}
+		for _, lpkg := range lpkgs {
+			pkg := &GunkPackage{Package: *lpkg}
+			findGunkFiles(pkg)
+			if len(pkg.GunkFiles) == 0 {
+				// A Go package that isn't a Gunk package - skip it.
+				continue
+			}
+			pkgs = append(pkgs, pkg)
+		}
 	}
 
 	// Add the Gunk files to each package.
-	pkgs := make([]*GunkPackage, 0, len(lpkgs))
-	for _, lpkg := range lpkgs {
-		pkg := l.toGunkPackage(lpkg)
-		if len(pkg.GunkFiles) == 0 {
-			// A Go package that isn't a Gunk package - skip it.
-			continue
-		}
+	for _, pkg := range pkgs {
+		l.parseGunkPackage(pkg)
 		validatePackage(pkg)
 		if l.cache == nil {
 			l.cache = make(map[string]*GunkPackage)
 		}
 		l.cache[pkg.PkgPath] = pkg
-		pkgs = append(pkgs, pkg)
 	}
 	return pkgs, nil
+}
+
+// findGunkFiles fills a package's GunkFiles field with the gunk files found in
+// the package directory. This is used when loading a Gunk package via an import
+// path or a directory.
+//
+// Note that this requires all the source files within the package to be in the
+// same directory, which is true for Go Modules and GOPATH, but not other build
+// systems like Bazel.
+func findGunkFiles(pkg *GunkPackage) {
+	for _, gofile := range pkg.GoFiles {
+		dir := filepath.Dir(gofile)
+		if pkg.Dir == "" {
+			pkg.Dir = dir
+		} else if dir != pkg.Dir {
+			pkg.addError(ListError, "multiple dirs for %s: %s %s",
+				pkg.PkgPath, pkg.Dir, dir)
+			return // we can't continue
+		}
+	}
+
+	matches, err := filepath.Glob(filepath.Join(pkg.Dir, "*.gunk"))
+	if err != nil {
+		// can only be a malformed pattern; should never happen.
+		panic(err.Error())
+	}
+	pkg.GunkFiles = matches
 }
 
 const (
@@ -298,29 +344,9 @@ type GunkTag struct {
 	Value constant.Value // constant value of the expression, if any
 }
 
-func (l *Loader) toGunkPackage(lpkg *packages.Package) *GunkPackage {
-	pkg := &GunkPackage{
-		Package: *lpkg,
-	}
-
-	for _, gofile := range lpkg.GoFiles {
-		dir := filepath.Dir(gofile)
-		if pkg.Dir == "" {
-			pkg.Dir = dir
-		} else if dir != pkg.Dir {
-			pkg.addError(ListError, "multiple dirs for %s: %s %s",
-				lpkg.PkgPath, pkg.Dir, dir)
-			return pkg // we can't continue
-		}
-	}
-
-	matches, err := filepath.Glob(filepath.Join(pkg.Dir, "*.gunk"))
-	if err != nil {
-		// can only be a malformed pattern; should never happen.
-		panic(err.Error())
-	}
-	pkg.GunkFiles = matches
-
+// parseGunkPackage parses the package's GunkFiles, and type-checks the package
+// if l.Types is set.
+func (l *Loader) parseGunkPackage(pkg *GunkPackage) {
 	// parse the gunk files
 	for _, fpath := range pkg.GunkFiles {
 		file, err := parser.ParseFile(l.Fset, fpath, nil, parser.ParseComments)
@@ -352,7 +378,7 @@ func (l *Loader) toGunkPackage(lpkg *packages.Package) *GunkPackage {
 	}
 
 	if !l.Types {
-		return pkg
+		return
 	}
 
 	pkg.Types = types.NewPackage(pkg.PkgPath, pkg.Name)
@@ -372,7 +398,7 @@ func (l *Loader) toGunkPackage(lpkg *packages.Package) *GunkPackage {
 	check := types.NewChecker(tconfig, l.Fset, pkg.Types, pkg.TypesInfo)
 	if err := check.Files(pkg.GunkSyntax); err != nil {
 		pkg.addError(TypeError, "%s", err)
-		return pkg
+		return
 	}
 	pkg.Imports = make(map[string]*GunkPackage)
 	for _, file := range pkg.GunkSyntax {
@@ -390,8 +416,6 @@ func (l *Loader) toGunkPackage(lpkg *packages.Package) *GunkPackage {
 			}
 		}
 	}
-
-	return pkg
 }
 
 const protoCommentPrefix = "// proto "

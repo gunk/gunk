@@ -1,0 +1,9 @@
+env HOME=$WORK/home
+
+! gunk convert util.proto
+stderr 'invalid character ''.'' in package name "v2.util"'
+
+-- util.proto --
+syntax = "proto3";
+
+package v2.util;

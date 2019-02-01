@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/scanner"
+	"unicode"
 
 	"github.com/emicklei/proto"
 	"github.com/knq/snaker"
@@ -116,6 +117,12 @@ func convertFile(path string, overwrite bool) error {
 		}
 	}
 
+	// Validate that the package name is a a valid
+	// Go package name.
+	if err := b.validatePackageName(); err != nil {
+		return err
+	}
+
 	// Convert the proto package and imports to gunk.
 	translatedPkg, err := b.handlePackage()
 	if err != nil {
@@ -139,9 +146,6 @@ func convertFile(path string, overwrite bool) error {
 		w.WriteString(l)
 		w.WriteString("\n")
 	}
-
-	// TODO: We should run this through the Gunk generator to
-	// make sure that it compiles?
 
 	result := []byte(w.String())
 	result, err = format.Source(result)
@@ -217,6 +221,9 @@ func (b *builder) goType(fieldType string) string {
 	case "uint64", "fixed64":
 		return "uint64"
 	default:
+		// TODO: We return the proto package name unaltered. This
+		// causes issues when a package name is imported or contains
+		// "." or other invalid characters for a package name.
 		// This is either an unrecognised type, or a custom type.
 		return fieldType
 	}
@@ -610,4 +617,18 @@ func (b *builder) handleLiteralString(lit proto.Literal) (string, error) {
 		return "", fmt.Errorf("literal was expected to be a string")
 	}
 	return lit.Source, nil
+}
+
+func (b *builder) validatePackageName() error {
+	pkgName := b.pkg.Name
+	for _, c := range pkgName {
+		// A package name is a normal identifier in Go, but it
+		// cannot be the blank identifier.
+		// https://golang.org/ref/spec#Package_clause
+		if unicode.IsLetter(c) || c == '_' || unicode.IsDigit(c) {
+			continue
+		}
+		return fmt.Errorf("invalid character %q in package name %q", c, pkgName)
+	}
+	return nil
 }

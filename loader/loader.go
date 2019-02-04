@@ -188,7 +188,7 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 	// Add the Gunk files to each package.
 	for _, pkg := range pkgs {
 		l.parseGunkPackage(pkg)
-		validatePackage(pkg)
+		l.validatePackage(pkg)
 		if l.cache == nil {
 			l.cache = make(map[string]*GunkPackage)
 		}
@@ -210,7 +210,7 @@ func findGunkFiles(pkg *GunkPackage) {
 		if pkg.Dir == "" {
 			pkg.Dir = dir
 		} else if dir != pkg.Dir {
-			pkg.addError(ListError, "multiple dirs for %s: %s %s",
+			pkg.addError(ListError, 0, nil, "multiple dirs for %s: %s %s",
 				pkg.PkgPath, pkg.Dir, dir)
 			return // we can't continue
 		}
@@ -235,48 +235,6 @@ const (
 
 	ValidateError = packages.TypeError + 10 + iota
 )
-
-// validatePackage sanity checks a gunk package, to find common errors which are
-// shared among all gunk commands.
-func validatePackage(pkg *GunkPackage) {
-	for _, file := range pkg.GunkSyntax {
-		ast.Inspect(file, func(node ast.Node) bool {
-			st, ok := node.(*ast.StructType)
-			if !ok || st.Fields == nil {
-				return true
-			}
-
-			// Check for struct tag 'pb' and ensure that if it does exist
-			// it is a valid integer, and it is unique in that struct.
-			// The other validation should happen in format and generate
-			// as they both treat the same error cases differently.
-			usedSequences := make(map[int]bool, len(st.Fields.List))
-			for _, f := range st.Fields.List {
-				if f.Tag == nil {
-					continue
-				}
-				fieldName := f.Names[0].Name
-				str, _ := strconv.Unquote(f.Tag.Value)
-				stag := reflect.StructTag(str)
-				val, ok := stag.Lookup("pb")
-				if !ok || val == "" {
-					continue
-				}
-				sequence, err := strconv.Atoi(val)
-				if err != nil {
-					pkg.addError(ValidateError, "unable to convert tag to number on %s: %v", fieldName, err)
-					continue
-				}
-				if usedSequences[sequence] {
-					pkg.addError(ValidateError, "sequence %q on %s has already been used in this struct", val, fieldName)
-					continue
-				}
-				usedSequences[sequence] = true
-			}
-			return true
-		})
-	}
-}
 
 // Import satisfies the go/types.Importer interface.
 //
@@ -329,9 +287,13 @@ type GunkPackage struct {
 	ProtoName string // protobuf package name
 }
 
-func (g *GunkPackage) addError(kind packages.ErrorKind, format string, args ...interface{}) {
+func (g *GunkPackage) addError(kind packages.ErrorKind, tokenPos token.Pos, fset *token.FileSet, format string, args ...interface{}) {
+	pos := ""
+	if tokenPos > 0 && fset != nil {
+		pos = fset.Position(tokenPos).String()
+	}
 	g.Errors = append(g.Errors, packages.Error{
-		Pos:  "", // TODO: include position information.
+		Pos:  pos,
 		Msg:  fmt.Sprintf(format, args...),
 		Kind: kind,
 	})
@@ -351,7 +313,7 @@ func (l *Loader) parseGunkPackage(pkg *GunkPackage) {
 	for _, fpath := range pkg.GunkFiles {
 		file, err := parser.ParseFile(l.Fset, fpath, nil, parser.ParseComments)
 		if err != nil {
-			pkg.addError(ParseError, "%s", err)
+			pkg.addError(ParseError, 0, nil, "%s", err)
 			continue
 		}
 		// to make the generated code independent of the current
@@ -362,13 +324,13 @@ func (l *Loader) parseGunkPackage(pkg *GunkPackage) {
 
 		name, err := protoPackageName(l.Fset, file)
 		if err != nil {
-			pkg.addError(ParseError, "%s", err)
+			pkg.addError(ParseError, 0, nil, "%s", err)
 			continue
 		}
 		if pkg.ProtoName == "" {
 			pkg.ProtoName = name
 		} else if name != "" {
-			pkg.addError(ValidateError, "proto package name mismatch: %q %q",
+			pkg.addError(ValidateError, 0, nil, "proto package name mismatch: %q %q",
 				pkg.ProtoName, name)
 			continue
 		}
@@ -397,7 +359,7 @@ func (l *Loader) parseGunkPackage(pkg *GunkPackage) {
 
 	check := types.NewChecker(tconfig, l.Fset, pkg.Types, pkg.TypesInfo)
 	if err := check.Files(pkg.GunkSyntax); err != nil {
-		pkg.addError(TypeError, "%s", err)
+		pkg.addError(TypeError, 0, nil, "%s", err)
 		return
 	}
 	pkg.Imports = make(map[string]*GunkPackage)
@@ -415,6 +377,48 @@ func (l *Loader) parseGunkPackage(pkg *GunkPackage) {
 				pkg.Imports[pkgPath] = pkgs[0]
 			}
 		}
+	}
+}
+
+// validatePackage sanity checks a gunk package, to find common errors which are
+// shared among all gunk commands.
+func (l *Loader) validatePackage(pkg *GunkPackage) {
+	for _, file := range pkg.GunkSyntax {
+		ast.Inspect(file, func(node ast.Node) bool {
+			st, ok := node.(*ast.StructType)
+			if !ok || st.Fields == nil {
+				return true
+			}
+
+			// Check for struct tag 'pb' and ensure that if it does exist
+			// it is a valid integer, and it is unique in that struct.
+			// The other validation should happen in format and generate
+			// as they both treat the same error cases differently.
+			usedSequences := make(map[int]bool, len(st.Fields.List))
+			for _, f := range st.Fields.List {
+				if f.Tag == nil {
+					continue
+				}
+				fieldName := f.Names[0].Name
+				str, _ := strconv.Unquote(f.Tag.Value)
+				stag := reflect.StructTag(str)
+				val, ok := stag.Lookup("pb")
+				if !ok || val == "" {
+					continue
+				}
+				sequence, err := strconv.Atoi(val)
+				if err != nil {
+					pkg.addError(ValidateError, st.Pos(), l.Fset, "unable to convert tag to number on %s: %v", fieldName, err)
+					continue
+				}
+				if usedSequences[sequence] {
+					pkg.addError(ValidateError, st.Pos(), l.Fset, "sequence %q on %s has already been used in this struct", val, fieldName)
+					continue
+				}
+				usedSequences[sequence] = true
+			}
+			return true
+		})
 	}
 }
 
@@ -568,7 +572,7 @@ func (l *Loader) splitGunkTags(pkg *GunkPackage, file *ast.File) {
 		}
 		docText, exprs, err := SplitGunkTag(pkg, l.Fset, *doc)
 		if err != nil {
-			pkg.addError(ParseError, "%s", err)
+			pkg.addError(ParseError, 0, nil, "%s", err)
 			return false
 		}
 		if len(exprs) > 0 {

@@ -1,0 +1,13 @@
+env HOME=$WORK/home
+
+! gunk format ./...
+stderr 'errors.gunk:3:14: unable to convert tag to number on Field'
+
+-- go.mod --
+module testdata.tld/util
+-- errors.gunk --
+package p1
+
+type Message struct {
+	Field string `pb:"a"`
+}

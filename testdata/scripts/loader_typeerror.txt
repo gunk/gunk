@@ -7,7 +7,7 @@ stderr 'package loading errors'
 
 ! gunk generate ./...
 stderr 'expected .}., found .EOF.'
-stderr 'undeclared name: MissingType'
+stderr 'typeerror.gunk:4:8: undeclared name: MissingType'
 stderr 'package loading errors'
 
 -- go.mod --

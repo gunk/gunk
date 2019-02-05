@@ -231,27 +231,26 @@ func (b *builder) goType(fieldType string) string {
 
 func (b *builder) handleProtoType(typ proto.Visitee) error {
 	var err error
-	switch typ.(type) {
+	switch typ := typ.(type) {
 	case *proto.Syntax:
 		// Do nothing with syntax
 	case *proto.Package:
 		// This gets translated at the very end because it is used
 		// in conjuction with the option "go_package" when writting
 		// a Gunk package decleration.
-		b.pkg = typ.(*proto.Package)
+		b.pkg = typ
 	case *proto.Import:
 		// All imports need to be grouped and written out together. This
 		// happens at the end.
-		b.imports = append(b.imports, typ.(*proto.Import))
+		b.imports = append(b.imports, typ)
 	case *proto.Message:
-		err = b.handleMessage(typ.(*proto.Message))
+		err = b.handleMessage(typ)
 	case *proto.Enum:
-		err = b.handleEnum(typ.(*proto.Enum))
+		err = b.handleEnum(typ)
 	case *proto.Service:
-		err = b.handleService(typ.(*proto.Service))
+		err = b.handleService(typ)
 	case *proto.Option:
-		o := typ.(*proto.Option)
-		b.pkgOpts = append(b.pkgOpts, o)
+		b.pkgOpts = append(b.pkgOpts, typ)
 	default:
 		return fmt.Errorf("unhandled proto type %T", typ)
 	}
@@ -269,24 +268,22 @@ func (b *builder) handleMessageField(w *strings.Builder, field proto.Visitee) er
 		options  []*proto.Option
 	)
 
-	switch field.(type) {
+	switch field := field.(type) {
 	case *proto.NormalField:
-		ft := field.(*proto.NormalField)
-		name = ft.Name
-		typ = b.goType(ft.Type)
-		sequence = ft.Sequence
-		comment = ft.Comment
-		repeated = ft.Repeated
-		options = ft.Options
+		name = field.Name
+		typ = b.goType(field.Type)
+		sequence = field.Sequence
+		comment = field.Comment
+		repeated = field.Repeated
+		options = field.Options
 	case *proto.MapField:
-		ft := field.(*proto.MapField)
-		name = ft.Field.Name
-		sequence = ft.Field.Sequence
-		comment = ft.Comment
-		keyType := b.goType(ft.KeyType)
-		fieldType := b.goType(ft.Field.Type)
+		name = field.Field.Name
+		sequence = field.Field.Sequence
+		comment = field.Comment
+		keyType := b.goType(field.KeyType)
+		fieldType := b.goType(field.Field.Type)
 		typ = fmt.Sprintf("map[%s]%s", keyType, fieldType)
-		options = ft.Options
+		options = field.Options
 	default:
 		return fmt.Errorf("unhandled message field type %T", field)
 	}
@@ -314,27 +311,24 @@ func (b *builder) handleMessage(m *proto.Message) error {
 	w := &strings.Builder{}
 	b.format(w, 0, m.Comment, "type %s struct {\n", m.Name)
 	for _, e := range m.Elements {
-		switch e.(type) {
+		switch e := e.(type) {
 		case *proto.NormalField:
-			f := e.(*proto.NormalField)
-			if err := b.handleMessageField(w, f); err != nil {
-				return b.formatError(f.Position, "error with message field: %v", err)
+			if err := b.handleMessageField(w, e); err != nil {
+				return b.formatError(e.Position, "error with message field: %v", err)
 			}
 		case *proto.Enum:
 			// Handle the nested enum. This will create a new
 			// top level enum as Gunk doesn't currently support
 			// nested data structures.
-			b.handleEnum(e.(*proto.Enum))
+			b.handleEnum(e)
 		case *proto.Comment:
-			b.format(w, 1, e.(*proto.Comment), "")
+			b.format(w, 1, e, "")
 		case *proto.MapField:
-			mf := e.(*proto.MapField)
-			if err := b.handleMessageField(w, mf); err != nil {
-				return b.formatError(mf.Position, "error with message field: %v", err)
+			if err := b.handleMessageField(w, e); err != nil {
+				return b.formatError(e.Position, "error with message field: %v", err)
 			}
 		case *proto.Option:
-			o := e.(*proto.Option)
-			fmt.Fprintln(os.Stderr, b.formatError(o.Position, "unhandled message option %q", o.Name))
+			fmt.Fprintln(os.Stderr, b.formatError(e.Position, "unhandled message option %q", e.Name))
 		default:
 			return b.formatError(m.Position, "unexpected type %T in message", e)
 		}
@@ -358,15 +352,13 @@ func (b *builder) handleEnum(e *proto.Enum) error {
 	// from the previous enum value.
 	outputIota := true
 	for i, c := range e.Elements {
-		switch c.(type) {
+		switch c := c.(type) {
 		case *proto.EnumField:
-			ef := c.(*proto.EnumField)
-			if i != ef.Integer {
+			if i != c.Integer {
 				outputIota = false
 			}
 		case *proto.Option:
-			o := c.(*proto.Option)
-			fmt.Fprintln(os.Stderr, b.formatError(o.Position, "unhandled enum option %q", o.Name))
+			fmt.Fprintln(os.Stderr, b.formatError(c.Position, "unhandled enum option %q", c.Name))
 		default:
 			return b.formatError(e.Position, "unexpected type %T in enum, expected enum field", c)
 		}
@@ -413,12 +405,11 @@ func (b *builder) handleService(s *proto.Service) error {
 	b.format(w, 0, s.Comment, "type %s interface {\n", s.Name)
 	for i, e := range s.Elements {
 		var r *proto.RPC
-		switch e.(type) {
+		switch e := e.(type) {
 		case *proto.RPC:
-			r = e.(*proto.RPC)
+			r = e
 		case *proto.Option:
-			o := e.(*proto.Option)
-			fmt.Fprintln(os.Stderr, b.formatError(o.Position, "unhandled service option %q", o.Name))
+			fmt.Fprintln(os.Stderr, b.formatError(e.Position, "unhandled service option %q", e.Name))
 			continue
 		default:
 			return b.formatError(s.Position, "unexpected type %T in service, expected rpc", e)

@@ -78,13 +78,13 @@ func formatFile(fset *token.FileSet, file *ast.File) (_ []byte, formatErr error)
 		}
 	}()
 	ast.Inspect(file, func(node ast.Node) bool {
-		switch node.(type) {
+		switch node := node.(type) {
 		case *ast.CommentGroup:
-			if err := formatComment(fset, node.(*ast.CommentGroup)); err != nil {
+			if err := formatComment(fset, node); err != nil {
 				panic(inspectError{err})
 			}
 		case *ast.StructType:
-			if err := formatStruct(fset, node.(*ast.StructType)); err != nil {
+			if err := formatStruct(fset, node); err != nil {
 				panic(inspectError{err})
 			}
 		}

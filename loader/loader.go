@@ -20,7 +20,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/golang/protobuf/proto"
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
@@ -703,18 +702,4 @@ func ErrorAbsolutePos(err error, pos token.Position) error {
 		list[i] = err
 	}
 	return list
-}
-
-// IsIdentifier will return if the 'str' is a valid Go indentifier.
-func IsIdentifier(str string) bool {
-	if len(str) == 0 {
-		return false
-	}
-	for i, c := range str {
-		if unicode.IsLetter(c) || c == '_' || (i > 0 && unicode.IsDigit(c)) {
-			continue
-		}
-		return false
-	}
-	return true
 }

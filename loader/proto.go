@@ -27,7 +27,7 @@ func ConvertFromProto(w io.Writer, r io.Reader, filename string) error {
 	// Start converting the proto declarations to gunk.
 	b := builder{
 		filename:    filename,
-		importsUsed: map[string]bool{},
+		importsUsed: map[string]string{},
 	}
 	for _, e := range d.Elements {
 		if err := b.handleProtoType(e); err != nil {
@@ -85,8 +85,9 @@ type builder struct {
 	imports []*proto.Import
 
 	// Imports that are required to ro generate a valid Gunk file.
-	// Mostly these will be Gunk annotations.
-	importsUsed map[string]bool
+	// Mostly these will be Gunk annotations. Import name will be
+	// mapped to its possible named import.
+	importsUsed map[string]string
 }
 
 // format will write output to a string builder, adding in indentation
@@ -222,7 +223,29 @@ func (b *builder) handleMessageField(w *strings.Builder, field proto.Visitee) er
 	}
 
 	for _, o := range options {
-		fmt.Fprintln(os.Stderr, b.formatError(o.Position, "unhandled field option %q", o.Name))
+		val := o.Constant.Source
+		var impt string
+		var value string
+		switch n := o.Name; n {
+		case "packed":
+			impt = "github.com/gunk/opt/message"
+			value = b.genAnnotation("Packed", val)
+		case "lazy":
+			impt = "github.com/gunk/opt/message"
+			value = b.genAnnotation("Lazy", val)
+		case "deprecated":
+			impt = "github.com/gunk/opt/message"
+			value = b.genAnnotation("Deprecated", val)
+		case "cc_type":
+			impt = "github.com/gunk/opt/message/cc"
+			value = b.genAnnotationString("Type", val)
+		case "js_type":
+			impt = "github.com/gunk/opt/message/js"
+			value = b.genAnnotationString("Type", val)
+		}
+
+		pkg := b.addImportUsed(impt)
+		b.format(w, 1, nil, fmt.Sprintf("// +gunk %s.%s\n", pkg, value))
 	}
 
 	// TODO(vishen): Is this correct to explicitly camelcase the variable name and
@@ -389,18 +412,18 @@ func (b *builder) handleService(s *proto.Service) error {
 				// Check if we received a valid google http annotation. If
 				// so we will convert it to gunk http match.
 				if method != "" && url != "" {
+					pkg := b.addImportUsed("github.com/gunk/opt/http")
 					if comment != nil {
 						b.format(w, 1, comment, "//\n")
 						comment = nil
 					}
-					b.format(w, 1, nil, "// +gunk http.Match{\n")
+					b.format(w, 1, nil, "// +gunk %s.Match{\n", pkg)
 					b.format(w, 1, nil, "// Method: %q,\n", strings.ToUpper(method))
 					b.format(w, 1, nil, "// Path: %q,\n", url)
 					if body != "" {
 						b.format(w, 1, nil, "// Body: %q,\n", body)
 					}
 					b.format(w, 1, nil, "// }\n")
-					b.importsUsed["github.com/gunk/opt/http"] = true
 				}
 			default:
 				fmt.Fprintln(os.Stderr, b.formatError(opt.Position, "unhandled method option %q", n))
@@ -485,8 +508,7 @@ func (b *builder) handlePackage() (string, error) {
 			return "", b.formatError(o.Position, "%q is an unhandled proto file option", n)
 		}
 
-		b.importsUsed[impt] = true
-		pkg := filepath.Base(impt)
+		pkg := b.addImportUsed(impt)
 		gunkAnnotations = append(gunkAnnotations, fmt.Sprintf("%s.%s", pkg, value))
 	}
 
@@ -509,6 +531,40 @@ func (b *builder) handlePackage() (string, error) {
 	return w.String(), nil
 }
 
+// addImportUsed will record the import so that we can
+// output the import string when generating the output file.
+// We return the package name to use. Also check to see if
+// we need to use a named import for this import.
+func (b *builder) addImportUsed(i string) string {
+	r := strings.NewReplacer("github.com/gunk/opt", "", "/", "")
+	namedImport := r.Replace(i)
+	pkg := filepath.Base(i)
+
+	// Determine if there is a package with the same name
+	// as this one, if there is give this current one a
+	// named import with "/" replaced, eg:
+	// "github.com/gunk/opt/file/java" becomes "filejava"
+	useNamedImport := false
+	for imp := range b.importsUsed {
+		if imp != i && pkg == filepath.Base(imp) {
+			useNamedImport = true
+			break
+		}
+	}
+
+	// If the import requires a named import, record it and
+	// return the named import as the new package name.
+	if useNamedImport {
+		b.importsUsed[i] = namedImport
+		return namedImport
+	}
+
+	// If this is the first time that package name has been
+	// seen then we can keep the import as is.
+	b.importsUsed[i] = ""
+	return pkg
+}
+
 func (b *builder) handleImports() string {
 	if len(b.importsUsed) == 0 && len(b.imports) == 0 {
 		return ""
@@ -517,10 +573,14 @@ func (b *builder) handleImports() string {
 	w := &strings.Builder{}
 	b.format(w, 0, nil, "import (")
 
-	// Imports that have been used during convert
-	for i := range b.importsUsed {
+	// Imports that have been used during convert.
+	for i, named := range b.importsUsed {
 		b.format(w, 0, nil, "\n")
-		b.format(w, 1, nil, fmt.Sprintf("%q", i))
+		if named != "" {
+			b.format(w, 1, nil, fmt.Sprintf("%s %q", named, i))
+		} else {
+			b.format(w, 1, nil, fmt.Sprintf("%q", i))
+		}
 	}
 
 	// Add any proto imports as comments.

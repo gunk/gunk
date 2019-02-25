@@ -4,7 +4,6 @@ gunk convert util.proto
 stderr 'unhandled enum option "allow_alias"'
 stderr 'unhandled enumvalue option "deprecated"'
 stderr 'unhandled message option "message_set_wire_format"'
-stderr 'unhandled field option "lazy"'
 stderr 'unhandled service option "deprecated"'
 stderr 'unhandled method option "idempotency_level"'
 

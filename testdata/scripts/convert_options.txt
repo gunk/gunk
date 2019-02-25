@@ -1,0 +1,37 @@
+env HOME=$WORK/home
+
+gunk convert util.proto
+cmp util.gunk util.gunk.golden
+
+-- util.proto --
+syntax = "proto3";
+
+package util;
+
+option optimize_for = 2;
+
+option cc_enable_arenas = true;
+
+message Msg {
+    string code = 1 [packed=true];
+    string type = 2 [cc_type="some_type"];
+}
+
+-- util.gunk.golden --
+// +gunk file.OptimizeFor(2)
+// +gunk filecc.EnableArenas(true)
+package util
+
+import (
+	"github.com/gunk/opt/file"
+	filecc "github.com/gunk/opt/file/cc"
+	"github.com/gunk/opt/message"
+	"github.com/gunk/opt/message/cc"
+)
+
+type Msg struct {
+	// +gunk message.Packed(true)
+	Code string `pb:"1" json:"code"`
+	// +gunk cc.Type("some_type")
+	Type string `pb:"2" json:"type"`
+}

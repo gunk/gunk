@@ -265,6 +265,12 @@ func (b *builder) handleMessage(m *proto.Message) error {
 	for _, e := range m.Elements {
 		switch e := e.(type) {
 		case *proto.NormalField:
+			// Handle the use of nested field referenced outside
+			// of its parent; Parent.Type becomes Type in a Go-Derived way
+			if strings.Contains(e.Type, ".") {
+				s := strings.Split(e.Type, ".")
+				e.Type = s[len(s)-1]
+			}
 			if err := b.handleMessageField(w, e); err != nil {
 				return b.formatError(e.Position, "error with message field: %v", err)
 			}
@@ -281,6 +287,12 @@ func (b *builder) handleMessage(m *proto.Message) error {
 			}
 		case *proto.Option:
 			fmt.Fprintln(os.Stderr, b.formatError(e.Position, "unhandled message option %q", e.Name))
+		case *proto.Message:
+			// Handle the nested message. The struct is created at
+			// the top level.
+			if err := b.handleMessage(e); err != nil {
+				return b.formatError(e.Position, "error with nested message %v", err)
+			}
 		default:
 			return b.formatError(m.Position, "unexpected type %T in message", e)
 		}

@@ -1,0 +1,45 @@
+env HOME=$WORK/home
+
+gunk convert util.proto
+cmp util.gunk util.gunk.golden
+
+-- util.proto --
+syntax = "proto3";
+
+package util;
+
+message Event {
+	message Source {
+		string name = 1;
+		message Content {
+			string content = 1;
+		}
+		Content content = 2;
+	}
+	Source source = 1;
+	bool received = 2; 
+}
+
+message Message {
+	Event.Source source = 1;
+}
+-- util.gunk.golden --
+package util
+
+type Content struct {
+	Content string `pb:"1" json:"content"`
+}
+
+type Source struct {
+	Name    string  `pb:"1" json:"name"`
+	Content Content `pb:"2" json:"content"`
+}
+
+type Event struct {
+	Source   Source `pb:"1" json:"source"`
+	Received bool   `pb:"2" json:"received"`
+}
+
+type Message struct {
+	Source Source `pb:"1" json:"source"`
+}

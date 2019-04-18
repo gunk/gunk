@@ -1,0 +1,55 @@
+env HOME=$WORK/home
+
+gunk convert util.proto
+cmp util.gunk util.gunk.golden
+
+! gunk convert util2.proto
+stderr 'error: util2.proto:13:1: Event_Source redeclared in this block'
+
+-- util.proto --
+syntax = "proto3";
+
+package util;
+
+message Event {
+	message Source {
+		string name = 1;
+	}
+	Source source = 1;
+	bool received = 2; 
+}
+
+message Source {
+	string name = 1;
+}
+-- util.gunk.golden --
+package util
+
+type Event_Source struct {
+	Name string `pb:"1" json:"name"`
+}
+
+type Event struct {
+	Source   Event_Source `pb:"1" json:"source"`
+	Received bool         `pb:"2" json:"received"`
+}
+
+type Source struct {
+	Name string `pb:"1" json:"name"`
+}
+-- util2.proto --
+syntax = "proto3";
+
+package util;
+
+message Event {
+	message Source {
+		string name = 1;
+	}
+	Source source = 1;
+	bool received = 2; 
+}
+
+message Event_Source {
+	string name = 1;
+}

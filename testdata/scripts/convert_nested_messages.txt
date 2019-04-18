@@ -26,20 +26,20 @@ message Message {
 -- util.gunk.golden --
 package util
 
-type Content struct {
+type Event_Source_Content struct {
 	Content string `pb:"1" json:"content"`
 }
 
-type Source struct {
-	Name    string  `pb:"1" json:"name"`
-	Content Content `pb:"2" json:"content"`
+type Event_Source struct {
+	Name    string               `pb:"1" json:"name"`
+	Content Event_Source_Content `pb:"2" json:"content"`
 }
 
 type Event struct {
-	Source   Source `pb:"1" json:"source"`
-	Received bool   `pb:"2" json:"received"`
+	Source   Event_Source `pb:"1" json:"source"`
+	Received bool         `pb:"2" json:"received"`
 }
 
 type Message struct {
-	Source Source `pb:"1" json:"source"`
+	Source Event_Source `pb:"1" json:"source"`
 }

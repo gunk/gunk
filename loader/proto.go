@@ -26,8 +26,9 @@ func ConvertFromProto(w io.Writer, r io.Reader, filename string) error {
 
 	// Start converting the proto declarations to gunk.
 	b := builder{
-		filename:    filename,
-		importsUsed: map[string]string{},
+		filename:      filename,
+		importsUsed:   map[string]string{},
+		existingDecls: map[string]bool{},
 	}
 	for _, e := range d.Elements {
 		if err := b.handleProtoType(e); err != nil {
@@ -88,6 +89,9 @@ type builder struct {
 	// Mostly these will be Gunk annotations. Import name will be
 	// mapped to its possible named import.
 	importsUsed map[string]string
+
+	// Holds existings declaration to avoid duplicate
+	existingDecls map[string]bool
 }
 
 // format will write output to a string builder, adding in indentation
@@ -261,15 +265,25 @@ func (b *builder) handleMessageField(w *strings.Builder, field proto.Visitee) er
 // handleMessage will convert a proto message to Gunk.
 func (b *builder) handleMessage(m *proto.Message) error {
 	w := &strings.Builder{}
+	// check if there is no existing struct with the same name already
+	if _, ok := b.existingDecls[m.Name]; ok {
+		return b.formatError(m.Position, "%s redeclared in this block", m.Name)
+	}
+	b.existingDecls[m.Name] = true
 	b.format(w, 0, m.Comment, "type %s struct {\n", m.Name)
 	for _, e := range m.Elements {
 		switch e := e.(type) {
 		case *proto.NormalField:
+			// Check if the type must be renamed in case
+			// of declaration of nested message
+			newType := fmt.Sprintf("%s_%s", m.Name, e.Type)
+			if _, ok := b.existingDecls[newType]; ok {
+				e.Type = newType
+			}
 			// Handle the use of nested field referenced outside
-			// of its parent; Parent.Type becomes Type in a Go-Derived way
+			// of its parent; Parent.Type is renamed to Parent_Type in a Go-Derived way
 			if strings.Contains(e.Type, ".") {
-				s := strings.Split(e.Type, ".")
-				e.Type = s[len(s)-1]
+				e.Type = strings.Replace(e.Type, ".", "_", -1)
 			}
 			if err := b.handleMessageField(w, e); err != nil {
 				return b.formatError(e.Position, "error with message field: %v", err)
@@ -289,7 +303,8 @@ func (b *builder) handleMessage(m *proto.Message) error {
 			fmt.Fprintln(os.Stderr, b.formatError(e.Position, "unhandled message option %q", e.Name))
 		case *proto.Message:
 			// Handle the nested message. The struct is created at
-			// the top level.
+			// the top level and renamed in the form Parent_Child
+			e.Name = fmt.Sprintf("%s_%s", m.Name, e.Name)
 			if err := b.handleMessage(e); err != nil {
 				return b.formatError(e.Position, "error with nested message %v", err)
 			}

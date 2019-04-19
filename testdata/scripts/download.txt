@@ -1,3 +1,5 @@
+skip 'TODO: rewrite to not require internet'
+
 env HOME=$WORK/home
 
 # Override the PATH so protoc isn't accessible.

@@ -17,6 +17,8 @@ grep 'Float.*float32' all.pb.go
 grep 'Double.*float64' all.pb.go
 grep 'Slice.*\[\]int32' all.pb.go
 
+-- go.mod --
+module testdata.tld/util
 -- .gunkconfig --
 [generate]
 command=protoc-gen-go

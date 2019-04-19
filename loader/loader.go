@@ -66,6 +66,9 @@ func (l *Loader) addTempGoFiles() (undo func(), _ error) {
 	if out, err := cmd.Output(); err == nil {
 		root = strings.TrimSpace(string(out))
 	}
+	if root == "" {
+		return nil, fmt.Errorf("empty module root; missing module?")
+	}
 
 	var toDelete []string
 	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {

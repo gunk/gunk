@@ -11,15 +11,21 @@ exists gitfile/all.pb.go
 ! exists gitfile/all_pb2.py
 
 # Check that the project root is assumed to be where the go.mod file it.
-gunk generate ./gomod
-exists gomod/all.pb.go
-! exists gomod/all_pb2.py
+# The parent module can't see packages inside the child module, so cd into it.
+! gunk generate ./gomod
+stderr 'no Gunk packages to generate'
+
+cd gomod
+gunk generate .
+exists all.pb.go
+! exists all_pb2.py
 
 # Add a gunk config not in the project root.
 # This should not get picked up
+-- go.mod --
+module root
 -- .gunkconfig --
 [generate python]
-
 -- gitfolder/.git/config --
 -- gitfolder/.gunkconfig --
 [generate]
@@ -55,6 +61,7 @@ type Util interface {
 }
 
 -- gomod/go.mod --
+module testdata.tld/util
 -- gomod/.gunkconfig --
 [generate]
 command=protoc-gen-go

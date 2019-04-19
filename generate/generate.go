@@ -981,10 +981,6 @@ func (g *Generator) qualifiedTypeName(typeName string, pkg *types.Package) strin
 		return "." + g.curPkg.ProtoName + "." + typeName
 	}
 	gpkg := g.gunkPkgs[pkg.Path()]
-	// If ProtoName is empty, we are in the same package
-	if gpkg.ProtoName == "" {
-		return "." + typeName
-	}
 	return "." + gpkg.ProtoName + "." + typeName
 }
 

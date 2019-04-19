@@ -155,7 +155,7 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 		pkgs = append(pkgs, &GunkPackage{
 			Package: packages.Package{
 				ID:      "command-line-arguments",
-				Name:    "", // TODO?
+				Name:    "", // will be filled later
 				PkgPath: "command-line-arguments",
 			},
 			GunkFiles: patterns,
@@ -324,6 +324,13 @@ func (l *Loader) parseGunkPackage(pkg *GunkPackage) {
 		relPath := pkg.PkgPath + "/" + filepath.Base(fpath)
 		pkg.GunkNames = append(pkg.GunkNames, relPath)
 		pkg.GunkSyntax = append(pkg.GunkSyntax, file)
+
+		if name := file.Name.Name; pkg.Name == "" {
+			pkg.Name = name
+		} else if pkg.Name != name && l.Types {
+			pkg.addError(ValidateError, 0, nil, "gunk package name mismatch: %q %q",
+				pkg.Name, name)
+		}
 
 		name, err := protoPackageName(l.Fset, file)
 		if err != nil {

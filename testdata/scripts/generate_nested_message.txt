@@ -1,0 +1,25 @@
+env HOME=$WORK/home
+
+gunk generate echo.gunk
+
+-- go.mod --
+module testdata.tld/util
+
+require (
+	github.com/gunk/opt v0.0.0-20181129161359-767b03a66301
+)
+-- .gunkconfig --
+[generate]
+command=protoc-gen-go
+-- echo.gunk --
+package util
+
+import "github.com/gunk/opt/enumvalues"
+
+type Message_Event struct {
+	Name string `pb:"1" json:"name"`
+}
+
+type Event struct {
+	Message Message_Event `pb:"1" json:"message"`
+}

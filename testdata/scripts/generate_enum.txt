@@ -12,7 +12,7 @@ grep '// this comment does not contain' all.pb.go
 module testdata.tld/util
 
 require (
-	github.com/gunk/opt v0.0.0-20181129161359-767b03a66301
+	github.com/gunk/opt v0.0.0-20190422104434-5033eecd4078
 )
 -- .gunkconfig --
 [generate]

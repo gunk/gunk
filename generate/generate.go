@@ -17,6 +17,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
+	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	"google.golang.org/genproto/googleapis/api/annotations"
 
 	"github.com/gunk/gunk/config"
@@ -611,6 +612,31 @@ func (g *Generator) fieldOptions(field *ast.Field) (*desc.FieldOptions, error) {
 		case "github.com/gunk/opt/field/js.Type":
 			oValue := desc.FieldOptions_JSType(protoEnumValue(tag.Value))
 			o.Jstype = &oValue
+		case "github.com/gunk/opt/openapiv2.Schema":
+			for _, tagElt := range tag.Expr.(*ast.CompositeLit).Elts {
+				kv := tagElt.(*ast.KeyValueExpr)
+				switch kv.Key.(*ast.Ident).Name {
+				case "JSONSchema":
+					title, description := "", ""
+					for _, elt := range kv.Value.(*ast.CompositeLit).Elts {
+						val := elt.(*ast.KeyValueExpr).Value.(*ast.BasicLit).Value
+						name := elt.(*ast.KeyValueExpr).Key.(*ast.Ident).Name
+						switch name {
+						case "Title":
+							title = val
+						case "Description":
+							description = val
+						}
+					}
+					op := &options.JSONSchema{
+						Title:       title,
+						Description: description,
+					}
+					if err := proto.SetExtension(o, options.E_Openapiv2Field, op); err != nil {
+						return nil, err
+					}
+				}
+			}
 		default:
 			return nil, fmt.Errorf("gunk field option %q not supported", s)
 		}
@@ -762,6 +788,29 @@ func (g *Generator) methodOptions(method *ast.Field) (*desc.MethodOptions, error
 				return nil, err
 			}
 			g.addProtoDep("google/api/annotations.proto")
+		case "github.com/gunk/opt/openapiv2.Operation":
+			op := &options.Operation{}
+			for _, elt := range tag.Expr.(*ast.CompositeLit).Elts {
+				kv := elt.(*ast.KeyValueExpr)
+				switch name := kv.Key.(*ast.Ident).Name; name {
+				case "Tags":
+					for _, tag := range kv.Value.(*ast.CompositeLit).Elts {
+						val, _ := strconv.Unquote(tag.(*ast.BasicLit).Value)
+						op.Tags = append(op.Tags, val)
+					}
+				case "Description":
+					val, _ := strconv.Unquote(kv.Value.(*ast.BasicLit).Value)
+					op.Description = val
+				case "Summary":
+					val, _ := strconv.Unquote(kv.Value.(*ast.BasicLit).Value)
+					op.Summary = val
+				}
+
+			}
+			if err := proto.SetExtension(o, options.E_Openapiv2Operation, op); err != nil {
+				return nil, err
+			}
+			g.addProtoDep("protoc-gen-swagger/options/annotations.proto")
 		default:
 			return nil, fmt.Errorf("gunk method option %q not supported", s)
 		}
@@ -955,6 +1004,13 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto,
 			if err != nil {
 				return nil, fmt.Errorf("error getting enum value options: %v", err)
 			}
+			// To avoid duplicate prefix (protoc-gen-go),
+			// we remove the enum type name if present
+			prefix := *enum.Name + "_"
+			if strings.Contains(name.Name, prefix) {
+				name.Name = strings.Replace(name.Name, prefix, "", 1)
+			}
+
 			enum.Value = append(enum.Value, &desc.EnumValueDescriptorProto{
 				Name:    proto.String(name.Name),
 				Number:  proto.Int32(int32(ival)),

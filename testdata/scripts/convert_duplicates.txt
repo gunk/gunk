@@ -6,6 +6,9 @@ cmp util.gunk util.gunk.golden
 ! gunk convert util2.proto
 stderr 'error: util2.proto:13:1: Event_Source redeclared in this block'
 
+gunk convert util3.proto
+cmp util3.gunk util3.gunk.golden
+
 -- util.proto --
 syntax = "proto3";
 
@@ -52,4 +55,40 @@ message Event {
 
 message Event_Source {
 	string name = 1;
+}
+-- util3.proto --
+syntax = "proto3";
+
+package util;
+
+message Foo {
+	enum Status {
+		UNKNOWN = 0;
+	}
+}
+
+message Bar {
+	enum Available {
+		UNKNOWN = 0;
+	}
+}
+-- util3.gunk.golden --
+package util
+
+type Status int
+
+const (
+	UNKNOWN Status = iota
+)
+
+type Foo struct {
+}
+
+type Available int
+
+const (
+	Available_UNKNOWN Available = iota
+)
+
+type Bar struct {
 }

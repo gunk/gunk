@@ -5,13 +5,20 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/scanner"
 	"unicode"
 
+	"github.com/golang/protobuf/ptypes/any"
+
+	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
+
 	"github.com/emicklei/proto"
 	"github.com/knq/snaker"
 )
+
+var urlVarRegexp = regexp.MustCompile(`\{(.*?)\}`)
 
 // ConvertFromProto converts a single proto file read from r, writing the
 // generated Gunk file to w. The output isn't canonically formatted, so it's up
@@ -300,7 +307,9 @@ func (b *builder) handleMessage(m *proto.Message) error {
 				return b.formatError(e.Position, "error with message field: %v", err)
 			}
 		case *proto.Option:
-			fmt.Fprintln(os.Stderr, b.formatError(e.Position, "unhandled message option %q", e.Name))
+			if err := b.handleOption(w, e); err != nil {
+				return b.formatError(e.Position, "error with option field: %v", err)
+			}
 		case *proto.Message:
 			// Handle the nested message. The struct is created at
 			// the top level and renamed in the form Parent_Child
@@ -314,6 +323,68 @@ func (b *builder) handleMessage(m *proto.Message) error {
 	}
 	b.format(w, 0, nil, "}")
 	b.translatedDeclarations = append(b.translatedDeclarations, w.String())
+	return nil
+}
+
+func (b *builder) handleOption(w *strings.Builder, opt *proto.Option) error {
+	switch n := opt.Name; n {
+	case "(grpc.gateway.protoc_gen_swagger.options.openapiv2_schema)":
+		schema := options.Schema{}
+		literal := opt.Constant
+		if len(literal.OrderedMap) == 0 {
+			return fmt.Errorf("expected option to be a map")
+		}
+		for _, l := range literal.OrderedMap {
+			switch n := l.Name; n {
+			case "example":
+				if len(l.Literal.Map) == 0 {
+					return fmt.Errorf("expected option to be a map")
+				}
+				value := l.Literal.Map["value"]
+				val, err := b.handleLiteralString(*value)
+				if err != nil {
+					return fmt.Errorf("error with litteral string %q", err)
+				}
+				example := &any.Any{
+					Value: []byte(val),
+				}
+				schema.Example = example
+			case "json_schema":
+				if len(l.Literal.Map) == 0 {
+					return fmt.Errorf("exepected option to be a map")
+				}
+				jsonSchema := &options.JSONSchema{}
+				for k, v := range l.Literal.Map {
+					switch k {
+					case "title":
+						val, err := b.handleLiteralString(*v)
+						if err != nil {
+							return fmt.Errorf("error with literal string %q", err)
+						}
+						jsonSchema.Title = val
+					case "description":
+						val, err := b.handleLiteralString(*v)
+						if err != nil {
+							return fmt.Errorf("error with literal string %q", err)
+						}
+						jsonSchema.Description = val
+					}
+				}
+				schema.JsonSchema = jsonSchema
+			}
+		}
+		pkg := b.addImportUsed("github.com/gunk/opt/openapiv2")
+		b.format(w, 1, nil, "// +gunk %s.Schema{\n", pkg)
+		if schema.JsonSchema != nil {
+			b.format(w, 1, nil, "// JSONSchema: %s.JSONSchema{Title:%q, Description:%q}, \n", pkg, schema.JsonSchema.Title, schema.JsonSchema.Description)
+		}
+		if schema.Example != nil {
+			b.format(w, 1, nil, "// Example: map[string]string{\"value\":`%s`}, \n", schema.Example.Value)
+		}
+		b.format(w, 1, nil, "// }\n")
+	default:
+		fmt.Fprintln(os.Stderr, fmt.Errorf("unhandled message option %q", opt.Name))
+	}
 	return nil
 }
 
@@ -352,6 +423,13 @@ func (b *builder) handleEnum(e *proto.Enum) error {
 			// TODO(vishen): handle enum option
 			continue
 		}
+
+		// Check if there is already an existing enum field with this name
+		if ok := b.existingDecls[ef.Name]; ok {
+			// prefix with the enum type name
+			ef.Name = e.Name + "_" + ef.Name
+		}
+		b.existingDecls[ef.Name] = true
 
 		for _, e := range ef.Elements {
 			if o, ok := e.(*proto.Option); ok && o != nil {
@@ -411,6 +489,51 @@ func (b *builder) handleService(s *proto.Service) error {
 				return b.formatError(r.Position, "unexpected type %T in service rpc, expected option", o)
 			}
 			switch n := opt.Name; n {
+			case "(grpc.gateway.protoc_gen_swagger.options.openapiv2_operation)":
+				literal := opt.Constant
+				if len(literal.OrderedMap) == 0 {
+					return b.formatError(opt.Position, "expected option to be a map")
+				}
+				var err error
+				summary, description := "", ""
+				tags := []string{}
+				for _, l := range literal.OrderedMap {
+					switch n := l.Name; n {
+					case "tags":
+						tag, err := b.handleLiteralString(*l.Literal)
+						if err != nil {
+							return b.formatError(opt.Position, "option for tags should be a string")
+						}
+						tags = append(tags, tag)
+					case "summary":
+						summary, err = b.handleLiteralString(*l.Literal)
+						if err != nil {
+							return b.formatError(opt.Position, "option for summary should be a string")
+						}
+					case "description":
+						description, err = b.handleLiteralString(*l.Literal)
+						if err != nil {
+							return b.formatError(opt.Position, "option for description should be a string")
+						}
+					}
+				}
+
+				pkg := b.addImportUsed("github.com/gunk/opt/openapiv2")
+				if comment != nil {
+					b.format(w, 1, comment, "//\n")
+					comment = nil
+				}
+				b.format(w, 1, nil, "// +gunk %s.Operation{\n", pkg)
+				if len(tags) > 0 {
+					b.format(w, 1, nil, "// Tags: []string{%q}, \n", strings.Join(tags, "\",\""))
+				}
+				if description != "" {
+					b.format(w, 1, nil, "// Description: %q, \n", description)
+				}
+				if summary != "" {
+					b.format(w, 1, nil, "// Summary: %q, \n", summary)
+				}
+				b.format(w, 1, nil, "// }\n")
 			case "(google.api.http)":
 				var err error
 				method := ""
@@ -429,10 +552,13 @@ func (b *builder) handleService(s *proto.Service) error {
 						}
 					default:
 						method = n
-						url, err = b.handleLiteralString(*l.Literal)
+						tmp, err := b.handleLiteralString(*l.Literal)
 						if err != nil {
 							return b.formatError(opt.Position, "option for %q should be a string (url)", method)
 						}
+						url = urlVarRegexp.ReplaceAllStringFunc(tmp, func(id string) string {
+							return "{" + snaker.ForceCamelIdentifier(id) + "}"
+						})
 					}
 				}
 

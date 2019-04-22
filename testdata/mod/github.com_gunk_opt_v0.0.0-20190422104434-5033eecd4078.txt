@@ -3,7 +3,29 @@ module github.com/gunk/opt@latest
 -- .mod --
 module github.com/gunk/opt
 -- .info --
-{"Version":"v0.0.0-20181129161359-767b03a66301","Time":"2018-11-29T16:13:59Z"}
+{"Version":"v0.0.0-20190422104434-5033eecd4078","Time":"2019-04-22T10:44:34Z"}
+-- LICENSE --
+The MIT License (MIT)
+
+Copyright (c) 2018-2019 Brankas Pte Ltd.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 -- README.md --
 -- enum/doc.go --
 package enum
@@ -211,6 +233,37 @@ const (
     NoSideEffects
     Idempotent
 )
+-- openapiv2/doc.go --
+package openapiv2
+
+// make this directory a Go package
+-- openapiv2/openapiv2.gunk --
+// Package openapiv2 provides the openapiv2 matching options for gunk.
+package openapiv2
+
+// Operation is the representation of OpenAPI V2 specification operation object
+type Operation struct {
+    Tags        []string            `pb:"1"`
+    Description string              `pb:"2"`
+    Summary     string              `pb:"3"`
+    Security    map[string][]string `pb:"4"`
+}
+
+// Schema is a representation of OpenAPI v2 specification's Schema object.
+// The Schema Object allows the definition of input and output data types
+type Schema struct {
+    JSONSchema JSONSchema        `pb:"1"`
+    Example    map[string]string `pb:"2"`
+}
+
+
+// JSONSchema represents properties from JSON Schema taken, and as used, in
+// the OpenAPI v2 spec.
+type JSONSchema struct {
+    Title            string   `pb:"1"`
+    Description      string   `pb:"2"`
+}
+
 -- service/doc.go --
 package service
 -- service/service.gunk --

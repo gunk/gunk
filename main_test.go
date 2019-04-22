@@ -33,6 +33,7 @@ func TestMain(m *testing.M) {
 		cmd := exec.Command("go", "install", "-ldflags=-w -s",
 			"github.com/golang/protobuf/protoc-gen-go",
 			"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway",
+			"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger",
 			"./testdata/protoc-gen-strict",
 		)
 		cmd.Stderr = os.Stderr

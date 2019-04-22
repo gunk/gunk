@@ -1,0 +1,57 @@
+env HOME=$WORK/home
+
+gunk generate echo.gunk
+
+exists all.swagger.json
+grep '"/v1/account/{AccountID}"' all.swagger.json
+grep '"summary": "Retrieves account information"' all.swagger.json
+grep '"description": "Get account information"' all.swagger.json
+grep 'Detail information of account' all.swagger.json
+grep 'Account detail' all.swagger.json
+
+-- go.mod --
+module testdata.tld/util
+
+require (
+	github.com/gunk/opt v0.0.0-20190422104434-5033eecd4078
+)
+-- .gunkconfig --
+[generate swagger]
+-- echo.gunk --
+package util
+
+import (
+	"github.com/gunk/opt/http"
+	"github.com/gunk/opt/openapiv2"
+)
+
+type GetAccountRequest struct {
+	AccountID string `pb:"1" json:"account_id"`
+}
+
+// Account contains information for a specific account.
+type Account struct {
+	// +gunk openapiv2.Schema{
+	//         JSONSchema: openapiv2.JSONSchema{Title: "Account detail", Description: "Detail information of account"},
+	// }
+	// +gunk openapiv2.Schema{
+	//         Example: map[string]string{"value": `{"success":true,"error_code":"0","error_message":""}`},
+	// }
+	AccountID string `pb:"1" json:"account_id"`
+}
+
+// AccountService provides account management service endpoints.
+type AccountService interface {
+	// GetAccount retrieves account information.
+	//
+	// +gunk openapiv2.Operation{
+	//         Tags:        []string{"Account"},
+	//         Description: "Get account information",
+	//         Summary:     "Retrieves account information",
+	// }
+	// +gunk http.Match{
+	//         Method: "GET",
+	//         Path:   "/v1/account/{AccountID}",
+	// }
+	GetAccount(GetAccountRequest) Account
+}

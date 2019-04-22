@@ -488,6 +488,8 @@ syntax = "proto3";
 			generatedFilesToLoad = append(generatedFilesToLoad, "google_protobuf_timestamp.fdp")
 		case "google/protobuf/duration.proto":
 			generatedFilesToLoad = append(generatedFilesToLoad, "google_protobuf_duration.fdp")
+		case "protoc-gen-swagger/options/annotations.proto":
+			generatedFilesToLoad = append(generatedFilesToLoad, "protoc-gen-swagger_options_annotations.fdp")
 		default:
 			filteredNames = append(filteredNames, n)
 		}

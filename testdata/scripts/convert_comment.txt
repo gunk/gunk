@@ -1,0 +1,24 @@
+env HOME=$WORK/home
+
+gunk convert util.proto
+cmp util.gunk util.gunk.golden
+
+-- util.proto --
+syntax = "proto3";
+
+package util;
+
+message Error {
+	// error_code is an error code,
+	// the second line should not be changed
+	string error_code = 1;
+}
+
+-- util.gunk.golden --
+package util
+
+type Error struct {
+	// ErrorCode is an error code,
+	// the second line should not be changed
+	ErrorCode string `pb:"1" json:"error_code"`
+}

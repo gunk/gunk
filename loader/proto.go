@@ -222,6 +222,9 @@ func (b *builder) handleMessageField(w *strings.Builder, field proto.Visitee) er
 		return fmt.Errorf("unhandled message field type %T", field)
 	}
 
+	if comment != nil && strings.HasPrefix(strings.TrimSpace(comment.Message()), name) {
+		comment.Lines[0] = strings.Replace(comment.Message(), name, snaker.ForceCamelIdentifier(name), 1)
+	}
 	if repeated {
 		typ = "[]" + typ
 	}

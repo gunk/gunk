@@ -844,11 +844,11 @@ func (g *Generator) convertService(tspec *ast.TypeSpec) (*desc.ServiceDescriptor
 		}
 		pmethod.Options = methodOptions
 		sign := g.curPkg.TypesInfo.TypeOf(method.Type).(*types.Signature)
-		pmethod.InputType, err = g.convertParameter(sign.Params())
+		pmethod.InputType, pmethod.ClientStreaming, err = g.convertParameter(sign.Params())
 		if err != nil {
 			return nil, err
 		}
-		pmethod.OutputType, err = g.convertParameter(sign.Results())
+		pmethod.OutputType, pmethod.ServerStreaming, err = g.convertParameter(sign.Results())
 		if err != nil {
 			return nil, err
 		}
@@ -905,25 +905,31 @@ func (g *Generator) convertMap(parentName, fieldName string, mapTyp *types.Map) 
 	return typeName, nestedType
 }
 
-func (g *Generator) convertParameter(tuple *types.Tuple) (*string, error) {
+func (g *Generator) convertParameter(tuple *types.Tuple) (*string, *bool, error) {
 	switch tuple.Len() {
 	case 0:
 		g.addProtoDep("google/protobuf/empty.proto")
-		return proto.String(".google.protobuf.Empty"), nil
+		return proto.String(".google.protobuf.Empty"), nil, nil
 	case 1:
 		// below
 	default:
-		return nil, fmt.Errorf("multiple parameters are not supported")
+		return nil, nil, fmt.Errorf("multiple parameters are not supported")
 	}
 	param := tuple.At(0).Type()
 	_, label, tname := g.convertType(param)
 	if tname == "" {
-		return nil, fmt.Errorf("unsupported parameter type: %v", param)
+		return nil, nil, fmt.Errorf("unsupported parameter type: %v", param)
 	}
 	if label == desc.FieldDescriptorProto_LABEL_REPEATED {
-		return nil, fmt.Errorf("parameter type should not be repeated")
+		return nil, nil, fmt.Errorf("parameter type should not be repeated")
 	}
-	return &tname, nil
+
+	isStream := proto.Bool(false)
+	if _, ok := param.(*types.Chan); ok {
+		isStream = proto.Bool(true)
+	}
+
+	return &tname, isStream, nil
 }
 
 func (g *Generator) enumOptions(tspec *ast.TypeSpec) (*desc.EnumOptions, error) {
@@ -1045,6 +1051,8 @@ func (g *Generator) qualifiedTypeName(typeName string, pkg *types.Package) strin
 // an enum or a message.
 func (g *Generator) convertType(typ types.Type) (desc.FieldDescriptorProto_Type, desc.FieldDescriptorProto_Label, string) {
 	switch typ := typ.(type) {
+	case *types.Chan:
+		return g.convertType(typ.Elem())
 	case *types.Basic:
 		// Map Go types to proto types:
 		// https://developers.google.com/protocol-buffers/docs/proto3#scalar

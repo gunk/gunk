@@ -595,6 +595,17 @@ func (b *builder) handleService(s *proto.Service) error {
 		if returnsType == "google.protobuf.Empty" {
 			returnsType = ""
 		}
+
+		// If the request is a stream, add chan
+		if r.StreamsRequest {
+			requestType = "chan " + requestType
+		}
+
+		// If the response is a stream, add chan
+		if r.StreamsReturns {
+			returnsType = "chan " + returnsType
+		}
+
 		b.format(w, 1, comment, "%s(%s) %s\n", r.Name, requestType, returnsType)
 	}
 	b.format(w, 0, nil, "}")

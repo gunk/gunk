@@ -1,0 +1,39 @@
+env HOME=$WORK/home
+
+gunk convert util.proto
+cmp util.gunk util.gunk.golden
+
+-- util.proto --
+syntax = "proto3";
+
+package util;
+
+message EventRequest {
+	string Name = 1;
+}
+
+message EventResponse {
+	string Name = 1;
+}
+
+service StreamService {
+	rpc GetEvent(stream EventRequest) returns (stream EventResponse);
+	rpc GetStreamResponse(EventRequest) returns (stream EventResponse);
+	rpc GetStreamRequest(stream EventRequest) returns (EventResponse);
+} 
+-- util.gunk.golden --
+package util
+
+type EventRequest struct {
+	Name string `pb:"1" json:"name"`
+}
+
+type EventResponse struct {
+	Name string `pb:"1" json:"name"`
+}
+
+type StreamService interface {
+	GetEvent(chan EventRequest) chan EventResponse
+	GetStreamResponse(EventRequest) chan EventResponse
+	GetStreamRequest(chan EventRequest) EventResponse
+}

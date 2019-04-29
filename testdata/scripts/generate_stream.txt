@@ -1,0 +1,76 @@
+env HOME=$WORK/home
+
+gunk generate echo.gunk
+
+exists all.pb.go
+grep 'StreamName:    "GetEvent"' all.pb.go
+grep 'ServerStreams: true' all.pb.go
+grep 'ClientStreams: true' all.pb.go
+
+gunk generate echo2.gunk
+
+exists all.pb.go
+grep 'StreamName:    "GetStreamResponse"' all.pb.go
+grep 'ServerStreams: true' all.pb.go
+! grep 'ClientStreams: true' all.pb.go
+
+
+gunk generate echo3.gunk
+
+exists all.pb.go
+grep 'StreamName:    "GetStreamRequest"' all.pb.go
+! grep 'ServerStreams: true' all.pb.go
+grep 'ClientStreams: true' all.pb.go
+
+-- go.mod --
+module testdata.tld/util
+
+require (
+	github.com/gunk/opt v0.0.0-20190422104434-5033eecd4078
+)
+-- .gunkconfig --
+[generate]
+command=protoc-gen-go
+plugins=grpc
+-- echo.gunk --
+package util
+
+type EventRequest struct {
+	Name string `pb:"1" json:"name"`
+}
+
+type EventResponse struct {
+	Name string `pb:"1" json:"name"`
+}
+
+type StreamService interface {
+	GetEvent(chan EventRequest) chan EventResponse
+}
+-- echo2.gunk --
+package util
+
+type EventRequest struct {
+	Name string `pb:"1" json:"name"`
+}
+
+type EventResponse struct {
+	Name string `pb:"1" json:"name"`
+}
+
+type StreamService interface {
+	GetStreamResponse(EventRequest) chan EventResponse
+}
+-- echo3.gunk --
+package util
+
+type EventRequest struct {
+	Name string `pb:"1" json:"name"`
+}
+
+type EventResponse struct {
+	Name string `pb:"1" json:"name"`
+}
+
+type StreamService interface {
+	GetStreamRequest(chan EventRequest) EventResponse
+}

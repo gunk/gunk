@@ -458,12 +458,20 @@ allComments:
 	return "", nil
 }
 
+type ProtoLoader struct {
+	// Dir is the absolute path from where the LoadProto method
+	// will load proto files.
+	// If empty, it will load from executing directory
+	Dir        string
+	ProtocPath string
+}
+
 // LoadProto loads the specified protobuf packages as if they were dependencies.
 //
 // It does so with protoc, to leverage protoc's features such as locating the
 // files, and the protoc parser to get a FileDescriptorProto out of the proto
 // file content.
-func LoadProto(names ...string) ([]*desc.FileDescriptorProto, error) {
+func (l *ProtoLoader) LoadProto(names ...string) ([]*desc.FileDescriptorProto, error) {
 	tmpl := template.Must(template.New("letter").Parse(`
 syntax = "proto3";
 
@@ -498,7 +506,11 @@ syntax = "proto3";
 	// Use protoc to load any imports that aren't currently bundles with
 	// Gunk.
 	if len(filteredNames) > 0 {
-		importsFile, err := os.Create("gunk-proto")
+		gunkProtoFile := "gunk-proto"
+		if l.Dir != "" {
+			gunkProtoFile = filepath.Join(l.Dir, gunkProtoFile)
+		}
+		importsFile, err := os.Create(gunkProtoFile)
 		if err != nil {
 			return nil, err
 		}
@@ -508,16 +520,23 @@ syntax = "proto3";
 		if err := importsFile.Close(); err != nil {
 			return nil, err
 		}
-		defer os.Remove("gunk-proto")
+		defer os.Remove(gunkProtoFile)
 
 		// TODO(mvdan): any way to specify stdout while being portable?
 		// See https://github.com/protocolbuffers/protobuf/issues/4163.
 		args := []string{
 			"-o/dev/stdout",
 			"--include_imports",
-			"gunk-proto",
+			gunkProtoFile,
 		}
-		cmd := log.ExecCommand("protoc", args...)
+		if l.Dir != "" {
+			args = append(args, "-I"+l.Dir)
+		}
+		protocPath := "protoc"
+		if l.ProtocPath != "" {
+			protocPath = l.ProtocPath
+		}
+		cmd := log.ExecCommand(protocPath, args...)
 		out, err := cmd.Output()
 		if err != nil {
 			if e, ok := err.(*exec.ExitError); ok {

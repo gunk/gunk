@@ -1,4 +1,4 @@
-env home=$work/home
+env HOME=$WORK/home
 
 gunk convert util.proto ./util
 cmp util.gunk util.gunk.golden

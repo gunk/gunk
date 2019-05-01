@@ -23,7 +23,7 @@ var urlVarRegexp = regexp.MustCompile(`\{(.*?)\}`)
 // ConvertFromProto converts a single proto file read from r, writing the
 // generated Gunk file to w. The output isn't canonically formatted, so it's up
 // to the caller to use gunk/format.Source on the result if needed.
-func ConvertFromProto(w io.Writer, r io.Reader, filename string) error {
+func ConvertFromProto(w io.Writer, r io.Reader, filename string, importPath string, protocPath string) error {
 	// Parse the proto file.
 	parser := proto.NewParser(r)
 	d, err := parser.Parse()
@@ -37,6 +37,14 @@ func ConvertFromProto(w io.Writer, r io.Reader, filename string) error {
 		importsUsed:   map[string]string{},
 		existingDecls: map[string]bool{},
 	}
+
+	if importPath != "" {
+		b.protoLoader = &ProtoLoader{
+			Dir:        importPath,
+			ProtocPath: protocPath,
+		}
+	}
+
 	for _, e := range d.Elements {
 		if err := b.handleProtoType(e); err != nil {
 			return err
@@ -96,6 +104,10 @@ type builder struct {
 	// Mostly these will be Gunk annotations. Import name will be
 	// mapped to its possible named import.
 	importsUsed map[string]string
+
+	// imported proto files will be loaded using protoLoader
+	// holds the absolute path passed to -I flag from protoc
+	protoLoader *ProtoLoader
 
 	// Holds existings declaration to avoid duplicate
 	existingDecls map[string]bool
@@ -181,9 +193,33 @@ func (b *builder) handleProtoType(typ proto.Visitee) error {
 		// a Gunk package decleration.
 		b.pkg = typ
 	case *proto.Import:
-		// All imports need to be grouped and written out together. This
-		// happens at the end.
-		b.imports = append(b.imports, typ)
+		if b.protoLoader != nil {
+			files, err := b.protoLoader.LoadProto(typ.Filename)
+			if err != nil {
+				return err
+			}
+			named, source := "", ""
+			for _, f := range files {
+				if f != nil && f.GetName() == typ.Filename {
+					named = strings.Replace(f.GetPackage(), ".", "_", -1)
+					if f.GetOptions() != nil && f.GetOptions().GoPackage != nil {
+						source = *f.GetOptions().GoPackage
+					}
+				}
+			}
+			if source == "" {
+				return fmt.Errorf("imported file must contain go_package option %s", typ.Filename)
+			}
+			if named == "" {
+				return fmt.Errorf("imported file must contain package name %s", typ.Filename)
+			}
+			// Import the go package
+			b.importsUsed[source] = named
+		} else {
+			// All imports need to be grouped and written out together. This
+			// happens at the end.
+			b.imports = append(b.imports, typ)
+		}
 	case *proto.Message:
 		err = b.handleMessage(typ)
 	case *proto.Enum:
@@ -272,6 +308,15 @@ func (b *builder) handleMessageField(w *strings.Builder, field proto.Visitee) er
 	return nil
 }
 
+func (b *builder) containsImport(ref string) bool {
+	for _, v := range b.importsUsed {
+		if v == ref {
+			return true
+		}
+	}
+	return false
+}
+
 // handleMessage will convert a proto message to Gunk.
 func (b *builder) handleMessage(m *proto.Message) error {
 	w := &strings.Builder{}
@@ -290,10 +335,18 @@ func (b *builder) handleMessage(m *proto.Message) error {
 			if _, ok := b.existingDecls[newType]; ok {
 				e.Type = newType
 			}
-			// Handle the use of nested field referenced outside
-			// of its parent; Parent.Type is renamed to Parent_Type in a Go-Derived way
 			if strings.Contains(e.Type, ".") {
-				e.Type = strings.Replace(e.Type, ".", "_", -1)
+				ref := strings.Split(e.Type, ".")[0]
+				if !b.containsImport(ref) {
+					tmp := strings.Replace(e.Type, ".", "_", -1)
+					// the type is neither found in import and existing decls
+					if _, ok := b.existingDecls[tmp]; !ok {
+						return b.formatError(e.Position, "%s is undefined", e.Type)
+					}
+					// Handle the use of nested field referenced outside
+					// of its parent; Parent.Type is renamed to Parent_Type in a Go-Derived way
+					e.Type = tmp
+				}
 			}
 			if err := b.handleMessageField(w, e); err != nil {
 				return b.formatError(e.Position, "error with message field: %v", err)

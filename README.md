@@ -478,6 +478,31 @@ $ gunk convert /path/to/file.proto
 $ gunk convert /path/to/protobuf/directory
 ```
 
+If your `.proto` is referencing another `.proto` from another directory, 
+you can add `import_path` in the global section of your `.gunkconfig`.
+If you don't provide `import_path` it will only search in the root directory.
+
+
+```ini
+import_path=relative/path/to/protobuf/directory
+```
+
+> The path to provide is relative from the `.gunkconfig` location.
+
+Furthermore, the referenced files must contain:
+
+```proto
+option go_package="path/of/go/package";
+```
+
+The resulting `.gunk` file will contain the import path as defined in `go_package`:
+
+```go
+import (
+	name "path/of/go/package"
+)
+```
+
 ## About
 
 Gunk is developed by the team at [Brankas][brankas], and was designed to

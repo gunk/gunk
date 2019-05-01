@@ -37,6 +37,8 @@ func Run(dir string, args ...string) error {
 
 		gunkPkgs: make(map[string]*loader.GunkPackage),
 		allProto: make(map[string]*desc.FileDescriptorProto),
+
+		protoLoader: &loader.ProtoLoader{},
 	}
 
 	// Check that protoc exists, if not download it.
@@ -150,6 +152,10 @@ type Generator struct {
 
 	// Maps from package import path to package information.
 	gunkPkgs map[string]*loader.GunkPackage
+
+	// imported proto files will be loaded using protoLoader
+	// holds the absolute path passed to -I flag from protoc
+	protoLoader *loader.ProtoLoader
 
 	allProto map[string]*desc.FileDescriptorProto
 
@@ -1134,7 +1140,7 @@ func (g *Generator) loadProtoDeps() error {
 		}
 	}
 
-	files, err := loader.LoadProto(list...)
+	files, err := g.protoLoader.LoadProto(list...)
 	if err != nil {
 		return err
 	}

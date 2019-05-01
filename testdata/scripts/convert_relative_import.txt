@@ -1,0 +1,48 @@
+env HOME=$WORK/home
+
+gunk convert pb/util.proto
+cmp pb/util.gunk util.gunk.golden
+
+-- .gunkconfig --
+import_path=pb
+-- pb/util.proto --
+syntax = "proto3";
+
+package util;
+
+import "imported/imported.proto";
+
+message EventRequest {
+	string Name = 1;
+	imported.Type Type = 2;
+	message Nested {
+		string value = 1;
+	}
+	Nested nested = 3;
+}
+-- util.gunk.golden --
+package util
+
+import (
+	imported "github.com/gunk/gunk/imported"
+)
+
+type EventRequest_Nested struct {
+	Value string `pb:"1" json:"value"`
+}
+
+type EventRequest struct {
+	Name   string              `pb:"1" json:"name"`
+	Type   imported.Type       `pb:"2" json:"type"`
+	Nested EventRequest_Nested `pb:"3" json:"nested"`
+}
+-- pb/imported/imported.proto --
+syntax = "proto3";
+
+package imported;
+
+option go_package= "github.com/gunk/gunk/imported";
+
+message Type {
+	string Name = 1;
+}

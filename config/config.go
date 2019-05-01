@@ -75,6 +75,7 @@ func (g Generator) OutPath(packageDir string) string {
 type Config struct {
 	Dir        string
 	Out        string
+	ImportPath string
 	Generators []Generator
 }
 
@@ -115,6 +116,7 @@ func Load(dir string) (*Config, error) {
 					cfg.Generators[i].Out = cfg.Out
 				}
 			}
+
 			cfgs = append(cfgs, cfg)
 		}
 
@@ -211,7 +213,9 @@ func load(reader io.Reader) (*Config, error) {
 		if err != nil {
 			return nil, err
 		}
-		config.Generators = append(config.Generators, *gen)
+		if gen != nil {
+			config.Generators = append(config.Generators, *gen)
+		}
 	}
 	return config, nil
 }
@@ -249,6 +253,8 @@ func handleGlobal(config *Config, section *parser.Section) error {
 		switch k {
 		case "out":
 			config.Out = v
+		case "import_path":
+			config.ImportPath = v
 		default:
 			return fmt.Errorf("unexpected key %q in global section", k)
 		}

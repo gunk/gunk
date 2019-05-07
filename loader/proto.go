@@ -5,17 +5,17 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"text/scanner"
 	"unicode"
 
-	"github.com/golang/protobuf/ptypes/any"
-
-	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
-
 	"github.com/emicklei/proto"
 	"github.com/knq/snaker"
+
+	"github.com/gunk/opt/openapiv2"
 )
 
 var urlVarRegexp = regexp.MustCompile(`\{(.*?)\}`)
@@ -385,54 +385,15 @@ func (b *builder) handleMessage(m *proto.Message) error {
 func (b *builder) handleOption(w *strings.Builder, opt *proto.Option) error {
 	switch n := opt.Name; n {
 	case "(grpc.gateway.protoc_gen_swagger.options.openapiv2_schema)":
-		schema := options.Schema{}
 		literal := opt.Constant
-		if len(literal.OrderedMap) == 0 {
-			return fmt.Errorf("expected option to be a map")
-		}
-		for _, l := range literal.OrderedMap {
-			switch n := l.Name; n {
-			case "example":
-				if len(l.Literal.Map) == 0 {
-					return fmt.Errorf("expected option to be a map")
-				}
-				value := l.Literal.Map["value"]
-				val, err := b.handleLiteralString(*value)
-				if err != nil {
-					return fmt.Errorf("error with litteral string %q", err)
-				}
-				example := &any.Any{
-					Value: []byte(val),
-				}
-				schema.Example = example
-			case "json_schema":
-				if len(l.Literal.Map) == 0 {
-					return fmt.Errorf("exepected option to be a map")
-				}
-				jsonSchema := &options.JSONSchema{}
-				for k, v := range l.Literal.Map {
-					switch k {
-					case "title":
-						val, err := b.handleLiteralString(*v)
-						if err != nil {
-							return fmt.Errorf("error with literal string %q", err)
-						}
-						jsonSchema.Title = val
-					case "description":
-						val, err := b.handleLiteralString(*v)
-						if err != nil {
-							return fmt.Errorf("error with literal string %q", err)
-						}
-						jsonSchema.Description = val
-					}
-				}
-				schema.JsonSchema = jsonSchema
-			}
+		schema, err := b.convertSchema(&literal)
+		if err != nil {
+			return err
 		}
 		pkg := b.addImportUsed("github.com/gunk/opt/openapiv2")
 		b.format(w, 1, nil, "// +gunk %s.Schema{\n", pkg)
-		if schema.JsonSchema != nil {
-			b.format(w, 1, nil, "// JSONSchema: %s.JSONSchema{Title:%q, Description:%q}, \n", pkg, schema.JsonSchema.Title, schema.JsonSchema.Description)
+		if schema.JSONSchema != nil {
+			b.format(w, 1, nil, "// JSONSchema: %s.JSONSchema{Title:%s, Description:%s}, \n", pkg, schema.JSONSchema.Title, schema.JSONSchema.Description)
 		}
 		if schema.Example != nil {
 			b.format(w, 1, nil, "// Example: map[string]string{\"value\":`%s`}, \n", schema.Example.Value)
@@ -724,6 +685,17 @@ func (b *builder) handlePackage() (string, error) {
 		case "cc_enable_arenas":
 			impt = "github.com/gunk/opt/file/cc"
 			value = b.genAnnotation("EnableArenas", val)
+		case "(grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger)":
+			impt = "github.com/gunk/opt/openapiv2"
+			s, err := b.convertSwagger(o.Constant)
+			if err != nil {
+				return "", b.formatError(o.Position, "cannot convert swagger option: %s", err)
+			}
+			res := &strings.Builder{}
+			b.format(res, 0, nil, "Swagger {\n")
+			b.format(res, 0, nil, b.fromStructToAnnotation(*s))
+			b.format(res, 0, nil, "// }")
+			value = res.String()
 		default:
 			return "", b.formatError(o.Position, "%q is an unhandled proto file option", n)
 		}
@@ -749,6 +721,437 @@ func (b *builder) handlePackage() (string, error) {
 	}
 
 	return w.String(), nil
+}
+
+func (b *builder) fromStructToAnnotation(val interface{}) string {
+	w := &strings.Builder{}
+
+	s := reflect.TypeOf(val)
+	v := reflect.ValueOf(val)
+
+	for i := 0; i < s.NumField(); i++ {
+		name := s.Field(i).Name
+		value := v.FieldByName(name)
+		if !isNilOrEmpty(value.Interface()) {
+			switch value.Kind() {
+			case reflect.Invalid,
+				reflect.Uintptr,
+				reflect.Complex64,
+				reflect.Complex128,
+				reflect.Array,
+				reflect.Chan,
+				reflect.Func,
+				reflect.Interface,
+				reflect.Struct,
+				reflect.UnsafePointer:
+				// Ignore
+			case reflect.Map:
+				mapKey := value.Type().Key()
+				mapValue := strings.Replace(value.Type().Elem().String(), "*", "", -1)
+				b.format(w, 0, nil, "// %s: map[%s]%s{\n", name, mapKey, mapValue)
+				for _, key := range value.MapKeys() {
+					c := value.MapIndex(key)
+					switch reflect.TypeOf(c.Interface()).Kind() {
+					case reflect.Ptr:
+						t := reflect.Indirect(c).Interface()
+						b.format(w, 0, nil, "// %s: %s{\n", key, reflect.TypeOf(t))
+						b.format(w, 0, nil, b.fromStructToAnnotation(t))
+						b.format(w, 0, nil, "// },\n")
+					default:
+						b.format(w, 0, nil, "// %s: %s,\n", key, c)
+					}
+				}
+				b.format(w, 0, nil, "// },\n")
+			case reflect.Ptr:
+				t := reflect.Indirect(value).Interface()
+				b.format(w, 0, nil, "// %s: %s{\n", name, reflect.TypeOf(t))
+				w.WriteString(b.fromStructToAnnotation(t))
+				b.format(w, 0, nil, "// },\n")
+			case reflect.Slice:
+				b.format(w, 0, nil, "// %s: %s{\n", name, reflect.TypeOf(value.Interface()))
+				for i := 0; i < value.Len(); i++ {
+					val := value.Index(i).Interface()
+					switch reflect.TypeOf(val).Kind() {
+					case reflect.Ptr:
+						// TODO (ced)
+					default:
+						if pkgPath := reflect.TypeOf(val).PkgPath(); pkgPath == "" {
+							b.format(w, 0, nil, "// %v,\n", val)
+						} else {
+							pkg := strings.Split(pkgPath, "/")
+							b.format(w, 0, nil, "// %s.%v,\n", pkg[len(pkg)-1], val)
+						}
+					}
+				}
+				b.format(w, 0, nil, "// },\n")
+			default:
+				if pkgPath := value.Type().PkgPath(); pkgPath == "" {
+					b.format(w, 0, nil, "// %s: %v,\n", name, value)
+				} else {
+					pkg := strings.Split(pkgPath, "/")
+					b.format(w, 0, nil, "// %s: %s.%v,\n", name, pkg[len(pkg)-1], value)
+				}
+			}
+		}
+	}
+	return w.String()
+}
+
+func isNilOrEmpty(x interface{}) bool {
+	return reflect.DeepEqual(x, reflect.Zero(reflect.TypeOf(x)).Interface())
+}
+
+func (*builder) setValue(name string, dest interface{}, value string) error {
+	tmp := reflect.Indirect(reflect.ValueOf(dest)).FieldByName(name)
+	if !tmp.IsValid() {
+		return fmt.Errorf("%s was not found in %s", name, reflect.TypeOf(dest).String())
+	}
+	if !tmp.CanAddr() {
+		return fmt.Errorf("%s from %s cannot be addressed", name, reflect.TypeOf(dest).String())
+	}
+	var v interface{}
+	var err error
+	switch k := reflect.TypeOf(tmp.Interface()).Kind(); k {
+	case reflect.String:
+		v = value
+	case reflect.Float64:
+		v, err = strconv.ParseFloat(value, 64)
+	case reflect.Bool:
+		v, err = strconv.ParseBool(value)
+	case reflect.Uint64:
+		v, err = strconv.ParseUint(value, 10, 64)
+	default:
+		return fmt.Errorf("%s not supported", k.String())
+	}
+	if err != nil {
+		return err
+	}
+	tmp.Set(reflect.ValueOf(v))
+	return nil
+}
+
+func (b *builder) convertSwagger(lit proto.Literal) (*openapiv2.Swagger, error) {
+	if len(lit.OrderedMap) == 0 {
+		return nil, fmt.Errorf("expected swagger option to be a map")
+	}
+	swagger := &openapiv2.Swagger{
+		Responses: map[string]*openapiv2.Response{},
+	}
+	for _, v := range lit.OrderedMap {
+		switch v.Name {
+		case "responses":
+			key, resp, err := b.convertResponse(v)
+			if err != nil {
+				return nil, err
+			}
+			swagger.Responses[key] = resp
+		case "swagger", "base_path", "host":
+			b.setValue(snaker.ForceCamelIdentifier(v.Name), swagger, v.SourceRepresentation())
+		case "security_definitions":
+			var err error
+			swagger.SecurityDefinitions, err = b.convertSecurityDefinitions(v)
+			if err != nil {
+				return nil, err
+			}
+		case "schemes":
+			s := openapiv2.SwaggerScheme_value[v.SourceRepresentation()]
+			swagger.Schemes = append(swagger.Schemes, openapiv2.SwaggerScheme(s))
+		case "consumes":
+			swagger.Consumes = append(swagger.Consumes, v.SourceRepresentation())
+		case "produces":
+			swagger.Produces = append(swagger.Produces, v.SourceRepresentation())
+		case "external_docs":
+			var err error
+			swagger.ExternalDocs, err = b.convertExternalDocs(v)
+			if err != nil {
+				return nil, err
+			}
+		case "info":
+			var err error
+			swagger.Info, err = b.convertInfo(v)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			return nil, fmt.Errorf("unexpected swagger option element %s", v.Name)
+		}
+	}
+	return swagger, nil
+}
+
+func (b *builder) convertSecurityDefinitions(lit *proto.NamedLiteral) (*openapiv2.SecurityDefinitions, error) {
+	if len(lit.OrderedMap) == 0 {
+		return nil, fmt.Errorf("expected security_definitions option to be a map")
+	}
+	securityDefinitions := &openapiv2.SecurityDefinitions{
+		Security: map[string]*openapiv2.SecurityScheme{},
+	}
+	for _, valueInfo := range lit.OrderedMap {
+		switch valueInfo.Name {
+		case "security":
+			if len(lit.OrderedMap) == 0 {
+				return nil, fmt.Errorf("expected security option to be a map")
+			}
+			var key string
+			var value *openapiv2.SecurityScheme
+			for _, secVal := range valueInfo.OrderedMap {
+				switch secVal.Name {
+				case "key":
+					key = secVal.SourceRepresentation()
+				case "value":
+					value = &openapiv2.SecurityScheme{}
+					if len(secVal.OrderedMap) == 0 {
+						return nil, fmt.Errorf("expected security value to be a map")
+					}
+					for _, val := range secVal.OrderedMap {
+						switch val.Name {
+						case "type":
+							t := openapiv2.Type_value[val.SourceRepresentation()]
+							value.Type = openapiv2.Type(t)
+						case "description", "name", "authorization_url", "token_url":
+							if err := b.setValue(snaker.ForceCamelIdentifier(val.Name), value, val.SourceRepresentation()); err != nil {
+								return nil, err
+							}
+						case "in":
+							in := openapiv2.In_value[val.SourceRepresentation()]
+							value.In = openapiv2.In(in)
+						case "flow":
+							f := openapiv2.Flow_value[val.SourceRepresentation()]
+							value.Flow = openapiv2.Flow(f)
+						case "scopes":
+							scope, err := b.convertScopes(val)
+							if err != nil {
+								return nil, err
+							}
+							value.Scopes = &openapiv2.Scopes{
+								Scope: scope,
+							}
+						default:
+							return nil, fmt.Errorf("unexpected security value element")
+						}
+					}
+				default:
+					return nil, fmt.Errorf("unexpected security option element")
+				}
+			}
+			securityDefinitions.Security[key] = value
+		default:
+			return nil, fmt.Errorf("unexpected security_definitions option element")
+		}
+	}
+	return securityDefinitions, nil
+}
+
+func (b *builder) convertInfo(lit *proto.NamedLiteral) (*openapiv2.Info, error) {
+	if len(lit.OrderedMap) == 0 {
+		return nil, fmt.Errorf("expected info option to be a map")
+	}
+	info := &openapiv2.Info{}
+	for _, valueInfo := range lit.OrderedMap {
+		switch valueInfo.Name {
+		case "title", "description", "terms_of_service", "version":
+			if err := b.setValue(snaker.ForceCamelIdentifier(valueInfo.Name), info, valueInfo.SourceRepresentation()); err != nil {
+				return nil, err
+			}
+		case "contact":
+			contact, err := b.convertContact(valueInfo)
+			if err != nil {
+				return nil, err
+			}
+			info.Contact = contact
+		case "license":
+			license, err := b.convertLicense(valueInfo)
+			if err != nil {
+				return nil, err
+			}
+			info.License = license
+		default:
+			return nil, fmt.Errorf("unexpected info option element")
+		}
+	}
+	return info, nil
+}
+
+func (b *builder) convertContact(lit *proto.NamedLiteral) (*openapiv2.Contact, error) {
+	if len(lit.OrderedMap) == 0 {
+		return nil, fmt.Errorf("expected contact option to be a map")
+	}
+	contact := &openapiv2.Contact{}
+	for _, v := range lit.OrderedMap {
+		switch v.Name {
+		case "name", "url", "email":
+			if err := b.setValue(snaker.ForceCamelIdentifier(v.Name), contact, v.SourceRepresentation()); err != nil {
+				return nil, err
+			}
+		default:
+			return nil, fmt.Errorf("unexpected contact option element %s", v.Name)
+		}
+	}
+	return contact, nil
+}
+
+func (b *builder) convertLicense(lit *proto.NamedLiteral) (*openapiv2.License, error) {
+	if len(lit.OrderedMap) == 0 {
+		return nil, fmt.Errorf("expected license option to be a map")
+	}
+	license := &openapiv2.License{}
+	for _, v := range lit.OrderedMap {
+		switch v.Name {
+		case "name", "url":
+			if err := b.setValue(snaker.ForceCamelIdentifier(v.Name), license, v.SourceRepresentation()); err != nil {
+				return nil, err
+			}
+		default:
+			return nil, fmt.Errorf("unexpected license option element %s", v.Name)
+		}
+	}
+	return license, nil
+}
+
+func (b *builder) convertScopes(scopes *proto.NamedLiteral) (map[string]string, error) {
+	if len(scopes.OrderedMap) == 0 {
+		return nil, fmt.Errorf("expected scopes to be a map")
+	}
+	res := map[string]string{}
+	key, value := "", ""
+	for _, scope := range scopes.OrderedMap {
+		if len(scope.OrderedMap) == 0 {
+			return nil, fmt.Errorf("expected scope to be a map")
+		}
+		for _, v := range scope.OrderedMap {
+			switch v.Name {
+			case "key":
+				key = v.SourceRepresentation()
+			case "value":
+				value = v.SourceRepresentation()
+			}
+		}
+		res[key] = value
+	}
+	return res, nil
+}
+
+func (b *builder) convertResponse(response *proto.NamedLiteral) (string, *openapiv2.Response, error) {
+	key := ""
+	res := &openapiv2.Response{}
+	if tmp, ok := response.Literal.OrderedMap.Get("key"); ok {
+		key = tmp.SourceRepresentation()
+	} else {
+		return "", nil, fmt.Errorf("could not find key in response")
+	}
+	if tmp, ok := response.Literal.OrderedMap.Get("value"); ok {
+		if desc, ok := tmp.OrderedMap.Get("description"); ok {
+			res.Description = desc.SourceRepresentation()
+		}
+		if schema, ok := tmp.OrderedMap.Get("schema"); ok {
+			var err error
+			res.Schema, err = b.convertSchema(schema)
+			if err != nil {
+				return "", nil, err
+			}
+		}
+	} else {
+		return "", nil, fmt.Errorf("could not find value in response")
+	}
+	return key, res, nil
+}
+
+func (b *builder) convertExternalDocs(docs *proto.NamedLiteral) (*openapiv2.ExternalDocumentation, error) {
+	if len(docs.OrderedMap) == 0 {
+		return nil, fmt.Errorf("expected external_docs option to be a map")
+	}
+	res := &openapiv2.ExternalDocumentation{}
+	for _, valueInfo := range docs.OrderedMap {
+		switch valueInfo.Name {
+		case "description", "url":
+			if err := b.setValue(snaker.ForceCamelIdentifier(valueInfo.Name), res, valueInfo.SourceRepresentation()); err != nil {
+				return nil, err
+			}
+		default:
+			return nil, fmt.Errorf("unexpected external_docs option element")
+		}
+	}
+	return res, nil
+}
+
+func (b *builder) convertSchema(literal *proto.Literal) (*openapiv2.Schema, error) {
+	schema := &openapiv2.Schema{}
+	if len(literal.OrderedMap) == 0 {
+		return nil, fmt.Errorf("expected option to be a map")
+	}
+	for _, l := range literal.OrderedMap {
+		switch n := l.Name; n {
+		case "discriminator":
+			schema.Discriminator = l.SourceRepresentation()
+		case "read_only":
+			var err error
+			schema.ReadOnly, err = strconv.ParseBool(l.SourceRepresentation())
+			if err != nil {
+				return nil, err
+			}
+		case "external_docs":
+			var err error
+			schema.ExternalDocs, err = b.convertExternalDocs(l)
+			if err != nil {
+				return nil, err
+			}
+		case "example":
+			if len(l.Literal.Map) == 0 {
+				return nil, fmt.Errorf("expected option to be a map")
+			}
+			value := l.Literal.Map["value"]
+			val, err := b.handleLiteralString(*value)
+			if err != nil {
+				return nil, fmt.Errorf("error with litteral string %q", err)
+			}
+			example := &openapiv2.Any{
+				Value: []byte(val),
+			}
+			schema.Example = example
+		case "json_schema":
+			if len(l.Literal.Map) == 0 {
+				return nil, fmt.Errorf("exepected option to be a map")
+			}
+			jsonSchema := &openapiv2.JSONSchema{}
+			for k, v := range l.Literal.Map {
+				switch k {
+				case "ref",
+					"title",
+					"description",
+					"default",
+					"pattern",
+					"multiple_of",
+					"maximum",
+					"minimum",
+					"exclusive_maximum",
+					"exclusive_minimum",
+					"unique_items",
+					"max_length",
+					"min_length",
+					"max_items",
+					"min_items",
+					"max_properties",
+					"min_properties":
+					if err := b.setValue(snaker.ForceCamelIdentifier(k), jsonSchema, v.SourceRepresentation()); err != nil {
+						return nil, err
+					}
+				case "required":
+					for _, r := range v.Array {
+						jsonSchema.Required = append(jsonSchema.Required, r.SourceRepresentation())
+					}
+				case "array":
+					for _, r := range v.Array {
+						jsonSchema.Array = append(jsonSchema.Array, r.SourceRepresentation())
+					}
+				case "type":
+					t := openapiv2.JSONSchemaSimpleTypes_value[v.SourceRepresentation()]
+					jsonSchema.Type = append(jsonSchema.Type, openapiv2.JSONSchemaSimpleTypes(t))
+				}
+			}
+			schema.JSONSchema = jsonSchema
+		}
+	}
+	return schema, nil
 }
 
 // addImportUsed will record the import so that we can

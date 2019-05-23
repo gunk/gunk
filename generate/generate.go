@@ -579,7 +579,7 @@ func (g *Generator) addDoc(text string, path ...int32) {
 	g.pfile.SourceCodeInfo.Location = append(g.pfile.SourceCodeInfo.Location,
 		&desc.SourceCodeInfo_Location{
 			Path:            path,
-			LeadingComments: proto.String(text),
+			LeadingComments: proto.String(" " + text),
 		},
 	)
 }

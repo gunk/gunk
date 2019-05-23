@@ -3,9 +3,11 @@
 
 package imported
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -16,7 +18,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // Message is a Echo message.
 type Message struct {
@@ -31,16 +33,17 @@ func (m *Message) Reset()         { *m = Message{} }
 func (m *Message) String() string { return proto.CompactTextString(m) }
 func (*Message) ProtoMessage()    {}
 func (*Message) Descriptor() ([]byte, []int) {
-	return fileDescriptor_all_dc9fb63e611e7d6f, []int{0}
+	return fileDescriptor_2f773e6ed5e5c9d5, []int{0}
 }
+
 func (m *Message) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Message.Unmarshal(m, b)
 }
 func (m *Message) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Message.Marshal(b, m, deterministic)
 }
-func (dst *Message) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Message.Merge(dst, src)
+func (m *Message) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Message.Merge(m, src)
 }
 func (m *Message) XXX_Size() int {
 	return xxx_messageInfo_Message.Size(m)
@@ -63,10 +66,10 @@ func init() {
 }
 
 func init() {
-	proto.RegisterFile("testdata.tld/util/imported/all.proto", fileDescriptor_all_dc9fb63e611e7d6f)
+	proto.RegisterFile("testdata.tld/util/imported/all.proto", fileDescriptor_2f773e6ed5e5c9d5)
 }
 
-var fileDescriptor_all_dc9fb63e611e7d6f = []byte{
+var fileDescriptor_2f773e6ed5e5c9d5 = []byte{
 	// 155 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0x52, 0x29, 0x49, 0x2d, 0x2e,
 	0x49, 0x49, 0x2c, 0x49, 0xd4, 0x2b, 0xc9, 0x49, 0xd1, 0x2f, 0x2d, 0xc9, 0xcc, 0xd1, 0xcf, 0xcc,

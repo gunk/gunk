@@ -1,6 +1,7 @@
 package convert
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -31,7 +32,6 @@ func Run(paths []string, overwrite bool) error {
 }
 
 func run(path string, overwrite bool, protocPath string) error {
-
 	fi, err := os.Stat(path)
 	if err != nil {
 		return err
@@ -91,13 +91,12 @@ func convertFile(path string, overwrite bool, importPath string, protocPath stri
 		return fmt.Errorf("path already exists %q, use --overwrite", fullpath)
 	}
 
-	w := &strings.Builder{}
-	if err := loader.ConvertFromProto(w, file, filename, importPath, protocPath); err != nil {
+	var b bytes.Buffer
+	if err := loader.ConvertFromProto(&b, file, filename, importPath, protocPath); err != nil {
 		return err
 	}
 
-	result := []byte(w.String())
-	result, err = format.Source(result)
+	result, err := format.Source(b.Bytes())
 	if err != nil {
 		return err
 	}

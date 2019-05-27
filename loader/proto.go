@@ -16,6 +16,7 @@ import (
 	"github.com/emicklei/proto"
 	"github.com/knq/snaker"
 
+	"github.com/gunk/gunk/reflectutil"
 	"github.com/gunk/opt/openapiv2"
 )
 
@@ -397,7 +398,7 @@ func (b *builder) handleOption(w *strings.Builder, opt *proto.Option) error {
 			b.format(w, 1, nil, "// JSONSchema: %s.JSONSchema{Title:%s, Description:%s}, \n", pkg, schema.JSONSchema.Title, schema.JSONSchema.Description)
 		}
 		if schema.Example != nil {
-			b.format(w, 1, nil, "// Example: map[string]string{\"value\":`%s`}, \n", schema.Example.Value)
+			b.format(w, 1, nil, "// Example: openapiv2.Any{Value:[]byte(`%s`)}, \n", schema.Example.Value)
 		}
 		b.format(w, 1, nil, "// }\n")
 	default:
@@ -825,35 +826,6 @@ func isNilOrEmpty(x interface{}) bool {
 	return reflect.DeepEqual(x, reflect.Zero(reflect.TypeOf(x)).Interface())
 }
 
-func (*builder) setValue(name string, dest interface{}, value string) error {
-	tmp := reflect.Indirect(reflect.ValueOf(dest)).FieldByName(name)
-	if !tmp.IsValid() {
-		return fmt.Errorf("%s was not found in %T", name, dest)
-	}
-	if !tmp.CanAddr() {
-		return fmt.Errorf("%s from %T cannot be addressed", name, dest)
-	}
-	var v interface{}
-	var err error
-	switch k := reflect.TypeOf(tmp.Interface()).Kind(); k {
-	case reflect.String:
-		v = value
-	case reflect.Float64:
-		v, err = strconv.ParseFloat(value, 64)
-	case reflect.Bool:
-		v, err = strconv.ParseBool(value)
-	case reflect.Uint64:
-		v, err = strconv.ParseUint(value, 10, 64)
-	default:
-		return fmt.Errorf("%s not supported", k.String())
-	}
-	if err != nil {
-		return err
-	}
-	tmp.Set(reflect.ValueOf(v))
-	return nil
-}
-
 func (b *builder) convertSwagger(lit proto.Literal) (*openapiv2.Swagger, error) {
 	if len(lit.OrderedMap) == 0 {
 		return nil, fmt.Errorf("expected swagger option to be a map")
@@ -870,7 +842,7 @@ func (b *builder) convertSwagger(lit proto.Literal) (*openapiv2.Swagger, error) 
 			}
 			swagger.Responses[key] = resp
 		case "swagger", "base_path", "host":
-			b.setValue(snaker.ForceCamelIdentifier(v.Name), swagger, v.SourceRepresentation())
+			reflectutil.SetValue(swagger, snaker.ForceCamelIdentifier(v.Name), v.SourceRepresentation())
 		case "security_definitions":
 			var err error
 			swagger.SecurityDefinitions, err = b.convertSecurityDefinitions(v)
@@ -933,9 +905,7 @@ func (b *builder) convertSecurityDefinitions(lit *proto.NamedLiteral) (*openapiv
 							t := openapiv2.Type_value[val.SourceRepresentation()]
 							value.Type = openapiv2.Type(t)
 						case "description", "name", "authorization_url", "token_url":
-							if err := b.setValue(snaker.ForceCamelIdentifier(val.Name), value, val.SourceRepresentation()); err != nil {
-								return nil, err
-							}
+							reflectutil.SetValue(value, snaker.ForceCamelIdentifier(val.Name), val.SourceRepresentation())
 						case "in":
 							in := openapiv2.In_value[val.SourceRepresentation()]
 							value.In = openapiv2.In(in)
@@ -974,9 +944,7 @@ func (b *builder) convertInfo(lit *proto.NamedLiteral) (*openapiv2.Info, error) 
 	for _, valueInfo := range lit.OrderedMap {
 		switch valueInfo.Name {
 		case "title", "description", "terms_of_service", "version":
-			if err := b.setValue(snaker.ForceCamelIdentifier(valueInfo.Name), info, valueInfo.SourceRepresentation()); err != nil {
-				return nil, err
-			}
+			reflectutil.SetValue(info, snaker.ForceCamelIdentifier(valueInfo.Name), valueInfo.SourceRepresentation())
 		case "contact":
 			contact, err := b.convertContact(valueInfo)
 			if err != nil {
@@ -1004,9 +972,7 @@ func (b *builder) convertContact(lit *proto.NamedLiteral) (*openapiv2.Contact, e
 	for _, v := range lit.OrderedMap {
 		switch v.Name {
 		case "name", "url", "email":
-			if err := b.setValue(snaker.ForceCamelIdentifier(v.Name), contact, v.SourceRepresentation()); err != nil {
-				return nil, err
-			}
+			reflectutil.SetValue(contact, snaker.ForceCamelIdentifier(v.Name), v.SourceRepresentation())
 		default:
 			return nil, fmt.Errorf("unexpected contact option element %s", v.Name)
 		}
@@ -1022,9 +988,7 @@ func (b *builder) convertLicense(lit *proto.NamedLiteral) (*openapiv2.License, e
 	for _, v := range lit.OrderedMap {
 		switch v.Name {
 		case "name", "url":
-			if err := b.setValue(snaker.ForceCamelIdentifier(v.Name), license, v.SourceRepresentation()); err != nil {
-				return nil, err
-			}
+			reflectutil.SetValue(license, snaker.ForceCamelIdentifier(v.Name), v.SourceRepresentation())
 		default:
 			return nil, fmt.Errorf("unexpected license option element %s", v.Name)
 		}
@@ -1088,9 +1052,7 @@ func (b *builder) convertExternalDocs(docs *proto.NamedLiteral) (*openapiv2.Exte
 	for _, valueInfo := range docs.OrderedMap {
 		switch valueInfo.Name {
 		case "description", "url":
-			if err := b.setValue(snaker.ForceCamelIdentifier(valueInfo.Name), res, valueInfo.SourceRepresentation()); err != nil {
-				return nil, err
-			}
+			reflectutil.SetValue(res, snaker.ForceCamelIdentifier(valueInfo.Name), valueInfo.SourceRepresentation())
 		default:
 			return nil, fmt.Errorf("unexpected external_docs option element")
 		}
@@ -1156,9 +1118,7 @@ func (b *builder) convertSchema(literal *proto.Literal) (*openapiv2.Schema, erro
 					"min_items",
 					"max_properties",
 					"min_properties":
-					if err := b.setValue(snaker.ForceCamelIdentifier(k), jsonSchema, v.SourceRepresentation()); err != nil {
-						return nil, err
-					}
+					reflectutil.SetValue(jsonSchema, snaker.ForceCamelIdentifier(k), v.SourceRepresentation())
 				case "required":
 					for _, r := range v.Array {
 						jsonSchema.Required = append(jsonSchema.Required, r.SourceRepresentation())

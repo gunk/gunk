@@ -13,7 +13,7 @@ grep 'Account detail' all.swagger.json
 module testdata.tld/util
 
 require (
-	github.com/gunk/opt v0.0.0-20190422104434-5033eecd4078
+	github.com/gunk/opt v0.0.0-20190514110406-385321f21939
 )
 -- .gunkconfig --
 [generate swagger]
@@ -35,7 +35,7 @@ type Account struct {
 	//         JSONSchema: openapiv2.JSONSchema{Title: "Account detail", Description: "Detail information of account"},
 	// }
 	// +gunk openapiv2.Schema{
-	//         Example: map[string]string{"value": `{"success":true,"error_code":"0","error_message":""}`},
+	//         Example: openapiv2.Any{Value: []byte(`{"success":true,"error_code":"0","error_message":""}`)},
 	// }
 	AccountID string `pb:"1" json:"account_id"`
 }

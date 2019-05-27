@@ -1,9 +1,13 @@
-module github.com/gunk/opt@latest
+module github.com/gunk/opt@v0.0.0-20190514110406-385321f21939
 
 -- .mod --
 module github.com/gunk/opt
+
+go 1.12
+
+require github.com/golang/protobuf v1.3.1
 -- .info --
-{"Version":"v0.0.0-20190514110406-385321f21939","Time":"2019-05-14T11:04:06Z"}
+{"Version":"v0.0.0-20190514110406-385321f21939","Time":"2019-05-14T04:04:06-07:00"}
 -- LICENSE --
 The MIT License (MIT)
 

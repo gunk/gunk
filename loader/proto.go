@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"text/scanner"
@@ -730,6 +731,20 @@ func indirectType(t reflect.Type) reflect.Type {
 	return t.Elem()
 }
 
+func sortValues(vals []reflect.Value) {
+	if len(vals) == 0 {
+		return
+	}
+	switch vals[0].Kind() {
+	case reflect.String:
+		sort.Slice(vals, func(i, j int) bool {
+			return vals[i].Interface().(string) < vals[j].Interface().(string)
+		})
+	default:
+		panic(fmt.Sprintf("TODO: reflect sort type: %s", vals[0].Type()))
+	}
+}
+
 func (b *builder) fromStructToAnnotation(val interface{}) string {
 	w := &strings.Builder{}
 
@@ -756,7 +771,9 @@ func (b *builder) fromStructToAnnotation(val interface{}) string {
 				mapKey := value.Type().Key()
 				mapValue := indirectType(value.Type().Elem())
 				b.format(w, 0, nil, "// %s: map[%s]%s{\n", name, mapKey, mapValue)
-				for _, key := range value.MapKeys() {
+				keys := value.MapKeys()
+				sortValues(keys)
+				for _, key := range keys {
 					c := value.MapIndex(key)
 					switch c.Type().Kind() {
 					case reflect.Ptr:

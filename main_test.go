@@ -136,6 +136,7 @@ func TestScripts(t *testing.T) {
 		Dir: filepath.Join("testdata", "scripts"),
 		Setup: func(e *testscript.Env) error {
 			e.Vars = append(e.Vars, "GOPROXY="+proxyURL)
+			e.Vars = append(e.Vars, "GONOSUMDB=*")
 			return nil
 		},
 	})

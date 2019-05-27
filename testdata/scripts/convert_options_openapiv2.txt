@@ -57,7 +57,7 @@ type Account struct {
 	//         JSONSchema: openapiv2.JSONSchema{Title: "Account detail", Description: "Detail information of account"},
 	// }
 	// +gunk openapiv2.Schema{
-	//         Example: map[string]string{"value": `{"success":true,"error_code":"0","error_message":""}`},
+	//         Example: openapiv2.Any{Value: []byte(`{"success":true,"error_code":"0","error_message":""}`)},
 	// }
 	AccountID string `pb:"1" json:"account_id"`
 }

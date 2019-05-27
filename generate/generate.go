@@ -23,6 +23,7 @@ import (
 	"github.com/gunk/gunk/config"
 	"github.com/gunk/gunk/loader"
 	"github.com/gunk/gunk/log"
+	"github.com/gunk/gunk/reflectutil"
 )
 
 // Run generates the specified Gunk packages via protobuf generators, writing
@@ -491,6 +492,14 @@ func (g *Generator) fileOptions(pkg *loader.GunkPackage) (*desc.FileOptions, err
 				// fo.PhpMetadataNamespace = proto.String(constant.StringVal(tag.Value))
 			case "github.com/gunk/opt/file/php.GenericServices":
 				fo.PhpGenericServices = proto.Bool(constant.BoolVal(tag.Value))
+			case "github.com/gunk/opt/openapiv2.Swagger":
+				o, err := g.convertSwagger(tag.Expr.(*ast.CompositeLit))
+				if err != nil {
+					return nil, fmt.Errorf("cannot convert swagger option: %s", err)
+				}
+				if err := proto.SetExtension(fo, options.E_Openapiv2Swagger, o); err != nil {
+					return nil, fmt.Errorf("cannot set swagger extension: %s", err)
+				}
 			default:
 				return nil, fmt.Errorf("gunk package option %q not supported", s)
 			}
@@ -499,6 +508,250 @@ func (g *Generator) fileOptions(pkg *loader.GunkPackage) (*desc.FileOptions, err
 	// Set unset protocol buffer fields to their default values.
 	proto.SetDefaults(fo)
 	return fo, nil
+}
+
+func (g *Generator) convertSwagger(lit *ast.CompositeLit) (*options.Swagger, error) {
+	o := &options.Swagger{}
+	for _, elt := range lit.Elts {
+		kvExpr := elt.(*ast.KeyValueExpr)
+		key := kvExpr.Key.(*ast.Ident).Name
+		switch key {
+		case "Host",
+			"BasePath",
+			"Swagger":
+			val, _ := strconv.Unquote(kvExpr.Value.(*ast.BasicLit).Value)
+			reflectutil.SetValue(o, key, val)
+		case "Consumes":
+			val := kvExpr.Value.(*ast.CompositeLit)
+			for _, valElt := range val.Elts {
+				str, _ := strconv.Unquote(valElt.(*ast.BasicLit).Value)
+				o.Consumes = append(o.Consumes, str)
+			}
+		case "Produces":
+			val := kvExpr.Value.(*ast.CompositeLit)
+			for _, valElt := range val.Elts {
+				str, _ := strconv.Unquote(valElt.(*ast.BasicLit).Value)
+				o.Produces = append(o.Produces, str)
+			}
+		case "Schemes":
+			val := kvExpr.Value.(*ast.CompositeLit)
+			schemes := []options.Swagger_SwaggerScheme{}
+			for _, valElt := range val.Elts {
+				e := options.Swagger_SwaggerScheme_value[valElt.(*ast.SelectorExpr).Sel.Name]
+				schemes = append(schemes, options.Swagger_SwaggerScheme(e))
+			}
+			o.Schemes = schemes
+		case "ExternalDocs":
+			e, err := g.convertExternalDocs(kvExpr.Value.(*ast.CompositeLit))
+			if err != nil {
+				return nil, err
+			}
+			o.ExternalDocs = e
+		case "Info":
+			info, err := g.convertInfo(kvExpr.Value.(*ast.CompositeLit))
+			if err != nil {
+				return nil, err
+			}
+			o.Info = info
+		case "SecurityDefinitions":
+			sd, err := g.convertSecurityDefinitions(kvExpr.Value.(*ast.CompositeLit))
+			if err != nil {
+				return nil, err
+			}
+			o.SecurityDefinitions = sd
+		case "Responses":
+			responses := map[string]*options.Response{}
+			for _, r := range kvExpr.Value.(*ast.CompositeLit).Elts {
+				key, _ := strconv.Unquote(r.(*ast.KeyValueExpr).Key.(*ast.BasicLit).Value)
+				resp := &options.Response{}
+				for _, v := range r.(*ast.KeyValueExpr).Value.(*ast.CompositeLit).Elts {
+					switch v.(*ast.KeyValueExpr).Key.(*ast.Ident).Name {
+					case "Schema":
+						schema := &options.Schema{}
+						val := v.(*ast.KeyValueExpr).Value.(*ast.CompositeLit)
+						for _, s := range val.Elts {
+							switch n := s.(*ast.KeyValueExpr).Key.(*ast.Ident).Name; n {
+							case "JSONSchema":
+								var err error
+								schema.JsonSchema, err = g.convertJSONSchema(s.(*ast.KeyValueExpr).Value.(*ast.CompositeLit))
+								if err != nil {
+									return nil, err
+								}
+							case "Discriminator":
+								d, _ := strconv.Unquote(s.(*ast.KeyValueExpr).Value.(*ast.BasicLit).Value)
+								schema.Discriminator = d
+							case "ReadOnly":
+								schema.ReadOnly, _ = strconv.ParseBool(s.(*ast.KeyValueExpr).Value.(*ast.Ident).Name)
+							case "ExternalDocs":
+								e, err := g.convertExternalDocs(s.(*ast.KeyValueExpr).Value.(*ast.CompositeLit))
+								if err != nil {
+									return nil, err
+								}
+								schema.ExternalDocs = e
+							}
+						}
+						resp.Schema = schema
+					case "Description":
+						resp.Description, _ = strconv.Unquote(v.(*ast.KeyValueExpr).Value.(*ast.BasicLit).Value)
+					}
+				}
+				responses[key] = resp
+			}
+			o.Responses = responses
+		}
+	}
+	return o, nil
+}
+
+func (g *Generator) convertSecurityDefinitions(lit *ast.CompositeLit) (*options.SecurityDefinitions, error) {
+	sd := &options.SecurityDefinitions{
+		Security: map[string]*options.SecurityScheme{},
+	}
+	for _, lElt := range lit.Elts {
+		var key string
+		var value *options.SecurityScheme
+		for _, ss := range lElt.(*ast.KeyValueExpr).Value.(*ast.CompositeLit).Elts {
+			key, _ = strconv.Unquote(ss.(*ast.KeyValueExpr).Key.(*ast.BasicLit).Value)
+			value = &options.SecurityScheme{}
+			for _, v := range ss.(*ast.KeyValueExpr).Value.(*ast.CompositeLit).Elts {
+				n := v.(*ast.KeyValueExpr)
+				switch key := n.Key.(*ast.Ident).Name; key {
+				case "Type":
+					sel, ok := options.SecurityScheme_Type_value[n.Value.(*ast.SelectorExpr).Sel.Name]
+					if !ok {
+						return nil, fmt.Errorf("cannot found security scheme type: %s", n.Value.(*ast.SelectorExpr).Sel.Name)
+					}
+					value.Type = options.SecurityScheme_Type(sel)
+				case "Description",
+					"Name",
+					"AuthorizationURL",
+					"TokenURL":
+					val, _ := strconv.Unquote(n.Value.(*ast.BasicLit).Value)
+					reflectutil.SetValue(value, key, val)
+				case "In":
+					sel, ok := options.SecurityScheme_In_value[n.Value.(*ast.SelectorExpr).Sel.Name]
+					if !ok {
+						return nil, fmt.Errorf("cannot found security scheme in: %s", n.Value.(*ast.SelectorExpr).Sel.Name)
+					}
+					value.In = options.SecurityScheme_In(sel)
+				case "Flow":
+					sel, ok := options.SecurityScheme_Flow_value[n.Value.(*ast.SelectorExpr).Sel.Name]
+					if !ok {
+						return nil, fmt.Errorf("cannot found security scheme flow: %s", n.Value.(*ast.SelectorExpr).Sel.Name)
+					}
+					value.Flow = options.SecurityScheme_Flow(sel)
+				case "Scopes":
+					scope := map[string]string{}
+					for _, sc := range n.Value.(*ast.CompositeLit).Elts {
+						for _, e := range sc.(*ast.KeyValueExpr).Value.(*ast.CompositeLit).Elts {
+							kv := e.(*ast.KeyValueExpr)
+							strKey, _ := strconv.Unquote(kv.Key.(*ast.BasicLit).Value)
+							strValue, _ := strconv.Unquote(kv.Value.(*ast.BasicLit).Value)
+							scope[strKey] = strValue
+						}
+					}
+					value.Scopes = &options.Scopes{
+						Scope: scope,
+					}
+				}
+			}
+			sd.Security[key] = value
+		}
+	}
+	return sd, nil
+}
+
+func (g *Generator) convertExternalDocs(lit *ast.CompositeLit) (*options.ExternalDocumentation, error) {
+	externalDocs := &options.ExternalDocumentation{}
+	for _, valElt := range lit.Elts {
+		kvExpr := valElt.(*ast.KeyValueExpr)
+		key := kvExpr.Key.(*ast.Ident).Name
+		val, _ := strconv.Unquote(kvExpr.Value.(*ast.BasicLit).Value)
+		reflectutil.SetValue(externalDocs, key, val)
+	}
+	return externalDocs, nil
+}
+
+func (g *Generator) convertInfo(lit *ast.CompositeLit) (*options.Info, error) {
+	info := &options.Info{}
+	for _, valElt := range lit.Elts {
+		kvExpr := valElt.(*ast.KeyValueExpr)
+		key := kvExpr.Key.(*ast.Ident).Name
+		switch key {
+		case "Title",
+			"Description",
+			"Version":
+			val, _ := strconv.Unquote(kvExpr.Value.(*ast.BasicLit).Value)
+			reflectutil.SetValue(info, key, val)
+		case "Contact":
+			contact := &options.Contact{}
+			val := kvExpr.Value.(*ast.CompositeLit)
+			for _, cElt := range val.Elts {
+				kvExpr := cElt.(*ast.KeyValueExpr)
+				val, _ := strconv.Unquote(kvExpr.Value.(*ast.BasicLit).Value)
+				reflectutil.SetValue(contact, kvExpr.Key.(*ast.Ident).Name, val)
+			}
+			info.Contact = contact
+		case "License":
+			license := &options.License{}
+			val := kvExpr.Value.(*ast.CompositeLit)
+			for _, lElt := range val.Elts {
+				kvExpr := lElt.(*ast.KeyValueExpr)
+				val, _ := strconv.Unquote(kvExpr.Value.(*ast.BasicLit).Value)
+				reflectutil.SetValue(license, kvExpr.Key.(*ast.Ident).Name, val)
+			}
+			info.License = license
+		}
+	}
+	return info, nil
+}
+
+func (g *Generator) convertJSONSchema(lit *ast.CompositeLit) (*options.JSONSchema, error) {
+	jsonSchema := &options.JSONSchema{}
+	for _, elt := range lit.Elts {
+		name := elt.(*ast.KeyValueExpr).Key.(*ast.Ident).Name
+		value := elt.(*ast.KeyValueExpr).Value
+		switch name {
+		case "Title",
+			"Description",
+			"Ref",
+			"Default",
+			"Pattern":
+			val, _ := strconv.Unquote(value.(*ast.BasicLit).Value)
+			reflectutil.SetValue(jsonSchema, name, val)
+		case "MultipleOf",
+			"Maximum",
+			"Minimum",
+			"MaxLength",
+			"MinLength",
+			"MaxItems",
+			"MinItems",
+			"MaxProperties",
+			"MinProperties":
+			reflectutil.SetValue(jsonSchema, name, value.(*ast.BasicLit).Value)
+		case "ExclusiveMaximum",
+			"ExclusiveMinimum",
+			"UniqueItems":
+			val := value.(*ast.Ident).Name
+			reflectutil.SetValue(jsonSchema, name, val)
+		case "Required":
+			for _, r := range value.(*ast.CompositeLit).Elts {
+				str, _ := strconv.Unquote(r.(*ast.BasicLit).Value)
+				jsonSchema.Required = append(jsonSchema.Required, str)
+			}
+		case "Array":
+			for _, a := range value.(*ast.CompositeLit).Elts {
+				str, _ := strconv.Unquote(a.(*ast.BasicLit).Value)
+				jsonSchema.Array = append(jsonSchema.Array, str)
+			}
+		case "Type":
+			for _, t := range value.(*ast.CompositeLit).Elts {
+				v := options.JSONSchema_JSONSchemaSimpleTypes_value[t.(*ast.SelectorExpr).Sel.Name]
+				jsonSchema.Type = append(jsonSchema.Type, options.JSONSchema_JSONSchemaSimpleTypes(v))
+			}
+		}
+	}
+	return jsonSchema, nil
 }
 
 // appendFile translates a single gunk file to protobuf, appending its contents
@@ -623,20 +876,9 @@ func (g *Generator) fieldOptions(field *ast.Field) (*desc.FieldOptions, error) {
 				kv := tagElt.(*ast.KeyValueExpr)
 				switch kv.Key.(*ast.Ident).Name {
 				case "JSONSchema":
-					title, description := "", ""
-					for _, elt := range kv.Value.(*ast.CompositeLit).Elts {
-						val := elt.(*ast.KeyValueExpr).Value.(*ast.BasicLit).Value
-						name := elt.(*ast.KeyValueExpr).Key.(*ast.Ident).Name
-						switch name {
-						case "Title":
-							title = val
-						case "Description":
-							description = val
-						}
-					}
-					op := &options.JSONSchema{
-						Title:       title,
-						Description: description,
+					op, err := g.convertJSONSchema(kv.Value.(*ast.CompositeLit))
+					if err != nil {
+						return nil, err
 					}
 					if err := proto.SetExtension(o, options.E_Openapiv2Field, op); err != nil {
 						return nil, err

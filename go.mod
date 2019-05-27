@@ -18,3 +18,5 @@ require (
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 )
+
+go 1.13

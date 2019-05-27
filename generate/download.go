@@ -131,7 +131,6 @@ func downloadAndExtractProtoc(protocCachePath string) error {
 // 	- osx-x86_64
 // 	- win32
 func protocDownloadURL() (string, error) {
-
 	// Translate the arch to what the protoc download expects.
 	var arch string
 	switch a := runtime.GOARCH; a {

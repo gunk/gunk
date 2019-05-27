@@ -488,7 +488,7 @@ func (g *Generator) fileOptions(pkg *loader.GunkPackage) (*desc.FileOptions, err
 				fo.PhpClassPrefix = proto.String(constant.StringVal(tag.Value))
 			case "github.com/gunk/opt/file/php.MetadataNamespace":
 				// TODO: This isn't currently in protoc-gen-go decriptor.pb.go
-				//fo.PhpMetadataNamespace = proto.String(constant.StringVal(tag.Value))
+				// fo.PhpMetadataNamespace = proto.String(constant.StringVal(tag.Value))
 			case "github.com/gunk/opt/file/php.GenericServices":
 				fo.PhpGenericServices = proto.Bool(constant.BoolVal(tag.Value))
 			default:
@@ -1018,6 +1018,7 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto,
 			}
 			// To avoid duplicate prefix (protoc-gen-go),
 			// we remove the enum type name if present
+			// TODO: not covered by any test?
 			prefix := *enum.Name + "_"
 			if strings.Contains(name.Name, prefix) {
 				name.Name = strings.Replace(name.Name, prefix, "", 1)

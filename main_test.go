@@ -18,7 +18,6 @@ import (
 var write = flag.Bool("w", false, "overwrite testdata output files")
 
 func TestMain(m *testing.M) {
-
 	if os.Getenv("TESTSCRIPT_COMMAND") == "" {
 		flag.Parse()
 		// Don't put the binaries in a temporary directory to delete, as that

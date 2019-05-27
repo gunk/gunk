@@ -452,7 +452,6 @@ func (b *builder) handleEnum(e *proto.Enum) error {
 			if o, ok := e.(*proto.Option); ok && o != nil {
 				fmt.Fprintln(os.Stderr, b.formatError(o.Position, "unhandled enumvalue option %q", o.Name))
 			}
-
 		}
 
 		// If we can't output as an iota.
@@ -723,14 +722,22 @@ func (b *builder) handlePackage() (string, error) {
 	return w.String(), nil
 }
 
+// indirectType is like reflect.Indirect, but it works on a reflect.Type.
+func indirectType(t reflect.Type) reflect.Type {
+	if t.Kind() != reflect.Ptr {
+		return t
+	}
+	return t.Elem()
+}
+
 func (b *builder) fromStructToAnnotation(val interface{}) string {
 	w := &strings.Builder{}
 
-	s := reflect.TypeOf(val)
 	v := reflect.ValueOf(val)
+	t := v.Type()
 
-	for i := 0; i < s.NumField(); i++ {
-		name := s.Field(i).Name
+	for i := 0; i < t.NumField(); i++ {
+		name := t.Field(i).Name
 		value := v.FieldByName(name)
 		if !isNilOrEmpty(value.Interface()) {
 			switch value.Kind() {
@@ -747,14 +754,14 @@ func (b *builder) fromStructToAnnotation(val interface{}) string {
 				// Ignore
 			case reflect.Map:
 				mapKey := value.Type().Key()
-				mapValue := strings.Replace(value.Type().Elem().String(), "*", "", -1)
+				mapValue := indirectType(value.Type().Elem())
 				b.format(w, 0, nil, "// %s: map[%s]%s{\n", name, mapKey, mapValue)
 				for _, key := range value.MapKeys() {
 					c := value.MapIndex(key)
-					switch reflect.TypeOf(c.Interface()).Kind() {
+					switch c.Type().Kind() {
 					case reflect.Ptr:
 						t := reflect.Indirect(c).Interface()
-						b.format(w, 0, nil, "// %s: %s{\n", key, reflect.TypeOf(t))
+						b.format(w, 0, nil, "// %s: %T{\n", key, t)
 						b.format(w, 0, nil, b.fromStructToAnnotation(t))
 						b.format(w, 0, nil, "// },\n")
 					default:
@@ -804,10 +811,10 @@ func isNilOrEmpty(x interface{}) bool {
 func (*builder) setValue(name string, dest interface{}, value string) error {
 	tmp := reflect.Indirect(reflect.ValueOf(dest)).FieldByName(name)
 	if !tmp.IsValid() {
-		return fmt.Errorf("%s was not found in %s", name, reflect.TypeOf(dest).String())
+		return fmt.Errorf("%s was not found in %T", name, dest)
 	}
 	if !tmp.CanAddr() {
-		return fmt.Errorf("%s from %s cannot be addressed", name, reflect.TypeOf(dest).String())
+		return fmt.Errorf("%s from %T cannot be addressed", name, dest)
 	}
 	var v interface{}
 	var err error

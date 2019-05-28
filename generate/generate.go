@@ -510,6 +510,59 @@ func (g *Generator) fileOptions(pkg *loader.GunkPackage) (*desc.FileOptions, err
 	return fo, nil
 }
 
+func (g *Generator) convertOperation(lit *ast.CompositeLit) (*options.Operation, error) {
+	op := &options.Operation{}
+	for _, elt := range lit.Elts {
+		kv := elt.(*ast.KeyValueExpr)
+		switch name := kv.Key.(*ast.Ident).Name; name {
+		case "Tags":
+			for _, tag := range kv.Value.(*ast.CompositeLit).Elts {
+				val, _ := strconv.Unquote(tag.(*ast.BasicLit).Value)
+				op.Tags = append(op.Tags, val)
+			}
+		case "Description",
+			"Summary",
+			"OperationID":
+			val, _ := strconv.Unquote(kv.Value.(*ast.BasicLit).Value)
+			reflectutil.SetValue(op, name, val)
+		case "Deprecated":
+			val := kv.Value.(*ast.Ident).Name
+			reflectutil.SetValue(op, name, val)
+		case "Consumes",
+			"Produces",
+			"Schemes":
+			val := kv.Value.(*ast.CompositeLit)
+			for _, valElt := range val.Elts {
+				str, _ := strconv.Unquote(valElt.(*ast.BasicLit).Value)
+				reflectutil.SetValue(op, name, str)
+			}
+		case "Responses":
+			r, err := g.convertResponses(kv.Value.(*ast.CompositeLit))
+			if err != nil {
+				return nil, err
+			}
+			op.Responses = r
+		case "ExternalDocs":
+			e, err := g.convertExternalDocs(kv.Value.(*ast.CompositeLit))
+			if err != nil {
+				return nil, err
+			}
+			op.ExternalDocs = e
+		case "Security":
+			for _, elt := range kv.Value.(*ast.CompositeLit).Elts {
+				s, err := g.convertSecurity(elt.(*ast.CompositeLit))
+				if err != nil {
+					return nil, err
+				}
+				op.Security = append(op.Security, s)
+			}
+		default:
+			return nil, fmt.Errorf("unexpected field for operation: %s", name)
+		}
+	}
+	return op, nil
+}
+
 func (g *Generator) convertSwagger(lit *ast.CompositeLit) (*options.Swagger, error) {
 	o := &options.Swagger{}
 	for _, elt := range lit.Elts {
@@ -560,47 +613,98 @@ func (g *Generator) convertSwagger(lit *ast.CompositeLit) (*options.Swagger, err
 			}
 			o.SecurityDefinitions = sd
 		case "Responses":
-			responses := map[string]*options.Response{}
-			for _, r := range kvExpr.Value.(*ast.CompositeLit).Elts {
-				key, _ := strconv.Unquote(r.(*ast.KeyValueExpr).Key.(*ast.BasicLit).Value)
-				resp := &options.Response{}
-				for _, v := range r.(*ast.KeyValueExpr).Value.(*ast.CompositeLit).Elts {
-					switch v.(*ast.KeyValueExpr).Key.(*ast.Ident).Name {
-					case "Schema":
-						schema := &options.Schema{}
-						val := v.(*ast.KeyValueExpr).Value.(*ast.CompositeLit)
-						for _, s := range val.Elts {
-							switch n := s.(*ast.KeyValueExpr).Key.(*ast.Ident).Name; n {
-							case "JSONSchema":
-								var err error
-								schema.JsonSchema, err = g.convertJSONSchema(s.(*ast.KeyValueExpr).Value.(*ast.CompositeLit))
-								if err != nil {
-									return nil, err
-								}
-							case "Discriminator":
-								d, _ := strconv.Unquote(s.(*ast.KeyValueExpr).Value.(*ast.BasicLit).Value)
-								schema.Discriminator = d
-							case "ReadOnly":
-								schema.ReadOnly, _ = strconv.ParseBool(s.(*ast.KeyValueExpr).Value.(*ast.Ident).Name)
-							case "ExternalDocs":
-								e, err := g.convertExternalDocs(s.(*ast.KeyValueExpr).Value.(*ast.CompositeLit))
-								if err != nil {
-									return nil, err
-								}
-								schema.ExternalDocs = e
-							}
-						}
-						resp.Schema = schema
-					case "Description":
-						resp.Description, _ = strconv.Unquote(v.(*ast.KeyValueExpr).Value.(*ast.BasicLit).Value)
-					}
-				}
-				responses[key] = resp
+			r, err := g.convertResponses(kvExpr.Value.(*ast.CompositeLit))
+			if err != nil {
+				return nil, err
 			}
-			o.Responses = responses
+			o.Responses = r
+		case "Security":
+			for _, elt := range kvExpr.Value.(*ast.CompositeLit).Elts {
+				s, err := g.convertSecurity(elt.(*ast.CompositeLit))
+				if err != nil {
+					return nil, err
+				}
+				o.Security = append(o.Security, s)
+			}
 		}
 	}
 	return o, nil
+}
+
+func (g *Generator) convertResponses(lit *ast.CompositeLit) (map[string]*options.Response, error) {
+	responses := map[string]*options.Response{}
+	for _, r := range lit.Elts {
+		key, _ := strconv.Unquote(r.(*ast.KeyValueExpr).Key.(*ast.BasicLit).Value)
+		resp := &options.Response{}
+		for _, v := range r.(*ast.KeyValueExpr).Value.(*ast.CompositeLit).Elts {
+			switch v.(*ast.KeyValueExpr).Key.(*ast.Ident).Name {
+			case "Schema":
+				schema := &options.Schema{}
+				val := v.(*ast.KeyValueExpr).Value.(*ast.CompositeLit)
+				for _, s := range val.Elts {
+					switch n := s.(*ast.KeyValueExpr).Key.(*ast.Ident).Name; n {
+					case "JSONSchema":
+						var err error
+						schema.JsonSchema, err = g.convertJSONSchema(s.(*ast.KeyValueExpr).Value.(*ast.CompositeLit))
+						if err != nil {
+							return nil, err
+						}
+					case "Discriminator":
+						d, _ := strconv.Unquote(s.(*ast.KeyValueExpr).Value.(*ast.BasicLit).Value)
+						schema.Discriminator = d
+					case "ReadOnly":
+						schema.ReadOnly, _ = strconv.ParseBool(s.(*ast.KeyValueExpr).Value.(*ast.Ident).Name)
+					case "ExternalDocs":
+						e, err := g.convertExternalDocs(s.(*ast.KeyValueExpr).Value.(*ast.CompositeLit))
+						if err != nil {
+							return nil, err
+						}
+						schema.ExternalDocs = e
+					}
+				}
+				resp.Schema = schema
+			case "Description":
+				resp.Description, _ = strconv.Unquote(v.(*ast.KeyValueExpr).Value.(*ast.BasicLit).Value)
+			}
+		}
+		responses[key] = resp
+	}
+	return responses, nil
+}
+
+func (g *Generator) convertSecurity(lit *ast.CompositeLit) (*options.SecurityRequirement, error) {
+	s := &options.SecurityRequirement{
+		SecurityRequirement: map[string]*options.SecurityRequirement_SecurityRequirementValue{},
+	}
+	for _, elt := range lit.Elts {
+		kv := elt.(*ast.KeyValueExpr)
+		switch name := kv.Key.(*ast.Ident).Name; name {
+		case "SecurityRequirement":
+			for _, r := range kv.Value.(*ast.CompositeLit).Elts {
+				rkv := r.(*ast.KeyValueExpr)
+				key, _ := strconv.Unquote(rkv.Key.(*ast.BasicLit).Value)
+				var scopes []string
+				for _, sc := range rkv.Value.(*ast.CompositeLit).Elts {
+					sckv := sc.(*ast.KeyValueExpr)
+					switch name := sckv.Key.(*ast.Ident).Name; name {
+					case "Scope":
+						for _, i := range sckv.Value.(*ast.CompositeLit).Elts {
+							v, _ := strconv.Unquote(i.(*ast.BasicLit).Value)
+							scopes = append(scopes, v)
+						}
+					default:
+						return nil, fmt.Errorf("unexpected key for security requirement: %s", name)
+					}
+				}
+				s.SecurityRequirement[key] = &options.SecurityRequirement_SecurityRequirementValue{
+					Scope: scopes,
+				}
+			}
+		default:
+			return nil, fmt.Errorf("unexptected key for security: %s", name)
+		}
+	}
+	return s, nil
 }
 
 func (g *Generator) convertSecurityDefinitions(lit *ast.CompositeLit) (*options.SecurityDefinitions, error) {
@@ -1037,23 +1141,9 @@ func (g *Generator) methodOptions(method *ast.Field) (*desc.MethodOptions, error
 			}
 			g.addProtoDep("google/api/annotations.proto")
 		case "github.com/gunk/opt/openapiv2.Operation":
-			op := &options.Operation{}
-			for _, elt := range tag.Expr.(*ast.CompositeLit).Elts {
-				kv := elt.(*ast.KeyValueExpr)
-				switch name := kv.Key.(*ast.Ident).Name; name {
-				case "Tags":
-					for _, tag := range kv.Value.(*ast.CompositeLit).Elts {
-						val, _ := strconv.Unquote(tag.(*ast.BasicLit).Value)
-						op.Tags = append(op.Tags, val)
-					}
-				case "Description":
-					val, _ := strconv.Unquote(kv.Value.(*ast.BasicLit).Value)
-					op.Description = val
-				case "Summary":
-					val, _ := strconv.Unquote(kv.Value.(*ast.BasicLit).Value)
-					op.Summary = val
-				}
-
+			op, err := g.convertOperation(tag.Expr.(*ast.CompositeLit))
+			if err != nil {
+				return nil, fmt.Errorf("could not convert operation: %s", err)
 			}
 			if err := proto.SetExtension(o, options.E_Openapiv2Operation, op); err != nil {
 				return nil, err

@@ -143,6 +143,13 @@ require (
       }
     }
   },
+  "security": [
+    {
+      "ApiKeyAuth": [
+        "update"
+      ]
+    }
+  ],
   "externalDocs": {
     "description": "More about gunk",
     "url": "https://github.com/gunk/gunk"
@@ -255,6 +262,17 @@ require (
 //                                                 "admin": "Grants read and write access to administrative information",
 //                                                 "read":  "Grants read access",
 //                                                 "write": "Grants write access",
+//                                         },
+//                                 },
+//                         },
+//                 },
+//         },
+//         Security: []openapiv2.SecurityRequirement{
+//                 {
+//                         SecurityRequirement: map[string]openapiv2.SecurityRequirement_SecurityRequirementValue{
+//                                 "ApiKeyAuth": openapiv2.SecurityRequirement_SecurityRequirementValue{
+//                                         Scope: []string{
+//                                                 "update",
 //                                         },
 //                                 },
 //                         },

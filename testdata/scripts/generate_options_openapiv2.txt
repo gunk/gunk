@@ -2,12 +2,7 @@ env HOME=$WORK/home
 
 gunk generate echo.gunk
 
-exists all.swagger.json
-grep '"/v1/account/{AccountID}"' all.swagger.json
-grep '"summary": "Retrieves account information"' all.swagger.json
-grep '"description": "Get account information"' all.swagger.json
-grep 'Detail information of account' all.swagger.json
-grep 'Account detail' all.swagger.json
+cmp all.swagger.json all.swagger.json.golden
 
 -- go.mod --
 module testdata.tld/util
@@ -18,40 +13,152 @@ require (
 -- .gunkconfig --
 [generate swagger]
 -- echo.gunk --
-package util
+// +gunk openapiv2.Swagger{
+//         Swagger: "2.0",
+//         Info: openapiv2.Info{
+//                 Title: "this is a title",
+//         },
+// }
+package test
 
 import (
 	"github.com/gunk/opt/http"
 	"github.com/gunk/opt/openapiv2"
 )
 
-type GetAccountRequest struct {
-	AccountID string `pb:"1" json:"account_id"`
+// Message comment
+type Message struct {
+	Name string `pb:"1" json:"name"`
 }
 
-// Account contains information for a specific account.
-type Account struct {
-	// +gunk openapiv2.Schema{
-	//         JSONSchema: openapiv2.JSONSchema{Title: "Account detail", Description: "Detail information of account"},
-	// }
-	// +gunk openapiv2.Schema{
-	//         Example: openapiv2.Any{Value: []byte(`{"success":true,"error_code":"0","error_message":""}`)},
-	// }
-	AccountID string `pb:"1" json:"account_id"`
-}
-
-// AccountService provides account management service endpoints.
-type AccountService interface {
-	// GetAccount retrieves account information.
-	//
+type Service interface {
 	// +gunk openapiv2.Operation{
-	//         Tags:        []string{"Account"},
-	//         Description: "Get account information",
-	//         Summary:     "Retrieves account information",
+	//         Tags: []string{
+	//                 "tag 1",
+	//                 "tag 2",
+	//         },
+	//         Summary:     "Retrieves message",
+	//         Description: "Get message",
+	//         ExternalDocs: openapiv2.ExternalDocumentation{
+	//                 Description: "Find out more about GetQuery",
+	//                 URL:         "https://github.com/grpc-ecosystem/grpc-gateway",
+	//         },
+	//         OperationID: "operation_id",
+	//         Consumes: []string{
+	//                 "application/json",
+	//         },
+	//         Produces: []string{
+	//                 "application/xml",
+	//         },
+	//         Responses: map[string]openapiv2.Response{
+	//                 "404": openapiv2.Response{
+	//                         Description: "Returned when the resource does not exist.",
+	//                 },
+	//         },
+	//         Schemes: []string{
+	//                 "scheme 1",
+	//                 "scheme 2",
+	//         },
+	//         Deprecated: true,
+	//         Security: []openapiv2.SecurityRequirement{
+	//                 {
+	//                         SecurityRequirement: map[string]openapiv2.SecurityRequirement_SecurityRequirementValue{
+	//                                 "ApiKeyAuth": openapiv2.SecurityRequirement_SecurityRequirementValue{
+	//                                         Scope: []string{
+	//                                                 "update",
+	//                                         },
+	//                                 },
+	//                                 "OAuth2": openapiv2.SecurityRequirement_SecurityRequirementValue{
+	//                                         Scope: []string{
+	//                                                 "read",
+	//                                                 "write",
+	//                                         },
+	//                                 },
+	//                         },
+	//                 },
+	//         },
 	// }
 	// +gunk http.Match{
 	//         Method: "GET",
-	//         Path:   "/v1/account/{AccountID}",
+	//         Path:   "/v1/message/{Name}",
 	// }
-	GetAccount(GetAccountRequest) Account
+	GetMessage(Message) Message
+}
+-- all.swagger.json.golden --
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "this is a title",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/message/{Name}": {
+      "get": {
+        "summary": "Retrieves message",
+        "description": "Get message",
+        "operationId": "GetMessage",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/testMessage"
+            }
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {}
+          }
+        },
+        "parameters": [
+          {
+            "name": "Name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "tag 1",
+          "tag 2"
+        ],
+        "deprecated": true,
+        "security": [
+          {
+            "ApiKeyAuth": [
+              "update"
+            ],
+            "OAuth2": [
+              "read",
+              "write"
+            ]
+          }
+        ],
+        "externalDocs": {
+          "description": "Find out more about GetQuery",
+          "url": "https://github.com/grpc-ecosystem/grpc-gateway"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "testMessage": {
+      "type": "object",
+      "properties": {
+        "Name": {
+          "type": "string"
+        }
+      },
+      "title": "Message comment"
+    }
+  }
 }

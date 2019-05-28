@@ -131,6 +131,14 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 			}
 		}
 	}
+	security: {
+        security_requirement: {
+          key: "ApiKeyAuth";
+          value: {
+            scope:"update";
+          }
+        }
+      }
 };
 
 // Message comment
@@ -262,6 +270,17 @@ service Service {
 //                         },
 //                 },
 //         },
+//         Security: []openapiv2.SecurityRequirement{
+//                 {
+//                         SecurityRequirement: map[string]openapiv2.SecurityRequirement_SecurityRequirementValue{
+//                                 "ApiKeyAuth": openapiv2.SecurityRequirement_SecurityRequirementValue{
+//                                         Scope: []string{
+//                                                 "update",
+//                                         },
+//                                 },
+//                         },
+//                 },
+//         },
 //         ExternalDocs: openapiv2.ExternalDocumentation{
 //                 Description: "More about gunk",
 //                 URL:         "https://github.com/gunk/gunk",
@@ -283,9 +302,11 @@ type Message struct {
 
 type Service interface {
 	// +gunk openapiv2.Operation{
-	//         Tags:        []string{"Message"},
-	//         Description: "Get message",
+	//         Tags: []string{
+	//                 "Message",
+	//         },
 	//         Summary:     "Retrieves message",
+	//         Description: "Get message",
 	// }
 	// +gunk http.Match{
 	//         Method: "GET",

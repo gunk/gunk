@@ -26,7 +26,7 @@ func SetValue(structPtr interface{}, name, value string) {
 	}
 	var v interface{}
 	var err error
-	switch k := tmp.Type().Kind(); k {
+	switch k := tmp.Type(); k.Kind() {
 	case reflect.String:
 		v = value
 	case reflect.Float64:
@@ -35,6 +35,13 @@ func SetValue(structPtr interface{}, name, value string) {
 		v, err = strconv.ParseBool(value)
 	case reflect.Uint64:
 		v, err = strconv.ParseUint(value, 10, 64)
+	case reflect.Slice:
+		switch k.Elem().Kind() {
+		case reflect.String:
+			v = reflect.Append(tmp, reflect.ValueOf(value)).Interface()
+		default:
+			panic(fmt.Errorf("slice of %s not supported", k.Elem().String()))
+		}
 	default:
 		panic(fmt.Errorf("%s not supported", k.String()))
 	}

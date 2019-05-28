@@ -508,32 +508,9 @@ func (b *builder) handleService(s *proto.Service) error {
 			}
 			switch n := opt.Name; n {
 			case "(grpc.gateway.protoc_gen_swagger.options.openapiv2_operation)":
-				literal := opt.Constant
-				if len(literal.OrderedMap) == 0 {
-					return b.formatError(opt.Position, "expected option to be a map")
-				}
-				var err error
-				summary, description := "", ""
-				tags := []string{}
-				for _, l := range literal.OrderedMap {
-					switch n := l.Name; n {
-					case "tags":
-						tag, err := b.handleLiteralString(*l.Literal)
-						if err != nil {
-							return b.formatError(opt.Position, "option for tags should be a string")
-						}
-						tags = append(tags, tag)
-					case "summary":
-						summary, err = b.handleLiteralString(*l.Literal)
-						if err != nil {
-							return b.formatError(opt.Position, "option for summary should be a string")
-						}
-					case "description":
-						description, err = b.handleLiteralString(*l.Literal)
-						if err != nil {
-							return b.formatError(opt.Position, "option for description should be a string")
-						}
-					}
+				op, err := b.convertOperation(opt.Constant)
+				if err != nil {
+					return b.formatError(opt.Position, "cannot convert option to operation: %s", err)
 				}
 
 				pkg := b.addImportUsed("github.com/gunk/opt/openapiv2")
@@ -542,15 +519,7 @@ func (b *builder) handleService(s *proto.Service) error {
 					comment = nil
 				}
 				b.format(w, 1, nil, "// +gunk %s.Operation{\n", pkg)
-				if len(tags) > 0 {
-					b.format(w, 1, nil, "// Tags: []string{%q}, \n", strings.Join(tags, "\",\""))
-				}
-				if description != "" {
-					b.format(w, 1, nil, "// Description: %q, \n", description)
-				}
-				if summary != "" {
-					b.format(w, 1, nil, "// Summary: %q, \n", summary)
-				}
+				b.format(w, 1, nil, b.fromStructToAnnotation(*op))
 				b.format(w, 1, nil, "// }\n")
 			case "(google.api.http)":
 				var err error
@@ -778,33 +747,41 @@ func (b *builder) fromStructToAnnotation(val interface{}) string {
 					c := value.MapIndex(key)
 					switch c.Type().Kind() {
 					case reflect.Ptr:
-						t := reflect.Indirect(c).Interface()
-						b.format(w, 0, nil, "// %s: %T{\n", key, t)
-						b.format(w, 0, nil, b.fromStructToAnnotation(t))
-						b.format(w, 0, nil, "// },\n")
+						if !c.IsNil() {
+							t := reflect.Indirect(c).Interface()
+							b.format(w, 0, nil, "// %s: %T{\n", key, t)
+							b.format(w, 0, nil, b.fromStructToAnnotation(t))
+							b.format(w, 0, nil, "// },\n")
+						}
 					default:
 						b.format(w, 0, nil, "// %s: %s,\n", key, c)
 					}
 				}
 				b.format(w, 0, nil, "// },\n")
 			case reflect.Ptr:
-				t := reflect.Indirect(value).Interface()
-				b.format(w, 0, nil, "// %s: %s{\n", name, reflect.TypeOf(t))
-				w.WriteString(b.fromStructToAnnotation(t))
-				b.format(w, 0, nil, "// },\n")
+				if !value.IsNil() {
+					t := reflect.Indirect(value).Interface()
+					b.format(w, 0, nil, "// %s: %T{\n", name, t)
+					w.WriteString(b.fromStructToAnnotation(t))
+					b.format(w, 0, nil, "// },\n")
+				}
 			case reflect.Slice:
-				b.format(w, 0, nil, "// %s: %s{\n", name, reflect.TypeOf(value.Interface()))
+				b.format(w, 0, nil, "// %s: []%s{\n", name, indirectType(value.Type().Elem()))
 				for i := 0; i < value.Len(); i++ {
-					val := value.Index(i).Interface()
-					switch reflect.TypeOf(val).Kind() {
+					val := value.Index(i)
+					switch val.Kind() {
 					case reflect.Ptr:
-						// TODO (ced)
+						if !val.IsNil() {
+							b.format(w, 0, nil, "// {\n")
+							b.format(w, 0, nil, b.fromStructToAnnotation(reflect.Indirect(val).Interface()))
+							b.format(w, 0, nil, "// },\n")
+						}
 					default:
-						if pkgPath := reflect.TypeOf(val).PkgPath(); pkgPath == "" {
-							b.format(w, 0, nil, "// %v,\n", val)
+						if pkgPath := val.Type().PkgPath(); pkgPath == "" {
+							b.format(w, 0, nil, "// %v,\n", val.Interface())
 						} else {
 							pkg := strings.Split(pkgPath, "/")
-							b.format(w, 0, nil, "// %s.%v,\n", pkg[len(pkg)-1], val)
+							b.format(w, 0, nil, "// %s.%v,\n", pkg[len(pkg)-1], val.Interface())
 						}
 					}
 				}
@@ -826,13 +803,55 @@ func isNilOrEmpty(x interface{}) bool {
 	return reflect.DeepEqual(x, reflect.Zero(reflect.TypeOf(x)).Interface())
 }
 
+func (b *builder) convertOperation(lit proto.Literal) (*openapiv2.Operation, error) {
+	if len(lit.OrderedMap) == 0 {
+		return nil, fmt.Errorf("operation expected to be a map")
+	}
+	op := &openapiv2.Operation{}
+	responses := map[string]*openapiv2.Response{}
+	for _, l := range lit.OrderedMap {
+		switch n := l.Name; n {
+		case "summary",
+			"description",
+			"operation_id",
+			"tags",
+			"schemes",
+			"consumes",
+			"produces",
+			"deprecated":
+			reflectutil.SetValue(op, snaker.ForceCamelIdentifier(n), l.SourceRepresentation())
+		case "external_docs":
+			e, err := b.convertExternalDocs(l)
+			if err != nil {
+				return nil, err
+			}
+			op.ExternalDocs = e
+		case "responses":
+			key, resp, err := b.convertResponse(l)
+			if err != nil {
+				return nil, err
+			}
+			responses[key] = resp
+		case "security":
+			s, err := b.convertSecurity(l)
+			if err != nil {
+				return nil, err
+			}
+			op.Security = append(op.Security, s)
+		}
+	}
+	if len(responses) > 0 {
+		op.Responses = responses
+	}
+	return op, nil
+}
+
 func (b *builder) convertSwagger(lit proto.Literal) (*openapiv2.Swagger, error) {
 	if len(lit.OrderedMap) == 0 {
 		return nil, fmt.Errorf("expected swagger option to be a map")
 	}
-	swagger := &openapiv2.Swagger{
-		Responses: map[string]*openapiv2.Response{},
-	}
+	swagger := &openapiv2.Swagger{}
+	responses := map[string]*openapiv2.Response{}
 	for _, v := range lit.OrderedMap {
 		switch v.Name {
 		case "responses":
@@ -840,7 +859,7 @@ func (b *builder) convertSwagger(lit proto.Literal) (*openapiv2.Swagger, error) 
 			if err != nil {
 				return nil, err
 			}
-			swagger.Responses[key] = resp
+			responses[key] = resp
 		case "swagger", "base_path", "host":
 			reflectutil.SetValue(swagger, snaker.ForceCamelIdentifier(v.Name), v.SourceRepresentation())
 		case "security_definitions":
@@ -868,11 +887,63 @@ func (b *builder) convertSwagger(lit proto.Literal) (*openapiv2.Swagger, error) 
 			if err != nil {
 				return nil, err
 			}
+		case "security":
+			s, err := b.convertSecurity(v)
+			if err != nil {
+				return nil, err
+			}
+			swagger.Security = append(swagger.Security, s)
 		default:
 			return nil, fmt.Errorf("unexpected swagger option element %s", v.Name)
 		}
 	}
+	if len(responses) > 0 {
+		swagger.Responses = responses
+	}
 	return swagger, nil
+}
+
+func (b *builder) convertSecurity(lit *proto.NamedLiteral) (*openapiv2.SecurityRequirement, error) {
+	if len(lit.OrderedMap) == 0 {
+		return nil, fmt.Errorf("expected security option to be a map")
+	}
+	s := &openapiv2.SecurityRequirement{
+		SecurityRequirement: map[string]*openapiv2.SecurityRequirement_SecurityRequirementValue{},
+	}
+	for _, elt := range lit.OrderedMap {
+		switch elt.Name {
+		case "security_requirement":
+			if len(elt.OrderedMap) == 0 {
+				return nil, fmt.Errorf("expected security_requirement to be a map")
+			}
+			var key string
+			var value *openapiv2.SecurityRequirement_SecurityRequirementValue
+			for _, r := range elt.OrderedMap {
+				switch r.Name {
+				case "key":
+					key = r.SourceRepresentation()
+				case "value":
+					if len(r.OrderedMap) > 0 {
+						value = &openapiv2.SecurityRequirement_SecurityRequirementValue{}
+						for _, v := range r.OrderedMap {
+							switch v.Name {
+							case "scope":
+								reflectutil.SetValue(value, v.Name, v.SourceRepresentation())
+							default:
+								return nil, fmt.Errorf("unexpected security_requirement_value element")
+							}
+						}
+					}
+				default:
+					return nil, fmt.Errorf("unexpected security_requirement option element")
+				}
+			}
+			s.SecurityRequirement[key] = value
+		default:
+			return nil, fmt.Errorf("unexpected security option element")
+		}
+	}
+	return s, nil
 }
 
 func (b *builder) convertSecurityDefinitions(lit *proto.NamedLiteral) (*openapiv2.SecurityDefinitions, error) {

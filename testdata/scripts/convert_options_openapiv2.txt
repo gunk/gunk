@@ -8,33 +8,57 @@ syntax = "proto3";
 
 package util;
 
-message GetAccountRequest { string account_id = 1; }
-
-// Account contains information for a specific account.
-message Account {
-  option (grpc.gateway.protoc_gen_swagger.options.openapiv2_schema) = {
-    json_schema : {
-      title : "Account detail"
-      description : "Detail information of account"
-    }
-  };
-  option (grpc.gateway.protoc_gen_swagger.options.openapiv2_schema) = {
-	  example: { value: '{ "success": true, "error_code": "0", "error_message": "" }' }
-  };
-  string account_id = 1;
+// Message comment
+message Message {
+	string Name = 1;
 }
 
-// AccountService provides account management service endpoints.
-service AccountService {
-  // GetAccount retrieves account information.
-  rpc GetAccount(GetAccountRequest) returns (Account) {
+service Service {
+  rpc GetMessage(Message) returns (Message) {
     option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
-      description : "Get account information"
-      summary : "Retrieves account information"
-      tags : "Account"
+      tags : "tag 1"
+      tags : "tag 2"
+      summary : "Retrieves message"
+      description : "Get message"
+      external_docs: {
+        url: "https://github.com/grpc-ecosystem/grpc-gateway";
+        description: "Find out more about GetQuery";
+      }
+      operation_id:"operation_id"
+      consumes: "application/json"
+      produces: "application/xml"
+      responses: {
+        key: "404";
+        value: {
+            description: "Returned when the resource does not exist.";
+        }
+      }
+      schemes: "scheme 1"
+      schemes: "scheme 2"
+      deprecated: true
+      security: {
+				security_requirement: {
+          key: "empty";
+          value: {
+					}
+        }
+        security_requirement: {
+          key: "ApiKeyAuth";
+          value: {
+						scope: "update";
+					}
+        }
+        security_requirement: {
+          key: "OAuth2";
+          value: {
+            scope: "read";
+            scope: "write";
+          }
+        }
+      }
     };
     option (google.api.http) = {
-      get : "/v1/account/{account_id}"
+      get : "/v1/message/{Name}"
     };
   }
 }
@@ -47,33 +71,61 @@ import (
 	"github.com/gunk/opt/openapiv2"
 )
 
-type GetAccountRequest struct {
-	AccountID string `pb:"1" json:"account_id"`
+// Message comment
+type Message struct {
+	Name string `pb:"1" json:"name"`
 }
 
-// Account contains information for a specific account.
-type Account struct {
-	// +gunk openapiv2.Schema{
-	//         JSONSchema: openapiv2.JSONSchema{Title: "Account detail", Description: "Detail information of account"},
-	// }
-	// +gunk openapiv2.Schema{
-	//         Example: openapiv2.Any{Value: []byte(`{"success":true,"error_code":"0","error_message":""}`)},
-	// }
-	AccountID string `pb:"1" json:"account_id"`
-}
-
-// AccountService provides account management service endpoints.
-type AccountService interface {
-	// GetAccount retrieves account information.
-	//
+type Service interface {
 	// +gunk openapiv2.Operation{
-	//         Tags:        []string{"Account"},
-	//         Description: "Get account information",
-	//         Summary:     "Retrieves account information",
+	//         Tags: []string{
+	//                 "tag 1",
+	//                 "tag 2",
+	//         },
+	//         Summary:     "Retrieves message",
+	//         Description: "Get message",
+	//         ExternalDocs: openapiv2.ExternalDocumentation{
+	//                 Description: "Find out more about GetQuery",
+	//                 URL:         "https://github.com/grpc-ecosystem/grpc-gateway",
+	//         },
+	//         OperationID: "operation_id",
+	//         Consumes: []string{
+	//                 "application/json",
+	//         },
+	//         Produces: []string{
+	//                 "application/xml",
+	//         },
+	//         Responses: map[string]openapiv2.Response{
+	//                 "404": openapiv2.Response{
+	//                         Description: "Returned when the resource does not exist.",
+	//                 },
+	//         },
+	//         Schemes: []string{
+	//                 "scheme 1",
+	//                 "scheme 2",
+	//         },
+	//         Deprecated: true,
+	//         Security: []openapiv2.SecurityRequirement{
+	//                 {
+	//                         SecurityRequirement: map[string]openapiv2.SecurityRequirement_SecurityRequirementValue{
+	//                                 "ApiKeyAuth": openapiv2.SecurityRequirement_SecurityRequirementValue{
+	//                                         Scope: []string{
+	//                                                 "update",
+	//                                         },
+	//                                 },
+	//                                 "OAuth2": openapiv2.SecurityRequirement_SecurityRequirementValue{
+	//                                         Scope: []string{
+	//                                                 "read",
+	//                                                 "write",
+	//                                         },
+	//                                 },
+	//                         },
+	//                 },
+	//         },
 	// }
 	// +gunk http.Match{
 	//         Method: "GET",
-	//         Path:   "/v1/account/{AccountID}",
+	//         Path:   "/v1/message/{Name}",
 	// }
-	GetAccount(GetAccountRequest) Account
+	GetMessage(Message) Message
 }

@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/emicklei/proto"
 )
 
 type protoLiteral interface {
@@ -38,6 +40,52 @@ func SetValue(structPtr interface{}, name, value interface{}) {
 		panic(fmt.Errorf("%s was not found in %T", nameStr, structPtr))
 	}
 
+	val := valueFor(tmp.Type(), value)
+	if tmp.Type().Kind() == reflect.Slice && val.Type().Kind() != reflect.Slice {
+		val = reflect.Append(tmp, val)
+	}
+	tmp.Set(val)
+}
+
+func valueFor(typ reflect.Type, value interface{}) reflect.Value {
+	switch typ.Kind() {
+	case reflect.Ptr:
+		return valueFor(typ.Elem(), value).Addr()
+	case reflect.Struct:
+		strc := reflect.New(typ)
+		switch value := value.(type) {
+		case *ast.CompositeLit:
+			for _, elt := range value.Elts {
+				kv := elt.(*ast.KeyValueExpr)
+				SetValue(strc.Interface(), kv.Key, kv.Value)
+			}
+		case *proto.NamedLiteral:
+			for _, lit := range value.OrderedMap {
+				SetValue(strc.Interface(), lit.Name, lit)
+			}
+		default:
+			panic(fmt.Sprintf("%T is not a valid value for %s", value, typ))
+		}
+		return strc.Elem()
+	case reflect.Slice:
+		list := reflect.MakeSlice(typ, 0, 0)
+		switch value := value.(type) {
+		case *ast.CompositeLit:
+			for _, elt := range value.Elts {
+				list = reflect.Append(list, valueFor(typ.Elem(), elt))
+			}
+		case *proto.Literal:
+			for _, lit := range value.Array {
+				list = reflect.Append(list, valueFor(typ.Elem(), lit))
+			}
+		default:
+			// try appending a single element
+			// TODO(mvdan): remove later
+			return valueFor(typ.Elem(), value)
+		}
+		return list
+	}
+
 	switch x := value.(type) {
 	case *ast.Ident:
 		value = x.Name
@@ -49,7 +97,7 @@ func SetValue(structPtr interface{}, name, value interface{}) {
 
 	var v interface{}
 	var err error
-	switch k := tmp.Type(); k.Kind() {
+	switch typ.Kind() {
 	case reflect.String:
 		switch value := value.(type) {
 		case string:
@@ -83,23 +131,16 @@ func SetValue(structPtr interface{}, name, value interface{}) {
 		case string:
 			v, err = strconv.ParseUint(value, 10, 64)
 		}
-	case reflect.Slice:
-		switch k.Elem().Kind() {
-		case reflect.String:
-			v = reflect.Append(tmp, reflect.ValueOf(value)).Interface()
-		default:
-			panic(fmt.Errorf("slice of %s not supported", k.Elem().String()))
-		}
 	}
 	if err != nil {
 		panic(err)
 	}
 	if v == nil {
-		panic(fmt.Sprintf("%T is not a valid value for %s", value, tmp.Type()))
+		panic(fmt.Sprintf("%T is not a valid value for %s", value, typ))
 	}
 	val := reflect.ValueOf(v)
-	if t := tmp.Type(); val.Type().ConvertibleTo(t) {
-		val = val.Convert(t)
+	if val.Type().ConvertibleTo(typ) {
+		val = val.Convert(typ)
 	}
-	tmp.Set(val)
+	return val
 }

@@ -517,30 +517,12 @@ func (g *Generator) convertOperation(lit *ast.CompositeLit) (*options.Operation,
 		switch name := kv.Key.(*ast.Ident).Name; name {
 		default:
 			reflectutil.SetValue(op, name, kv.Value)
-		case "Tags":
-			for _, tag := range kv.Value.(*ast.CompositeLit).Elts {
-				val, _ := strconv.Unquote(tag.(*ast.BasicLit).Value)
-				op.Tags = append(op.Tags, val)
-			}
-		case "Consumes",
-			"Produces",
-			"Schemes":
-			val := kv.Value.(*ast.CompositeLit)
-			for _, valElt := range val.Elts {
-				reflectutil.SetValue(op, name, valElt)
-			}
 		case "Responses":
 			r, err := g.convertResponses(kv.Value.(*ast.CompositeLit))
 			if err != nil {
 				return nil, err
 			}
 			op.Responses = r
-		case "ExternalDocs":
-			e, err := g.convertExternalDocs(kv.Value.(*ast.CompositeLit))
-			if err != nil {
-				return nil, err
-			}
-			op.ExternalDocs = e
 		case "Security":
 			for _, elt := range kv.Value.(*ast.CompositeLit).Elts {
 				s, err := g.convertSecurity(elt.(*ast.CompositeLit))
@@ -562,38 +544,14 @@ func (g *Generator) convertSwagger(lit *ast.CompositeLit) (*options.Swagger, err
 		switch key {
 		default:
 			reflectutil.SetValue(o, key, kv.Value)
-		case "Consumes":
-			val := kv.Value.(*ast.CompositeLit)
-			for _, valElt := range val.Elts {
-				str, _ := strconv.Unquote(valElt.(*ast.BasicLit).Value)
-				o.Consumes = append(o.Consumes, str)
-			}
-		case "Produces":
-			val := kv.Value.(*ast.CompositeLit)
-			for _, valElt := range val.Elts {
-				str, _ := strconv.Unquote(valElt.(*ast.BasicLit).Value)
-				o.Produces = append(o.Produces, str)
-			}
 		case "Schemes":
 			val := kv.Value.(*ast.CompositeLit)
 			schemes := []options.Swagger_SwaggerScheme{}
-			for _, valElt := range val.Elts {
-				e := options.Swagger_SwaggerScheme_value[valElt.(*ast.SelectorExpr).Sel.Name]
+			for _, elt := range val.Elts {
+				e := options.Swagger_SwaggerScheme_value[elt.(*ast.SelectorExpr).Sel.Name]
 				schemes = append(schemes, options.Swagger_SwaggerScheme(e))
 			}
 			o.Schemes = schemes
-		case "ExternalDocs":
-			e, err := g.convertExternalDocs(kv.Value.(*ast.CompositeLit))
-			if err != nil {
-				return nil, err
-			}
-			o.ExternalDocs = e
-		case "Info":
-			info, err := g.convertInfo(kv.Value.(*ast.CompositeLit))
-			if err != nil {
-				return nil, err
-			}
-			o.Info = info
 		case "SecurityDefinitions":
 			sd, err := g.convertSecurityDefinitions(kv.Value.(*ast.CompositeLit))
 			if err != nil {
@@ -643,12 +601,6 @@ func (g *Generator) convertResponses(lit *ast.CompositeLit) (map[string]*options
 						if err != nil {
 							return nil, err
 						}
-					case "ExternalDocs":
-						e, err := g.convertExternalDocs(kv.Value.(*ast.CompositeLit))
-						if err != nil {
-							return nil, err
-						}
-						schema.ExternalDocs = e
 					}
 				}
 				resp.Schema = schema
@@ -700,10 +652,10 @@ func (g *Generator) convertSecurityDefinitions(lit *ast.CompositeLit) (*options.
 	}
 	// TODO: don't hard-code this somehow
 	prefix := "grpc.gateway.protoc_gen_swagger.options.SecurityScheme_"
-	for _, lElt := range lit.Elts {
+	for _, elt := range lit.Elts {
 		var key string
 		var value *options.SecurityScheme
-		for _, ss := range lElt.(*ast.KeyValueExpr).Value.(*ast.CompositeLit).Elts {
+		for _, ss := range elt.(*ast.KeyValueExpr).Value.(*ast.CompositeLit).Elts {
 			key, _ = strconv.Unquote(ss.(*ast.KeyValueExpr).Key.(*ast.BasicLit).Value)
 			value = &options.SecurityScheme{}
 			for _, v := range ss.(*ast.KeyValueExpr).Value.(*ast.CompositeLit).Elts {
@@ -740,44 +692,6 @@ func (g *Generator) convertSecurityDefinitions(lit *ast.CompositeLit) (*options.
 	return sd, nil
 }
 
-func (g *Generator) convertExternalDocs(lit *ast.CompositeLit) (*options.ExternalDocumentation, error) {
-	externalDocs := &options.ExternalDocumentation{}
-	for _, valElt := range lit.Elts {
-		kv := valElt.(*ast.KeyValueExpr)
-		reflectutil.SetValue(externalDocs, kv.Key, kv.Value)
-	}
-	return externalDocs, nil
-}
-
-func (g *Generator) convertInfo(lit *ast.CompositeLit) (*options.Info, error) {
-	info := &options.Info{}
-	for _, valElt := range lit.Elts {
-		kv := valElt.(*ast.KeyValueExpr)
-		key := kv.Key.(*ast.Ident).Name
-		switch key {
-		default:
-			reflectutil.SetValue(info, key, kv.Value)
-		case "Contact":
-			contact := &options.Contact{}
-			val := kv.Value.(*ast.CompositeLit)
-			for _, cElt := range val.Elts {
-				kv := cElt.(*ast.KeyValueExpr)
-				reflectutil.SetValue(contact, kv.Key, kv.Value)
-			}
-			info.Contact = contact
-		case "License":
-			license := &options.License{}
-			val := kv.Value.(*ast.CompositeLit)
-			for _, lElt := range val.Elts {
-				kv := lElt.(*ast.KeyValueExpr)
-				reflectutil.SetValue(license, kv.Key, kv.Value)
-			}
-			info.License = license
-		}
-	}
-	return info, nil
-}
-
 func (g *Generator) convertJSONSchema(lit *ast.CompositeLit) (*options.JSONSchema, error) {
 	jsonSchema := &options.JSONSchema{}
 	for _, elt := range lit.Elts {
@@ -786,16 +700,6 @@ func (g *Generator) convertJSONSchema(lit *ast.CompositeLit) (*options.JSONSchem
 		switch name {
 		default:
 			reflectutil.SetValue(jsonSchema, name, value)
-		case "Required":
-			for _, r := range value.(*ast.CompositeLit).Elts {
-				str, _ := strconv.Unquote(r.(*ast.BasicLit).Value)
-				jsonSchema.Required = append(jsonSchema.Required, str)
-			}
-		case "Array":
-			for _, a := range value.(*ast.CompositeLit).Elts {
-				str, _ := strconv.Unquote(a.(*ast.BasicLit).Value)
-				jsonSchema.Array = append(jsonSchema.Array, str)
-			}
 		case "Type":
 			for _, t := range value.(*ast.CompositeLit).Elts {
 				v := options.JSONSchema_JSONSchemaSimpleTypes_value[t.(*ast.SelectorExpr).Sel.Name]
@@ -924,8 +828,8 @@ func (g *Generator) fieldOptions(field *ast.Field) (*desc.FieldOptions, error) {
 			oValue := desc.FieldOptions_JSType(protoEnumValue(tag.Value))
 			o.Jstype = &oValue
 		case "github.com/gunk/opt/openapiv2.Schema":
-			for _, tagElt := range tag.Expr.(*ast.CompositeLit).Elts {
-				kv := tagElt.(*ast.KeyValueExpr)
+			for _, elt := range tag.Expr.(*ast.CompositeLit).Elts {
+				kv := elt.(*ast.KeyValueExpr)
 				switch kv.Key.(*ast.Ident).Name {
 				case "JSONSchema":
 					op, err := g.convertJSONSchema(kv.Value.(*ast.CompositeLit))

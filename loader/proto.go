@@ -521,28 +521,18 @@ func (b *builder) handleService(s *proto.Service) error {
 				b.format(w, 1, nil, b.fromStructToAnnotation(*op))
 				b.format(w, 1, nil, "// }\n")
 			case "(google.api.http)":
-				var err error
 				method := ""
 				url := ""
 				body := ""
 				literal := opt.Constant
-				if len(literal.OrderedMap) == 0 {
-					return b.formatError(opt.Position, "expected option to be a map")
-				}
 				for _, l := range literal.OrderedMap {
 					switch n := l.Name; n {
 					case "body":
-						body, err = b.handleLiteralString(*l.Literal)
-						if err != nil {
-							return b.formatError(opt.Position, "option for body should be a string")
-						}
+						body = l.Literal.Source
 					default:
 						method = n
-						tmp, err := b.handleLiteralString(*l.Literal)
-						if err != nil {
-							return b.formatError(opt.Position, "option for %q should be a string (url)", method)
-						}
-						url = urlVarRegexp.ReplaceAllStringFunc(tmp, func(id string) string {
+						url = l.Literal.Source
+						url = urlVarRegexp.ReplaceAllStringFunc(url, func(id string) string {
 							return "{" + snaker.ForceCamelIdentifier(id) + "}"
 						})
 					}
@@ -777,7 +767,13 @@ func (b *builder) fromStructToAnnotation(val interface{}) string {
 						}
 					default:
 						if pkgPath := val.Type().PkgPath(); pkgPath == "" {
-							b.format(w, 0, nil, "// %v,\n", val.Interface())
+							// TODO: "%s: %#v" is almost perfect, but it
+							// seems to prefer 0x notation for integers.
+							if val.Kind() == reflect.String {
+								b.format(w, 0, nil, "// %q,\n", val)
+							} else {
+								b.format(w, 0, nil, "// %v,\n", val)
+							}
 						} else {
 							pkg := strings.Split(pkgPath, "/")
 							b.format(w, 0, nil, "// %s.%v,\n", pkg[len(pkg)-1], val.Interface())
@@ -809,28 +805,12 @@ func isNilOrEmpty(x interface{}) bool {
 }
 
 func (b *builder) convertOperation(lit proto.Literal) (*openapiv2.Operation, error) {
-	if len(lit.OrderedMap) == 0 {
-		return nil, fmt.Errorf("operation expected to be a map")
-	}
 	op := &openapiv2.Operation{}
 	responses := map[string]*openapiv2.Response{}
 	for _, l := range lit.OrderedMap {
 		switch n := l.Name; n {
-		case "summary",
-			"description",
-			"operation_id",
-			"tags",
-			"schemes",
-			"consumes",
-			"produces",
-			"deprecated":
+		default:
 			reflectutil.SetValue(op, n, l)
-		case "external_docs":
-			e, err := b.convertExternalDocs(l)
-			if err != nil {
-				return nil, err
-			}
-			op.ExternalDocs = e
 		case "responses":
 			key, resp, err := b.convertResponse(l)
 			if err != nil {
@@ -852,21 +832,18 @@ func (b *builder) convertOperation(lit proto.Literal) (*openapiv2.Operation, err
 }
 
 func (b *builder) convertSwagger(lit proto.Literal) (*openapiv2.Swagger, error) {
-	if len(lit.OrderedMap) == 0 {
-		return nil, fmt.Errorf("expected swagger option to be a map")
-	}
 	swagger := &openapiv2.Swagger{}
 	responses := map[string]*openapiv2.Response{}
 	for _, v := range lit.OrderedMap {
 		switch v.Name {
+		default:
+			reflectutil.SetValue(swagger, v.Name, v)
 		case "responses":
 			key, resp, err := b.convertResponse(v)
 			if err != nil {
 				return nil, err
 			}
 			responses[key] = resp
-		case "swagger", "base_path", "host":
-			reflectutil.SetValue(swagger, v.Name, v)
 		case "security_definitions":
 			var err error
 			swagger.SecurityDefinitions, err = b.convertSecurityDefinitions(v)
@@ -876,28 +853,12 @@ func (b *builder) convertSwagger(lit proto.Literal) (*openapiv2.Swagger, error) 
 		case "schemes":
 			s := openapiv2.SwaggerScheme_value[v.SourceRepresentation()]
 			swagger.Schemes = append(swagger.Schemes, openapiv2.SwaggerScheme(s))
-		case "consumes", "produces":
-			reflectutil.SetValue(swagger, v.Name, v)
-		case "external_docs":
-			var err error
-			swagger.ExternalDocs, err = b.convertExternalDocs(v)
-			if err != nil {
-				return nil, err
-			}
-		case "info":
-			var err error
-			swagger.Info, err = b.convertInfo(v)
-			if err != nil {
-				return nil, err
-			}
 		case "security":
 			s, err := b.convertSecurity(v)
 			if err != nil {
 				return nil, err
 			}
 			swagger.Security = append(swagger.Security, s)
-		default:
-			return nil, fmt.Errorf("unexpected swagger option element %s", v.Name)
 		}
 	}
 	if len(responses) > 0 {
@@ -907,18 +868,12 @@ func (b *builder) convertSwagger(lit proto.Literal) (*openapiv2.Swagger, error) 
 }
 
 func (b *builder) convertSecurity(lit *proto.NamedLiteral) (*openapiv2.SecurityRequirement, error) {
-	if len(lit.OrderedMap) == 0 {
-		return nil, fmt.Errorf("expected security option to be a map")
-	}
 	s := &openapiv2.SecurityRequirement{
 		SecurityRequirement: map[string]*openapiv2.SecurityRequirement_SecurityRequirementValue{},
 	}
 	for _, elt := range lit.OrderedMap {
 		switch elt.Name {
 		case "security_requirement":
-			if len(elt.OrderedMap) == 0 {
-				return nil, fmt.Errorf("expected security_requirement to be a map")
-			}
 			var key string
 			var value *openapiv2.SecurityRequirement_SecurityRequirementValue
 			for _, r := range elt.OrderedMap {
@@ -929,12 +884,7 @@ func (b *builder) convertSecurity(lit *proto.NamedLiteral) (*openapiv2.SecurityR
 					if len(r.OrderedMap) > 0 {
 						value = &openapiv2.SecurityRequirement_SecurityRequirementValue{}
 						for _, v := range r.OrderedMap {
-							switch v.Name {
-							case "scope":
-								reflectutil.SetValue(value, v.Name, v)
-							default:
-								return nil, fmt.Errorf("unexpected security_requirement_value element")
-							}
+							reflectutil.SetValue(value, v.Name, v)
 						}
 					}
 				default:
@@ -950,18 +900,12 @@ func (b *builder) convertSecurity(lit *proto.NamedLiteral) (*openapiv2.SecurityR
 }
 
 func (b *builder) convertSecurityDefinitions(lit *proto.NamedLiteral) (*openapiv2.SecurityDefinitions, error) {
-	if len(lit.OrderedMap) == 0 {
-		return nil, fmt.Errorf("expected security_definitions option to be a map")
-	}
 	securityDefinitions := &openapiv2.SecurityDefinitions{
 		Security: map[string]*openapiv2.SecurityScheme{},
 	}
 	for _, valueInfo := range lit.OrderedMap {
 		switch valueInfo.Name {
 		case "security":
-			if len(lit.OrderedMap) == 0 {
-				return nil, fmt.Errorf("expected security option to be a map")
-			}
 			var key string
 			var value *openapiv2.SecurityScheme
 			for _, secVal := range valueInfo.OrderedMap {
@@ -970,16 +914,13 @@ func (b *builder) convertSecurityDefinitions(lit *proto.NamedLiteral) (*openapiv
 					key = secVal.SourceRepresentation()
 				case "value":
 					value = &openapiv2.SecurityScheme{}
-					if len(secVal.OrderedMap) == 0 {
-						return nil, fmt.Errorf("expected security value to be a map")
-					}
 					for _, val := range secVal.OrderedMap {
 						switch val.Name {
+						default:
+							reflectutil.SetValue(value, val.Name, val)
 						case "type":
 							t := openapiv2.Type_value[val.SourceRepresentation()]
 							value.Type = openapiv2.Type(t)
-						case "description", "name", "authorization_url", "token_url":
-							reflectutil.SetValue(value, val.Name, val)
 						case "in":
 							in := openapiv2.In_value[val.SourceRepresentation()]
 							value.In = openapiv2.In(in)
@@ -994,8 +935,6 @@ func (b *builder) convertSecurityDefinitions(lit *proto.NamedLiteral) (*openapiv
 							value.Scopes = &openapiv2.Scopes{
 								Scope: scope,
 							}
-						default:
-							return nil, fmt.Errorf("unexpected security value element")
 						}
 					}
 				default:
@@ -1010,76 +949,10 @@ func (b *builder) convertSecurityDefinitions(lit *proto.NamedLiteral) (*openapiv
 	return securityDefinitions, nil
 }
 
-func (b *builder) convertInfo(lit *proto.NamedLiteral) (*openapiv2.Info, error) {
-	if len(lit.OrderedMap) == 0 {
-		return nil, fmt.Errorf("expected info option to be a map")
-	}
-	info := &openapiv2.Info{}
-	for _, valueInfo := range lit.OrderedMap {
-		switch valueInfo.Name {
-		case "title", "description", "terms_of_service", "version":
-			reflectutil.SetValue(info, valueInfo.Name, valueInfo)
-		case "contact":
-			contact, err := b.convertContact(valueInfo)
-			if err != nil {
-				return nil, err
-			}
-			info.Contact = contact
-		case "license":
-			license, err := b.convertLicense(valueInfo)
-			if err != nil {
-				return nil, err
-			}
-			info.License = license
-		default:
-			return nil, fmt.Errorf("unexpected info option element")
-		}
-	}
-	return info, nil
-}
-
-func (b *builder) convertContact(lit *proto.NamedLiteral) (*openapiv2.Contact, error) {
-	if len(lit.OrderedMap) == 0 {
-		return nil, fmt.Errorf("expected contact option to be a map")
-	}
-	contact := &openapiv2.Contact{}
-	for _, v := range lit.OrderedMap {
-		switch v.Name {
-		case "name", "url", "email":
-			reflectutil.SetValue(contact, v.Name, v)
-		default:
-			return nil, fmt.Errorf("unexpected contact option element %s", v.Name)
-		}
-	}
-	return contact, nil
-}
-
-func (b *builder) convertLicense(lit *proto.NamedLiteral) (*openapiv2.License, error) {
-	if len(lit.OrderedMap) == 0 {
-		return nil, fmt.Errorf("expected license option to be a map")
-	}
-	license := &openapiv2.License{}
-	for _, v := range lit.OrderedMap {
-		switch v.Name {
-		case "name", "url":
-			reflectutil.SetValue(license, v.Name, v)
-		default:
-			return nil, fmt.Errorf("unexpected license option element %s", v.Name)
-		}
-	}
-	return license, nil
-}
-
 func (b *builder) convertScopes(scopes *proto.NamedLiteral) (map[string]string, error) {
-	if len(scopes.OrderedMap) == 0 {
-		return nil, fmt.Errorf("expected scopes to be a map")
-	}
 	res := map[string]string{}
 	key, value := "", ""
 	for _, scope := range scopes.OrderedMap {
-		if len(scope.OrderedMap) == 0 {
-			return nil, fmt.Errorf("expected scope to be a map")
-		}
 		for _, v := range scope.OrderedMap {
 			switch v.Name {
 			case "key":
@@ -1118,83 +991,21 @@ func (b *builder) convertResponse(response *proto.NamedLiteral) (string, *openap
 	return key, res, nil
 }
 
-func (b *builder) convertExternalDocs(docs *proto.NamedLiteral) (*openapiv2.ExternalDocumentation, error) {
-	if len(docs.OrderedMap) == 0 {
-		return nil, fmt.Errorf("expected external_docs option to be a map")
-	}
-	res := &openapiv2.ExternalDocumentation{}
-	for _, valueInfo := range docs.OrderedMap {
-		switch valueInfo.Name {
-		case "description", "url":
-			reflectutil.SetValue(res, valueInfo.Name, valueInfo)
-		default:
-			return nil, fmt.Errorf("unexpected external_docs option element")
-		}
-	}
-	return res, nil
-}
-
 func (b *builder) convertSchema(literal *proto.Literal) (*openapiv2.Schema, error) {
 	schema := &openapiv2.Schema{}
-	if len(literal.OrderedMap) == 0 {
-		return nil, fmt.Errorf("expected option to be a map")
-	}
 	for _, l := range literal.OrderedMap {
 		switch n := l.Name; n {
-		case "discriminator", "read_only":
+		default:
 			reflectutil.SetValue(schema, n, l)
-		case "external_docs":
-			var err error
-			schema.ExternalDocs, err = b.convertExternalDocs(l)
-			if err != nil {
-				return nil, err
-			}
 		case "example":
-			if len(l.Literal.Map) == 0 {
-				return nil, fmt.Errorf("expected option to be a map")
-			}
-			value := l.Literal.Map["value"]
-			val, err := b.handleLiteralString(*value)
-			if err != nil {
-				return nil, fmt.Errorf("error with litteral string %q", err)
-			}
-			example := &openapiv2.Any{
-				Value: []byte(val),
-			}
-			schema.Example = example
+			val := l.Literal.Map["value"].Source
+			schema.Example = &openapiv2.Any{Value: []byte(val)}
 		case "json_schema":
-			if len(l.Literal.Map) == 0 {
-				return nil, fmt.Errorf("exepected option to be a map")
-			}
 			jsonSchema := &openapiv2.JSONSchema{}
 			for k, v := range l.Literal.Map {
 				switch k {
-				case "ref",
-					"title",
-					"description",
-					"default",
-					"pattern",
-					"multiple_of",
-					"maximum",
-					"minimum",
-					"exclusive_maximum",
-					"exclusive_minimum",
-					"unique_items",
-					"max_length",
-					"min_length",
-					"max_items",
-					"min_items",
-					"max_properties",
-					"min_properties":
+				default:
 					reflectutil.SetValue(jsonSchema, k, v)
-				case "required":
-					for _, r := range v.Array {
-						jsonSchema.Required = append(jsonSchema.Required, r.SourceRepresentation())
-					}
-				case "array":
-					for _, r := range v.Array {
-						jsonSchema.Array = append(jsonSchema.Array, r.SourceRepresentation())
-					}
 				case "type":
 					t := openapiv2.JSONSchemaSimpleTypes_value[v.SourceRepresentation()]
 					jsonSchema.Type = append(jsonSchema.Type, openapiv2.JSONSchemaSimpleTypes(t))
@@ -1265,13 +1076,6 @@ func (b *builder) handleImports() string {
 	}
 	b.format(w, 0, nil, "\n)")
 	return w.String()
-}
-
-func (b *builder) handleLiteralString(lit proto.Literal) (string, error) {
-	if !lit.IsString {
-		return "", fmt.Errorf("literal was expected to be a string")
-	}
-	return lit.Source, nil
 }
 
 func (b *builder) validatePackageName() error {

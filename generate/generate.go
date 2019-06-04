@@ -515,26 +515,19 @@ func (g *Generator) convertOperation(lit *ast.CompositeLit) (*options.Operation,
 	for _, elt := range lit.Elts {
 		kv := elt.(*ast.KeyValueExpr)
 		switch name := kv.Key.(*ast.Ident).Name; name {
+		default:
+			reflectutil.SetValue(op, name, kv.Value)
 		case "Tags":
 			for _, tag := range kv.Value.(*ast.CompositeLit).Elts {
 				val, _ := strconv.Unquote(tag.(*ast.BasicLit).Value)
 				op.Tags = append(op.Tags, val)
 			}
-		case "Description",
-			"Summary",
-			"OperationID":
-			val, _ := strconv.Unquote(kv.Value.(*ast.BasicLit).Value)
-			reflectutil.SetValue(op, name, val)
-		case "Deprecated":
-			val := kv.Value.(*ast.Ident).Name
-			reflectutil.SetValue(op, name, val)
 		case "Consumes",
 			"Produces",
 			"Schemes":
 			val := kv.Value.(*ast.CompositeLit)
 			for _, valElt := range val.Elts {
-				str, _ := strconv.Unquote(valElt.(*ast.BasicLit).Value)
-				reflectutil.SetValue(op, name, str)
+				reflectutil.SetValue(op, name, valElt)
 			}
 		case "Responses":
 			r, err := g.convertResponses(kv.Value.(*ast.CompositeLit))
@@ -556,8 +549,6 @@ func (g *Generator) convertOperation(lit *ast.CompositeLit) (*options.Operation,
 				}
 				op.Security = append(op.Security, s)
 			}
-		default:
-			return nil, fmt.Errorf("unexpected field for operation: %s", name)
 		}
 	}
 	return op, nil
@@ -566,28 +557,25 @@ func (g *Generator) convertOperation(lit *ast.CompositeLit) (*options.Operation,
 func (g *Generator) convertSwagger(lit *ast.CompositeLit) (*options.Swagger, error) {
 	o := &options.Swagger{}
 	for _, elt := range lit.Elts {
-		kvExpr := elt.(*ast.KeyValueExpr)
-		key := kvExpr.Key.(*ast.Ident).Name
+		kv := elt.(*ast.KeyValueExpr)
+		key := kv.Key.(*ast.Ident).Name
 		switch key {
-		case "Host",
-			"BasePath",
-			"Swagger":
-			val, _ := strconv.Unquote(kvExpr.Value.(*ast.BasicLit).Value)
-			reflectutil.SetValue(o, key, val)
+		default:
+			reflectutil.SetValue(o, key, kv.Value)
 		case "Consumes":
-			val := kvExpr.Value.(*ast.CompositeLit)
+			val := kv.Value.(*ast.CompositeLit)
 			for _, valElt := range val.Elts {
 				str, _ := strconv.Unquote(valElt.(*ast.BasicLit).Value)
 				o.Consumes = append(o.Consumes, str)
 			}
 		case "Produces":
-			val := kvExpr.Value.(*ast.CompositeLit)
+			val := kv.Value.(*ast.CompositeLit)
 			for _, valElt := range val.Elts {
 				str, _ := strconv.Unquote(valElt.(*ast.BasicLit).Value)
 				o.Produces = append(o.Produces, str)
 			}
 		case "Schemes":
-			val := kvExpr.Value.(*ast.CompositeLit)
+			val := kv.Value.(*ast.CompositeLit)
 			schemes := []options.Swagger_SwaggerScheme{}
 			for _, valElt := range val.Elts {
 				e := options.Swagger_SwaggerScheme_value[valElt.(*ast.SelectorExpr).Sel.Name]
@@ -595,31 +583,31 @@ func (g *Generator) convertSwagger(lit *ast.CompositeLit) (*options.Swagger, err
 			}
 			o.Schemes = schemes
 		case "ExternalDocs":
-			e, err := g.convertExternalDocs(kvExpr.Value.(*ast.CompositeLit))
+			e, err := g.convertExternalDocs(kv.Value.(*ast.CompositeLit))
 			if err != nil {
 				return nil, err
 			}
 			o.ExternalDocs = e
 		case "Info":
-			info, err := g.convertInfo(kvExpr.Value.(*ast.CompositeLit))
+			info, err := g.convertInfo(kv.Value.(*ast.CompositeLit))
 			if err != nil {
 				return nil, err
 			}
 			o.Info = info
 		case "SecurityDefinitions":
-			sd, err := g.convertSecurityDefinitions(kvExpr.Value.(*ast.CompositeLit))
+			sd, err := g.convertSecurityDefinitions(kv.Value.(*ast.CompositeLit))
 			if err != nil {
 				return nil, err
 			}
 			o.SecurityDefinitions = sd
 		case "Responses":
-			r, err := g.convertResponses(kvExpr.Value.(*ast.CompositeLit))
+			r, err := g.convertResponses(kv.Value.(*ast.CompositeLit))
 			if err != nil {
 				return nil, err
 			}
 			o.Responses = r
 		case "Security":
-			for _, elt := range kvExpr.Value.(*ast.CompositeLit).Elts {
+			for _, elt := range kv.Value.(*ast.CompositeLit).Elts {
 				s, err := g.convertSecurity(elt.(*ast.CompositeLit))
 				if err != nil {
 					return nil, err
@@ -637,25 +625,26 @@ func (g *Generator) convertResponses(lit *ast.CompositeLit) (map[string]*options
 		key, _ := strconv.Unquote(r.(*ast.KeyValueExpr).Key.(*ast.BasicLit).Value)
 		resp := &options.Response{}
 		for _, v := range r.(*ast.KeyValueExpr).Value.(*ast.CompositeLit).Elts {
-			switch v.(*ast.KeyValueExpr).Key.(*ast.Ident).Name {
+			kv := v.(*ast.KeyValueExpr)
+			switch name := kv.Key.(*ast.Ident).Name; name {
+			default:
+				reflectutil.SetValue(resp, name, kv.Value)
 			case "Schema":
 				schema := &options.Schema{}
-				val := v.(*ast.KeyValueExpr).Value.(*ast.CompositeLit)
+				val := kv.Value.(*ast.CompositeLit)
 				for _, s := range val.Elts {
-					switch n := s.(*ast.KeyValueExpr).Key.(*ast.Ident).Name; n {
+					kv := s.(*ast.KeyValueExpr)
+					switch n := kv.Key.(*ast.Ident).Name; n {
+					default:
+						reflectutil.SetValue(schema, n, kv.Value)
 					case "JSONSchema":
 						var err error
-						schema.JsonSchema, err = g.convertJSONSchema(s.(*ast.KeyValueExpr).Value.(*ast.CompositeLit))
+						schema.JsonSchema, err = g.convertJSONSchema(kv.Value.(*ast.CompositeLit))
 						if err != nil {
 							return nil, err
 						}
-					case "Discriminator":
-						d, _ := strconv.Unquote(s.(*ast.KeyValueExpr).Value.(*ast.BasicLit).Value)
-						schema.Discriminator = d
-					case "ReadOnly":
-						schema.ReadOnly, _ = strconv.ParseBool(s.(*ast.KeyValueExpr).Value.(*ast.Ident).Name)
 					case "ExternalDocs":
-						e, err := g.convertExternalDocs(s.(*ast.KeyValueExpr).Value.(*ast.CompositeLit))
+						e, err := g.convertExternalDocs(kv.Value.(*ast.CompositeLit))
 						if err != nil {
 							return nil, err
 						}
@@ -663,8 +652,6 @@ func (g *Generator) convertResponses(lit *ast.CompositeLit) (map[string]*options
 					}
 				}
 				resp.Schema = schema
-			case "Description":
-				resp.Description, _ = strconv.Unquote(v.(*ast.KeyValueExpr).Value.(*ast.BasicLit).Value)
 			}
 		}
 		responses[key] = resp
@@ -711,6 +698,8 @@ func (g *Generator) convertSecurityDefinitions(lit *ast.CompositeLit) (*options.
 	sd := &options.SecurityDefinitions{
 		Security: map[string]*options.SecurityScheme{},
 	}
+	// TODO: don't hard-code this somehow
+	prefix := "grpc.gateway.protoc_gen_swagger.options.SecurityScheme_"
 	for _, lElt := range lit.Elts {
 		var key string
 		var value *options.SecurityScheme
@@ -720,30 +709,16 @@ func (g *Generator) convertSecurityDefinitions(lit *ast.CompositeLit) (*options.
 			for _, v := range ss.(*ast.KeyValueExpr).Value.(*ast.CompositeLit).Elts {
 				n := v.(*ast.KeyValueExpr)
 				switch key := n.Key.(*ast.Ident).Name; key {
-				case "Type":
-					sel, ok := options.SecurityScheme_Type_value[n.Value.(*ast.SelectorExpr).Sel.Name]
+				default:
+					reflectutil.SetValue(value, key, n.Value)
+				case "Type", "In", "Flow":
+					enumMap := proto.EnumValueMap(prefix + key)
+					name := n.Value.(*ast.SelectorExpr).Sel.Name
+					val, ok := enumMap[name]
 					if !ok {
-						return nil, fmt.Errorf("cannot found security scheme type: %s", n.Value.(*ast.SelectorExpr).Sel.Name)
+						return nil, fmt.Errorf("%q is not a valid %s", name, prefix+key)
 					}
-					value.Type = options.SecurityScheme_Type(sel)
-				case "Description",
-					"Name",
-					"AuthorizationURL",
-					"TokenURL":
-					val, _ := strconv.Unquote(n.Value.(*ast.BasicLit).Value)
 					reflectutil.SetValue(value, key, val)
-				case "In":
-					sel, ok := options.SecurityScheme_In_value[n.Value.(*ast.SelectorExpr).Sel.Name]
-					if !ok {
-						return nil, fmt.Errorf("cannot found security scheme in: %s", n.Value.(*ast.SelectorExpr).Sel.Name)
-					}
-					value.In = options.SecurityScheme_In(sel)
-				case "Flow":
-					sel, ok := options.SecurityScheme_Flow_value[n.Value.(*ast.SelectorExpr).Sel.Name]
-					if !ok {
-						return nil, fmt.Errorf("cannot found security scheme flow: %s", n.Value.(*ast.SelectorExpr).Sel.Name)
-					}
-					value.Flow = options.SecurityScheme_Flow(sel)
 				case "Scopes":
 					scope := map[string]string{}
 					for _, sc := range n.Value.(*ast.CompositeLit).Elts {
@@ -768,10 +743,8 @@ func (g *Generator) convertSecurityDefinitions(lit *ast.CompositeLit) (*options.
 func (g *Generator) convertExternalDocs(lit *ast.CompositeLit) (*options.ExternalDocumentation, error) {
 	externalDocs := &options.ExternalDocumentation{}
 	for _, valElt := range lit.Elts {
-		kvExpr := valElt.(*ast.KeyValueExpr)
-		key := kvExpr.Key.(*ast.Ident).Name
-		val, _ := strconv.Unquote(kvExpr.Value.(*ast.BasicLit).Value)
-		reflectutil.SetValue(externalDocs, key, val)
+		kv := valElt.(*ast.KeyValueExpr)
+		reflectutil.SetValue(externalDocs, kv.Key, kv.Value)
 	}
 	return externalDocs, nil
 }
@@ -779,30 +752,25 @@ func (g *Generator) convertExternalDocs(lit *ast.CompositeLit) (*options.Externa
 func (g *Generator) convertInfo(lit *ast.CompositeLit) (*options.Info, error) {
 	info := &options.Info{}
 	for _, valElt := range lit.Elts {
-		kvExpr := valElt.(*ast.KeyValueExpr)
-		key := kvExpr.Key.(*ast.Ident).Name
+		kv := valElt.(*ast.KeyValueExpr)
+		key := kv.Key.(*ast.Ident).Name
 		switch key {
-		case "Title",
-			"Description",
-			"Version":
-			val, _ := strconv.Unquote(kvExpr.Value.(*ast.BasicLit).Value)
-			reflectutil.SetValue(info, key, val)
+		default:
+			reflectutil.SetValue(info, key, kv.Value)
 		case "Contact":
 			contact := &options.Contact{}
-			val := kvExpr.Value.(*ast.CompositeLit)
+			val := kv.Value.(*ast.CompositeLit)
 			for _, cElt := range val.Elts {
-				kvExpr := cElt.(*ast.KeyValueExpr)
-				val, _ := strconv.Unquote(kvExpr.Value.(*ast.BasicLit).Value)
-				reflectutil.SetValue(contact, kvExpr.Key.(*ast.Ident).Name, val)
+				kv := cElt.(*ast.KeyValueExpr)
+				reflectutil.SetValue(contact, kv.Key, kv.Value)
 			}
 			info.Contact = contact
 		case "License":
 			license := &options.License{}
-			val := kvExpr.Value.(*ast.CompositeLit)
+			val := kv.Value.(*ast.CompositeLit)
 			for _, lElt := range val.Elts {
-				kvExpr := lElt.(*ast.KeyValueExpr)
-				val, _ := strconv.Unquote(kvExpr.Value.(*ast.BasicLit).Value)
-				reflectutil.SetValue(license, kvExpr.Key.(*ast.Ident).Name, val)
+				kv := lElt.(*ast.KeyValueExpr)
+				reflectutil.SetValue(license, kv.Key, kv.Value)
 			}
 			info.License = license
 		}
@@ -816,28 +784,8 @@ func (g *Generator) convertJSONSchema(lit *ast.CompositeLit) (*options.JSONSchem
 		name := elt.(*ast.KeyValueExpr).Key.(*ast.Ident).Name
 		value := elt.(*ast.KeyValueExpr).Value
 		switch name {
-		case "Title",
-			"Description",
-			"Ref",
-			"Default",
-			"Pattern":
-			val, _ := strconv.Unquote(value.(*ast.BasicLit).Value)
-			reflectutil.SetValue(jsonSchema, name, val)
-		case "MultipleOf",
-			"Maximum",
-			"Minimum",
-			"MaxLength",
-			"MinLength",
-			"MaxItems",
-			"MinItems",
-			"MaxProperties",
-			"MinProperties":
-			reflectutil.SetValue(jsonSchema, name, value.(*ast.BasicLit).Value)
-		case "ExclusiveMaximum",
-			"ExclusiveMinimum",
-			"UniqueItems":
-			val := value.(*ast.Ident).Name
-			reflectutil.SetValue(jsonSchema, name, val)
+		default:
+			reflectutil.SetValue(jsonSchema, name, value)
 		case "Required":
 			for _, r := range value.(*ast.CompositeLit).Elts {
 				str, _ := strconv.Unquote(r.(*ast.BasicLit).Value)
@@ -1352,9 +1300,7 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto,
 			// we remove the enum type name if present
 			// TODO: not covered by any test?
 			prefix := *enum.Name + "_"
-			if strings.Contains(name.Name, prefix) {
-				name.Name = strings.Replace(name.Name, prefix, "", 1)
-			}
+			name.Name = strings.Replace(name.Name, prefix, "", 1)
 
 			enum.Value = append(enum.Value, &desc.EnumValueDescriptorProto{
 				Name:    proto.String(name.Name),

@@ -11,32 +11,50 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-// SetValue assign value to the field name of the struct structPtr.
-// Returns an error if name is not found or structPtr cannot
-// be addressed.
-func SetValue(structPtr interface{}, name, value interface{}) {
-	nameStr := ""
-	switch name := name.(type) {
-	case *ast.Ident:
-		nameStr = name.Name
-	case string:
-		nameStr = name
-	default:
-		panic(fmt.Errorf("invalid name type: %T", name))
-	}
+func UnmarshalProto(v interface{}, lit *protop.Literal) {
+	value := reflect.Indirect(reflect.ValueOf(v))
+	typ := value.Type()
 
+	switch typ.Kind() {
+	case reflect.Struct:
+		for _, elem := range lit.OrderedMap {
+			setField(value, elem.Name, elem)
+		}
+	default:
+		panic(fmt.Errorf("unsupported type: %s", typ))
+	}
+}
+
+func UnmarshalAST(v interface{}, expr ast.Expr) {
+	value := reflect.Indirect(reflect.ValueOf(v))
+	typ := value.Type()
+
+	switch typ.Kind() {
+	case reflect.Struct:
+		expr := expr.(*ast.CompositeLit)
+		for _, elt := range expr.Elts {
+			kv := elt.(*ast.KeyValueExpr)
+			setField(value, kv.Key.(*ast.Ident).Name, kv.Value)
+		}
+	default:
+		panic(fmt.Errorf("unsupported type: %s", typ))
+	}
+}
+
+func setField(structVal reflect.Value, name string, value interface{}) {
 	// Performs a case insensitive search because generated structs by
 	// protoc don't follow the best practices from the go naming convention:
 	// initialisms should be all capitals.
 	// Remove underscores too, so that foo_bar matches the field FooBar.
-	nameStr = strings.ReplaceAll(nameStr, "_", "")
-	field, ok := reflect.TypeOf(structPtr).Elem().FieldByNameFunc(func(s string) bool {
-		return strings.EqualFold(s, nameStr)
+	name = strings.ReplaceAll(name, "_", "")
+	typ := structVal.Type()
+	field, ok := typ.FieldByNameFunc(func(s string) bool {
+		return strings.EqualFold(s, name)
 	})
 	if !ok {
-		panic(fmt.Errorf("%s was not found in %T", nameStr, structPtr))
+		panic(fmt.Errorf("%s was not found in %s", name, typ))
 	}
-	fval := reflect.ValueOf(structPtr).Elem().FieldByIndex(field.Index)
+	fval := structVal.FieldByIndex(field.Index)
 
 	val := valueFor(field.Type, field.Tag, value)
 	switch field.Type.Kind() {
@@ -65,21 +83,21 @@ func valueFor(typ reflect.Type, tag reflect.StructTag, value interface{}) reflec
 	case reflect.Ptr:
 		return valueFor(typ.Elem(), tag, value).Addr()
 	case reflect.Struct:
-		strc := reflect.New(typ)
+		strc := reflect.New(typ).Elem()
 		switch value := value.(type) {
 		case *ast.CompositeLit:
 			for _, elt := range value.Elts {
 				kv := elt.(*ast.KeyValueExpr)
-				SetValue(strc.Interface(), kv.Key, kv.Value)
+				setField(strc, kv.Key.(*ast.Ident).Name, kv.Value)
 			}
 		case *protop.Literal:
 			for _, lit := range value.OrderedMap {
-				SetValue(strc.Interface(), lit.Name, lit)
+				setField(strc, lit.Name, lit)
 			}
 		default:
 			panic(fmt.Sprintf("%T is not a valid value for %s", value, typ))
 		}
-		return strc.Elem()
+		return strc
 	case reflect.Map:
 		mp := reflect.MakeMap(typ)
 		switch value := value.(type) {

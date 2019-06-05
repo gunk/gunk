@@ -493,10 +493,8 @@ func (g *Generator) fileOptions(pkg *loader.GunkPackage) (*desc.FileOptions, err
 			case "github.com/gunk/opt/file/php.GenericServices":
 				fo.PhpGenericServices = proto.Bool(constant.BoolVal(tag.Value))
 			case "github.com/gunk/opt/openapiv2.Swagger":
-				o, err := g.convertSwagger(tag.Expr.(*ast.CompositeLit))
-				if err != nil {
-					return nil, fmt.Errorf("cannot convert swagger option: %s", err)
-				}
+				o := &options.Swagger{}
+				reflectutil.UnmarshalAST(o, tag.Expr)
 				if err := proto.SetExtension(fo, options.E_Openapiv2Swagger, o); err != nil {
 					return nil, fmt.Errorf("cannot set swagger extension: %s", err)
 				}
@@ -508,33 +506,6 @@ func (g *Generator) fileOptions(pkg *loader.GunkPackage) (*desc.FileOptions, err
 	// Set unset protocol buffer fields to their default values.
 	proto.SetDefaults(fo)
 	return fo, nil
-}
-
-func (g *Generator) convertOperation(lit *ast.CompositeLit) (*options.Operation, error) {
-	op := &options.Operation{}
-	for _, elt := range lit.Elts {
-		kv := elt.(*ast.KeyValueExpr)
-		reflectutil.SetValue(op, kv.Key, kv.Value)
-	}
-	return op, nil
-}
-
-func (g *Generator) convertSwagger(lit *ast.CompositeLit) (*options.Swagger, error) {
-	o := &options.Swagger{}
-	for _, elt := range lit.Elts {
-		kv := elt.(*ast.KeyValueExpr)
-		reflectutil.SetValue(o, kv.Key, kv.Value)
-	}
-	return o, nil
-}
-
-func (g *Generator) convertJSONSchema(lit *ast.CompositeLit) (*options.JSONSchema, error) {
-	jsonSchema := &options.JSONSchema{}
-	for _, elt := range lit.Elts {
-		kv := elt.(*ast.KeyValueExpr)
-		reflectutil.SetValue(jsonSchema, kv.Key, kv.Value)
-	}
-	return jsonSchema, nil
 }
 
 // appendFile translates a single gunk file to protobuf, appending its contents
@@ -659,11 +630,9 @@ func (g *Generator) fieldOptions(field *ast.Field) (*desc.FieldOptions, error) {
 				kv := elt.(*ast.KeyValueExpr)
 				switch kv.Key.(*ast.Ident).Name {
 				case "JSONSchema":
-					op, err := g.convertJSONSchema(kv.Value.(*ast.CompositeLit))
-					if err != nil {
-						return nil, err
-					}
-					if err := proto.SetExtension(o, options.E_Openapiv2Field, op); err != nil {
+					jsonSchema := &options.JSONSchema{}
+					reflectutil.UnmarshalAST(jsonSchema, kv.Value)
+					if err := proto.SetExtension(o, options.E_Openapiv2Field, jsonSchema); err != nil {
 						return nil, err
 					}
 				}
@@ -820,10 +789,8 @@ func (g *Generator) methodOptions(method *ast.Field) (*desc.MethodOptions, error
 			}
 			g.addProtoDep("google/api/annotations.proto")
 		case "github.com/gunk/opt/openapiv2.Operation":
-			op, err := g.convertOperation(tag.Expr.(*ast.CompositeLit))
-			if err != nil {
-				return nil, fmt.Errorf("could not convert operation: %s", err)
-			}
+			op := &options.Operation{}
+			reflectutil.UnmarshalAST(op, tag.Expr)
 			if err := proto.SetExtension(o, options.E_Openapiv2Operation, op); err != nil {
 				return nil, err
 			}

@@ -386,11 +386,9 @@ func (b *builder) handleMessage(m *proto.Message) error {
 func (b *builder) handleOption(w *strings.Builder, opt *proto.Option) error {
 	switch n := opt.Name; n {
 	case "(grpc.gateway.protoc_gen_swagger.options.openapiv2_schema)":
-		literal := opt.Constant
-		schema, err := b.convertSchema(&literal)
-		if err != nil {
-			return err
-		}
+		schema := &openapiv2.Schema{}
+		reflectutil.UnmarshalProto(schema, &opt.Constant)
+
 		pkg := b.addImportUsed("github.com/gunk/opt/openapiv2")
 		b.format(w, 1, nil, "// +gunk %s.Schema{\n", pkg)
 		if schema.JSONSchema != nil {
@@ -507,10 +505,8 @@ func (b *builder) handleService(s *proto.Service) error {
 			}
 			switch n := opt.Name; n {
 			case "(grpc.gateway.protoc_gen_swagger.options.openapiv2_operation)":
-				op, err := b.convertOperation(opt.Constant)
-				if err != nil {
-					return b.formatError(opt.Position, "cannot convert option to operation: %s", err)
-				}
+				op := &openapiv2.Operation{}
+				reflectutil.UnmarshalProto(op, &opt.Constant)
 
 				pkg := b.addImportUsed("github.com/gunk/opt/openapiv2")
 				if comment != nil {
@@ -646,13 +642,12 @@ func (b *builder) handlePackage() (string, error) {
 			value = b.genAnnotation("EnableArenas", val)
 		case "(grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger)":
 			impt = "github.com/gunk/opt/openapiv2"
-			s, err := b.convertSwagger(o.Constant)
-			if err != nil {
-				return "", b.formatError(o.Position, "cannot convert swagger option: %s", err)
-			}
+			swagger := &openapiv2.Swagger{}
+			reflectutil.UnmarshalProto(swagger, &o.Constant)
+
 			res := &strings.Builder{}
 			b.format(res, 0, nil, "Swagger {\n")
-			b.format(res, 0, nil, b.fromStructToAnnotation(*s))
+			b.format(res, 0, nil, b.fromStructToAnnotation(*swagger))
 			b.format(res, 0, nil, "// }")
 			value = res.String()
 		default:
@@ -800,30 +795,6 @@ func (b *builder) fromStructToAnnotation(val interface{}) string {
 		}
 	}
 	return w.String()
-}
-
-func (b *builder) convertOperation(lit proto.Literal) (*openapiv2.Operation, error) {
-	op := &openapiv2.Operation{}
-	for _, l := range lit.OrderedMap {
-		reflectutil.SetValue(op, l.Name, l)
-	}
-	return op, nil
-}
-
-func (b *builder) convertSwagger(lit proto.Literal) (*openapiv2.Swagger, error) {
-	swagger := &openapiv2.Swagger{}
-	for _, v := range lit.OrderedMap {
-		reflectutil.SetValue(swagger, v.Name, v)
-	}
-	return swagger, nil
-}
-
-func (b *builder) convertSchema(literal *proto.Literal) (*openapiv2.Schema, error) {
-	schema := &openapiv2.Schema{}
-	for _, l := range literal.OrderedMap {
-		reflectutil.SetValue(schema, l.Name, l)
-	}
-	return schema, nil
 }
 
 // addImportUsed will record the import so that we can

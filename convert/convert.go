@@ -98,6 +98,9 @@ func convertFile(path string, overwrite bool, importPath string, protocPath stri
 
 	result, err := format.Source(b.Bytes())
 	if err != nil {
+		// Also print the source being formatted, since the go/format
+		// error often points at a specific error in one of its lines.
+		fmt.Fprintln(os.Stderr, b.String())
 		return err
 	}
 

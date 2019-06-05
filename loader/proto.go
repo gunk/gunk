@@ -713,306 +713,115 @@ func (b *builder) fromStructToAnnotation(val interface{}) string {
 	for i := 0; i < t.NumField(); i++ {
 		name := t.Field(i).Name
 		value := v.FieldByName(name)
-		if !isNilOrEmpty(value.Interface()) {
-			switch value.Kind() {
-			case reflect.Invalid,
-				reflect.Uintptr,
-				reflect.Complex64,
-				reflect.Complex128,
-				reflect.Array,
-				reflect.Chan,
-				reflect.Func,
-				reflect.Interface,
-				reflect.Struct,
-				reflect.UnsafePointer:
-				// Ignore
-			case reflect.Map:
-				mapKey := value.Type().Key()
-				mapValue := indirectType(value.Type().Elem())
-				b.format(w, 0, nil, "// %s: map[%s]%s{\n", name, mapKey, mapValue)
-				keys := value.MapKeys()
-				sortValues(keys)
-				for _, key := range keys {
-					c := value.MapIndex(key)
-					switch c.Type().Kind() {
-					case reflect.Ptr:
-						if !c.IsNil() {
-							t := reflect.Indirect(c).Interface()
-							b.format(w, 0, nil, "// %s: %T{\n", key, t)
-							b.format(w, 0, nil, b.fromStructToAnnotation(t))
-							b.format(w, 0, nil, "// },\n")
-						}
-					default:
-						b.format(w, 0, nil, "// %s: %s,\n", key, c)
+		// TODO: use value.IsZero once we support Go 1.13 and later
+		if !value.IsValid() || reflect.DeepEqual(value.Interface(), reflect.Zero(value.Type()).Interface()) {
+			continue
+		}
+		switch value.Kind() {
+		case reflect.Invalid,
+			reflect.Uintptr,
+			reflect.Complex64,
+			reflect.Complex128,
+			reflect.Array,
+			reflect.Chan,
+			reflect.Func,
+			reflect.Interface,
+			reflect.Struct,
+			reflect.UnsafePointer:
+			// Ignore
+		case reflect.Map:
+			mapKey := value.Type().Key()
+			mapValue := indirectType(value.Type().Elem())
+			b.format(w, 0, nil, "// %s: map[%s]%s{\n", name, mapKey, mapValue)
+			keys := value.MapKeys()
+			sortValues(keys)
+			for _, key := range keys {
+				c := value.MapIndex(key)
+				switch c.Type().Kind() {
+				case reflect.Ptr:
+					if !c.IsNil() {
+						t := reflect.Indirect(c).Interface()
+						b.format(w, 0, nil, "// %#v: %T{\n", key, t)
+						b.format(w, 0, nil, b.fromStructToAnnotation(t))
+						b.format(w, 0, nil, "// },\n")
 					}
+				default:
+					b.format(w, 0, nil, "// %#v: %#v,\n", key, c)
 				}
+			}
+			b.format(w, 0, nil, "// },\n")
+		case reflect.Ptr:
+			if !value.IsNil() {
+				t := reflect.Indirect(value).Interface()
+				b.format(w, 0, nil, "// %s: %T{\n", name, t)
+				w.WriteString(b.fromStructToAnnotation(t))
 				b.format(w, 0, nil, "// },\n")
-			case reflect.Ptr:
-				if !value.IsNil() {
-					t := reflect.Indirect(value).Interface()
-					b.format(w, 0, nil, "// %s: %T{\n", name, t)
-					w.WriteString(b.fromStructToAnnotation(t))
-					b.format(w, 0, nil, "// },\n")
-				}
-			case reflect.Slice:
-				b.format(w, 0, nil, "// %s: []%s{\n", name, indirectType(value.Type().Elem()))
-				for i := 0; i < value.Len(); i++ {
-					val := value.Index(i)
-					switch val.Kind() {
-					case reflect.Ptr:
-						if !val.IsNil() {
-							b.format(w, 0, nil, "// {\n")
-							b.format(w, 0, nil, b.fromStructToAnnotation(reflect.Indirect(val).Interface()))
-							b.format(w, 0, nil, "// },\n")
-						}
-					default:
-						if pkgPath := val.Type().PkgPath(); pkgPath == "" {
-							// TODO: "%s: %#v" is almost perfect, but it
-							// seems to prefer 0x notation for integers.
-							if val.Kind() == reflect.String {
-								b.format(w, 0, nil, "// %q,\n", val)
-							} else {
-								b.format(w, 0, nil, "// %v,\n", val)
-							}
+			}
+		case reflect.Slice:
+			b.format(w, 0, nil, "// %s: []%s{\n", name, indirectType(value.Type().Elem()))
+			for i := 0; i < value.Len(); i++ {
+				val := value.Index(i)
+				switch val.Kind() {
+				case reflect.Ptr:
+					if !val.IsNil() {
+						b.format(w, 0, nil, "// {\n")
+						b.format(w, 0, nil, b.fromStructToAnnotation(reflect.Indirect(val).Interface()))
+						b.format(w, 0, nil, "// },\n")
+					}
+				default:
+					if pkgPath := val.Type().PkgPath(); pkgPath == "" {
+						// TODO: "%s: %#v" is almost perfect, but it
+						// seems to prefer 0x notation for integers.
+						if val.Kind() == reflect.String {
+							b.format(w, 0, nil, "// %q,\n", val)
 						} else {
-							pkg := strings.Split(pkgPath, "/")
-							b.format(w, 0, nil, "// %s.%v,\n", pkg[len(pkg)-1], val.Interface())
+							b.format(w, 0, nil, "// %v,\n", val)
 						}
-					}
-				}
-				b.format(w, 0, nil, "// },\n")
-			default:
-				if pkgPath := value.Type().PkgPath(); pkgPath == "" {
-					// TODO: "%s: %#v" is almost perfect, but it
-					// seems to prefer 0x notation for integers.
-					if value.Kind() == reflect.String {
-						b.format(w, 0, nil, "// %s: %q,\n", name, value)
 					} else {
-						b.format(w, 0, nil, "// %s: %v,\n", name, value)
+						pkg := strings.Split(pkgPath, "/")
+						b.format(w, 0, nil, "// %s.%v,\n", pkg[len(pkg)-1], val.Interface())
 					}
-				} else {
-					pkg := strings.Split(pkgPath, "/")
-					b.format(w, 0, nil, "// %s: %s.%v,\n", name, pkg[len(pkg)-1], value)
 				}
+			}
+			b.format(w, 0, nil, "// },\n")
+		default:
+			if pkgPath := value.Type().PkgPath(); pkgPath == "" {
+				// TODO: "%s: %#v" is almost perfect, but it
+				// seems to prefer 0x notation for integers.
+				if value.Kind() == reflect.String {
+					b.format(w, 0, nil, "// %s: %q,\n", name, value)
+				} else {
+					b.format(w, 0, nil, "// %s: %v,\n", name, value)
+				}
+			} else {
+				pkg := strings.Split(pkgPath, "/")
+				b.format(w, 0, nil, "// %s: %s.%v,\n", name, pkg[len(pkg)-1], value)
 			}
 		}
 	}
 	return w.String()
 }
 
-func isNilOrEmpty(x interface{}) bool {
-	return reflect.DeepEqual(x, reflect.Zero(reflect.TypeOf(x)).Interface())
-}
-
 func (b *builder) convertOperation(lit proto.Literal) (*openapiv2.Operation, error) {
 	op := &openapiv2.Operation{}
-	responses := map[string]*openapiv2.Response{}
 	for _, l := range lit.OrderedMap {
-		switch n := l.Name; n {
-		default:
-			reflectutil.SetValue(op, n, l)
-		case "responses":
-			key, resp, err := b.convertResponse(l)
-			if err != nil {
-				return nil, err
-			}
-			responses[key] = resp
-		case "security":
-			s, err := b.convertSecurity(l)
-			if err != nil {
-				return nil, err
-			}
-			op.Security = append(op.Security, s)
-		}
-	}
-	if len(responses) > 0 {
-		op.Responses = responses
+		reflectutil.SetValue(op, l.Name, l)
 	}
 	return op, nil
 }
 
 func (b *builder) convertSwagger(lit proto.Literal) (*openapiv2.Swagger, error) {
 	swagger := &openapiv2.Swagger{}
-	responses := map[string]*openapiv2.Response{}
 	for _, v := range lit.OrderedMap {
-		switch v.Name {
-		default:
-			reflectutil.SetValue(swagger, v.Name, v)
-		case "responses":
-			key, resp, err := b.convertResponse(v)
-			if err != nil {
-				return nil, err
-			}
-			responses[key] = resp
-		case "security_definitions":
-			var err error
-			swagger.SecurityDefinitions, err = b.convertSecurityDefinitions(v)
-			if err != nil {
-				return nil, err
-			}
-		case "schemes":
-			s := openapiv2.SwaggerScheme_value[v.SourceRepresentation()]
-			swagger.Schemes = append(swagger.Schemes, openapiv2.SwaggerScheme(s))
-		case "security":
-			s, err := b.convertSecurity(v)
-			if err != nil {
-				return nil, err
-			}
-			swagger.Security = append(swagger.Security, s)
-		}
-	}
-	if len(responses) > 0 {
-		swagger.Responses = responses
+		reflectutil.SetValue(swagger, v.Name, v)
 	}
 	return swagger, nil
-}
-
-func (b *builder) convertSecurity(lit *proto.NamedLiteral) (*openapiv2.SecurityRequirement, error) {
-	s := &openapiv2.SecurityRequirement{
-		SecurityRequirement: map[string]*openapiv2.SecurityRequirement_SecurityRequirementValue{},
-	}
-	for _, elt := range lit.OrderedMap {
-		switch elt.Name {
-		case "security_requirement":
-			var key string
-			var value *openapiv2.SecurityRequirement_SecurityRequirementValue
-			for _, r := range elt.OrderedMap {
-				switch r.Name {
-				case "key":
-					key = r.SourceRepresentation()
-				case "value":
-					if len(r.OrderedMap) > 0 {
-						value = &openapiv2.SecurityRequirement_SecurityRequirementValue{}
-						for _, v := range r.OrderedMap {
-							reflectutil.SetValue(value, v.Name, v)
-						}
-					}
-				default:
-					return nil, fmt.Errorf("unexpected security_requirement option element")
-				}
-			}
-			s.SecurityRequirement[key] = value
-		default:
-			return nil, fmt.Errorf("unexpected security option element")
-		}
-	}
-	return s, nil
-}
-
-func (b *builder) convertSecurityDefinitions(lit *proto.NamedLiteral) (*openapiv2.SecurityDefinitions, error) {
-	securityDefinitions := &openapiv2.SecurityDefinitions{
-		Security: map[string]*openapiv2.SecurityScheme{},
-	}
-	for _, valueInfo := range lit.OrderedMap {
-		switch valueInfo.Name {
-		case "security":
-			var key string
-			var value *openapiv2.SecurityScheme
-			for _, secVal := range valueInfo.OrderedMap {
-				switch secVal.Name {
-				case "key":
-					key = secVal.SourceRepresentation()
-				case "value":
-					value = &openapiv2.SecurityScheme{}
-					for _, val := range secVal.OrderedMap {
-						switch val.Name {
-						default:
-							reflectutil.SetValue(value, val.Name, val)
-						case "type":
-							t := openapiv2.Type_value[val.SourceRepresentation()]
-							value.Type = openapiv2.Type(t)
-						case "in":
-							in := openapiv2.In_value[val.SourceRepresentation()]
-							value.In = openapiv2.In(in)
-						case "flow":
-							f := openapiv2.Flow_value[val.SourceRepresentation()]
-							value.Flow = openapiv2.Flow(f)
-						case "scopes":
-							scope, err := b.convertScopes(val)
-							if err != nil {
-								return nil, err
-							}
-							value.Scopes = &openapiv2.Scopes{
-								Scope: scope,
-							}
-						}
-					}
-				default:
-					return nil, fmt.Errorf("unexpected security option element")
-				}
-			}
-			securityDefinitions.Security[key] = value
-		default:
-			return nil, fmt.Errorf("unexpected security_definitions option element")
-		}
-	}
-	return securityDefinitions, nil
-}
-
-func (b *builder) convertScopes(scopes *proto.NamedLiteral) (map[string]string, error) {
-	res := map[string]string{}
-	key, value := "", ""
-	for _, scope := range scopes.OrderedMap {
-		for _, v := range scope.OrderedMap {
-			switch v.Name {
-			case "key":
-				key = v.SourceRepresentation()
-			case "value":
-				value = v.SourceRepresentation()
-			}
-		}
-		res[key] = value
-	}
-	return res, nil
-}
-
-func (b *builder) convertResponse(response *proto.NamedLiteral) (string, *openapiv2.Response, error) {
-	key := ""
-	res := &openapiv2.Response{}
-	if tmp, ok := response.Literal.OrderedMap.Get("key"); ok {
-		key = tmp.SourceRepresentation()
-	} else {
-		return "", nil, fmt.Errorf("could not find key in response")
-	}
-	if tmp, ok := response.Literal.OrderedMap.Get("value"); ok {
-		if desc, ok := tmp.OrderedMap.Get("description"); ok {
-			reflectutil.SetValue(res, "description", desc)
-		}
-		if schema, ok := tmp.OrderedMap.Get("schema"); ok {
-			var err error
-			res.Schema, err = b.convertSchema(schema)
-			if err != nil {
-				return "", nil, err
-			}
-		}
-	} else {
-		return "", nil, fmt.Errorf("could not find value in response")
-	}
-	return key, res, nil
 }
 
 func (b *builder) convertSchema(literal *proto.Literal) (*openapiv2.Schema, error) {
 	schema := &openapiv2.Schema{}
 	for _, l := range literal.OrderedMap {
-		switch n := l.Name; n {
-		default:
-			reflectutil.SetValue(schema, n, l)
-		case "example":
-			val := l.Literal.Map["value"].Source
-			schema.Example = &openapiv2.Any{Value: []byte(val)}
-		case "json_schema":
-			jsonSchema := &openapiv2.JSONSchema{}
-			for k, v := range l.Literal.Map {
-				switch k {
-				default:
-					reflectutil.SetValue(jsonSchema, k, v)
-				case "type":
-					t := openapiv2.JSONSchemaSimpleTypes_value[v.SourceRepresentation()]
-					jsonSchema.Type = append(jsonSchema.Type, openapiv2.JSONSchemaSimpleTypes(t))
-				}
-			}
-			schema.JSONSchema = jsonSchema
-		}
+		reflectutil.SetValue(schema, l.Name, l)
 	}
 	return schema, nil
 }

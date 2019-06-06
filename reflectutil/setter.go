@@ -57,6 +57,9 @@ func setField(structVal reflect.Value, name string, value interface{}) {
 	fval := structVal.FieldByIndex(field.Index)
 
 	val := valueFor(field.Type, field.Tag, value)
+	// Merge slices and maps. For example, maps are often decoded one
+	// key-value element at a time for backwards compatibility, so we must
+	// add the elements incrementally.
 	switch field.Type.Kind() {
 	case reflect.Slice:
 		val = reflect.AppendSlice(fval, val)
@@ -110,11 +113,11 @@ func valueFor(typ reflect.Type, tag reflect.StructTag, value interface{}) reflec
 			}
 		case *protop.Literal:
 			key := valueFor(typ.Key(), "", value.OrderedMap[0])
-			val := valueFor(typ.Elem(), "", value.OrderedMap[1])
 			if key.Interface() == "empty" {
 				// TODO(mvdan): figure out why this happens
 				break
 			}
+			val := valueFor(typ.Elem(), "", value.OrderedMap[1])
 			mp.SetMapIndex(key, val)
 		default:
 			panic(fmt.Sprintf("%T is not a valid value for %s", value, typ))
@@ -151,6 +154,8 @@ func valueFor(typ reflect.Type, tag reflect.StructTag, value interface{}) reflec
 		valueStr = x.Sel.Name
 	case *protop.Literal:
 		valueStr = x.SourceRepresentation()
+	default:
+		panic(fmt.Sprintf("%T contains no name or string value", value))
 	}
 	value = reflect.Value{} // ensure we just use valueStr from this point
 

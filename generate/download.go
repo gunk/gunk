@@ -3,21 +3,21 @@ package generate
 import (
 	"archive/zip"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 
 	"github.com/gunk/gunk/log"
 )
 
 const (
-	protocVersion = "3.6.1"
-	// https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_32.zip
-	protocURL = "https://github.com/protocolbuffers/protobuf/releases/download/v%s/protoc-%s-%s.zip"
+	protocGitHubRepo = "ProtocolBuffers/protobuf"
 )
 
 // CheckOrDownloadProtoc will check the $PATH for 'protoc', if it doesn't
@@ -60,7 +60,7 @@ func CheckOrDownloadProtoc() (string, error) {
 // downloadAndExtractProtoc will download protoc, and extract the protoc
 // binary to the specified location on disk.
 func downloadAndExtractProtoc(protocCachePath string) error {
-	url, err := protocDownloadURL()
+	url, err := protocDownloadURL(runtime.GOOS, runtime.GOARCH)
 	if err != nil {
 		return err
 	}
@@ -121,52 +121,100 @@ func downloadAndExtractProtoc(protocCachePath string) error {
 	return fmt.Errorf("unable to download and extract protoc")
 }
 
-// protoDownloadURL will generate a protoc url to download for the current
-// GOOS and GOARCH. The following are the protoc supported GOOS + GOARCH
-// combinations:
-// 	- linux-aarch64
-// 	- linux-x86_32
-// 	- linux-x86_64
-// 	- osx-x86_32
-// 	- osx-x86_64
-// 	- win32
-func protocDownloadURL() (string, error) {
-	// Translate the arch to what the protoc download expects.
-	var arch string
-	switch a := runtime.GOARCH; a {
-	case "386":
-		arch = "x86_32"
-	case "amd64":
-		arch = "x86_64"
-	case "arm64":
-		arch = "aarch64"
+// githubAsset wraps asset information for a github release.
+type githubAsset struct {
+	BrowserDownloadURL string `json:"browser_download_url"`
+	Name               string `json:"name"`
+	ContentType        string `json:"content_type"`
+}
+
+// githubLatestAssets retrieves the latest release assets from the named repo.
+func githubLatestAssets(repo string) (string, []githubAsset, error) {
+	urlstr := "https://api.github.com/repos/" + repo + "/releases/latest"
+
+	// create request
+	req, err := http.NewRequest("GET", urlstr, nil)
+	if err != nil {
+		return "", nil, err
 	}
 
-	// Verify and translate the os to what protoc download expects.
-	// Check that we have a valid GOOS + GOARH combintation.
-	var osAndArch string
-	switch o := runtime.GOOS; o {
-	case "darwin":
-		switch arch {
-		case "x86_32", "x86_64":
-			osAndArch = "osx-" + arch
-		default:
-			return "", fmt.Errorf("%q is not a supported arch for darwin protoc download", arch)
-		}
-	case "windows":
-		if arch != "x86_32" {
-			return "", fmt.Errorf("%q is not a supported arch for windows protoc download", arch)
-		}
-		osAndArch = "win32"
-	case "linux":
-		switch arch {
-		case "x86_32", "x86_64", "aarch64":
-			osAndArch = "linux-" + arch
-		default:
-			return "", fmt.Errorf("%q is not a supported arch for linux protoc download", arch)
-		}
-	default:
-		return "", fmt.Errorf("unsupported os %q for protoc download", o)
+	// do request
+	cl := &http.Client{}
+	res, err := cl.Do(req)
+	if err != nil {
+		return "", nil, err
 	}
-	return fmt.Sprintf(protocURL, protocVersion, protocVersion, osAndArch), nil
+	defer res.Body.Close()
+
+	// read
+	buf, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", nil, err
+	}
+
+	var release struct {
+		Name   string        `json:"name"`
+		Assets []githubAsset `json:"assets"`
+	}
+	if err = json.Unmarshal(buf, &release); err != nil {
+		return "", nil, err
+	}
+
+	return release.Name, release.Assets, nil
+}
+
+// protocDownloadURL builds a URL for retrieving for the protoc tool artifact
+// from GitHub for use with current Go runtime's GOOS and GOARCH combination.
+//
+// Supported os + arch variants:
+//
+// 	osx-x86_32
+// 	osx-x86_64
+// 	linux-x86_32
+// 	linux-x86_64
+// 	linux-aarch64
+// 	win32
+// 	win64
+//
+// See: https://github.com/protocolbuffers/protobuf/releases/latest
+func protocDownloadURL(os, arch string) (string, error) {
+	// determine the platform
+	var platform string
+	switch {
+	case os == "darwin" && arch == "386":
+		platform = "osx-x86_32"
+	case os == "darwin" && arch == "amd64":
+		platform = "osx-x86_64"
+
+	case os == "linux" && arch == "386":
+		platform = "linux-x86_32"
+	case os == "linux" && arch == "amd64":
+		platform = "linux-x86_64"
+	case os == "linux" && arch == "arm64":
+		platform = "linux-aarch_64"
+
+	case os == "windows" && arch == "386":
+		platform = "win32"
+	case os == "windows" && arch == "amd64":
+		platform = "win64"
+
+	default:
+		return "", fmt.Errorf("unknown os %q and arch %q", os, arch)
+	}
+
+	// retrieve the latest release assets
+	ver, assets, err := githubLatestAssets(protocGitHubRepo)
+	if err != nil {
+		return "", err
+	}
+
+	// find the asset
+	nameRE := regexp.MustCompile(`^protoc-[0-9]+\.[0-9]+\.[0-9]+-` + platform + `\.zip$`)
+	for _, asset := range assets {
+		if nameRE.MatchString(asset.Name) {
+			return asset.BrowserDownloadURL, nil
+		}
+	}
+
+	return "", fmt.Errorf("could not find platform release asset for %q", ver)
 }

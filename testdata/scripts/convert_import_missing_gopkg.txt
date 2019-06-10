@@ -1,5 +1,3 @@
-env HOME=$WORK/home
-
 ! gunk convert util.proto
 stderr 'error: imported file must contain go_package option imported/imported.proto'
 

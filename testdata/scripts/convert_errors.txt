@@ -1,5 +1,3 @@
-env HOME=$WORK/home
-
 ! gunk convert util.proto
 stderr 'error: util.proto:5:1: "hello" is an unhandled proto file option'
 

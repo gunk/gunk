@@ -1,5 +1,3 @@
-env HOME=$WORK/home
-
 gunk generate .
 exists all.pb.go
 

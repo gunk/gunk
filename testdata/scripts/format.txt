@@ -1,5 +1,3 @@
-env HOME=$WORK/home
-
 # formatting an empty Gunk package should fail
 ! gunk format ./empty
 stderr 'no Gunk packages to format'

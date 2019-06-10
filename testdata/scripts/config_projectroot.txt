@@ -1,5 +1,3 @@
-env HOME=$WORK/home
-
 # Check that the project root is assumed to be where the .git folder is.
 gunk generate ./gitfolder
 exists gitfolder/all.pb.go

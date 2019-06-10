@@ -23,7 +23,7 @@ func TestMain(m *testing.M) {
 		// Don't put the binaries in a temporary directory to delete, as that
 		// means we have to re-link them every single time. That's quite
 		// expensive, at around half a second per 'go test' invocation.
-		binDir, err := filepath.Abs(".bin")
+		binDir, err := filepath.Abs(".cache")
 		if err != nil {
 			panic(err)
 		}
@@ -132,11 +132,16 @@ func generatedFiles(dir string) (map[string]string, error) {
 
 func TestScripts(t *testing.T) {
 	t.Parallel()
+	home, err := filepath.Abs(filepath.Join(".cache", "home"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	testscript.Run(t, testscript.Params{
 		Dir: filepath.Join("testdata", "scripts"),
 		Setup: func(e *testscript.Env) error {
 			e.Vars = append(e.Vars, "GOPROXY="+proxyURL)
 			e.Vars = append(e.Vars, "GONOSUMDB=*")
+			e.Vars = append(e.Vars, "HOME="+home)
 			return nil
 		},
 	})

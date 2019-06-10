@@ -1,5 +1,3 @@
-env HOME=$WORK/home
-
 ! gunk generate ./p1
 stderr 'p1.gunk:10:22: expected operand'
 

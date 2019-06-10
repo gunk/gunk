@@ -1,5 +1,3 @@
-env HOME=$WORK/home
-
 # Gunk generate with out specified in config
 gunk generate ./gunk
 

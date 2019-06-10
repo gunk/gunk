@@ -1,5 +1,3 @@
-env HOME=$WORK/home
-
 ! gunk generate ./message_invalid
 stderr 'message_invalid/foo.gunk:4:5: missing required tag on InValid'
 

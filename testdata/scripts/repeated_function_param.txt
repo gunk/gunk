@@ -1,5 +1,3 @@
-env HOME=$WORK/home
-
 ! gunk generate ./p1
 stderr 'error: .*p1/p1.gunk:9:2: parameter type should not be repeated'
 

@@ -1,11 +1,10 @@
-skip 'TODO: rewrite to not require internet'
+[!net] skip 'requires network access'
+[short] skip 'requires network access'
 
+# Use a separate $HOME, to not reuse a cached protoc.
 env HOME=$WORK/home
 
-# Override the PATH so protoc isn't accessible.
-env PATH=$WORK/bin
-
-# Download protoc since it isn't on the PATH.
+# Download protoc.
 gunk download -v
 ! stdout .
 stderr 'downloaded protoc to'

@@ -1,5 +1,3 @@
-env HOME=$WORK/home
-
 gunk generate . -v
 ! stdout 'all.proto: warning: Import testdata.tld/util/v1/all.proto but not used.'
 ! stdout 'all.proto: warning: Import'

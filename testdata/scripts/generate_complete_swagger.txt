@@ -1,5 +1,3 @@
-env HOME=$WORK/home
-
 gunk generate echo.gunk
 cmp all.swagger.json all.swagger.json.golden
 

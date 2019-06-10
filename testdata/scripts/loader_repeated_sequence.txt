@@ -1,5 +1,3 @@
-env HOME=$WORK/home
-
 ! gunk format ./
 stderr 'sequence "1" on Text has already been used in this struct'
 stderr 'sequence "1" on Msg has already been used in this struct'

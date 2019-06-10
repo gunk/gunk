@@ -1,5 +1,3 @@
-env HOME=$WORK/home
-
 gunk convert util.proto
 stderr 'unhandled enum option "allow_alias"'
 stderr 'unhandled enumvalue option "deprecated"'

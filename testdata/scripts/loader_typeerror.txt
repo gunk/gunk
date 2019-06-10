@@ -1,5 +1,3 @@
-env HOME=$WORK/home
-
 ! gunk format ./...
 stderr 'expected .}., found .EOF.'
 ! stderr 'undeclared name: MissingType' # no typechecking

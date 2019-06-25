@@ -5,16 +5,21 @@ require (
 	github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/proto v1.6.13
+	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.1
-	github.com/grpc-ecosystem/grpc-gateway v1.9.0
+	github.com/grpc-ecosystem/grpc-gateway v1.9.2
 	github.com/gunk/opt v0.0.0-20190514110406-385321f21939
 	github.com/knq/ini v0.0.0-20181118015158-a301e724bd35
 	github.com/knq/snaker v0.0.0-20181215144011-2bc8a4db4687
 	github.com/rogpeppe/go-internal v1.3.0
 	github.com/stretchr/testify v1.3.0 // indirect
-	golang.org/x/tools v0.0.0-20190606124116-d0a3d012864b
+	golang.org/x/net v0.0.0-20190620200207-3b0461eec859 // indirect
+	golang.org/x/sys v0.0.0-20190624142023-c5567b49c5d0 // indirect
+	golang.org/x/text v0.3.2 // indirect
+	golang.org/x/tools v0.0.0-20190624222133-a101b041ded4
 	google.golang.org/appengine v1.4.0 // indirect
-	google.golang.org/genproto v0.0.0-20190605220351-eb0b1bdb6ae6
+	google.golang.org/genproto v0.0.0-20190620144150-6af8c5fc6601
+	google.golang.org/grpc v1.21.1
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/yaml.v2 v2.2.2 // indirect
 )

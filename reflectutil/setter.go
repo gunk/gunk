@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -193,4 +194,19 @@ func valueFor(typ reflect.Type, tag reflect.StructTag, value interface{}) reflec
 		panic(fmt.Sprintf("%T is not a valid value for %s", valueStr, typ))
 	}
 	return reflect.ValueOf(v)
+}
+
+// SortValues sorts vals in alphabetical order.
+func SortValues(vals []reflect.Value) {
+	if len(vals) == 0 {
+		return
+	}
+	switch vals[0].Kind() {
+	case reflect.String:
+		sort.Slice(vals, func(i, j int) bool {
+			return vals[i].Interface().(string) < vals[j].Interface().(string)
+		})
+	default:
+		panic(fmt.Sprintf("TODO: reflect sort type: %s", vals[0].Type()))
+	}
 }

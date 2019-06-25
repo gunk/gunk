@@ -1,0 +1,98 @@
+gunk generate echo.gunk
+cmp messages.pot messages.golden.pot
+
+-- go.mod --
+module testdata.tld/util
+
+require (
+	github.com/gunk/opt v0.0.0-20190514110406-385321f21939
+)
+-- .gunkconfig --
+[generate]
+command=docgen
+-- echo.gunk --
+// +gunk openapiv2.Swagger{
+//         Swagger: "2.0",
+//         Info: openapiv2.Info{
+//                 Title:       "Echo API",
+//                 Description: "Provides CRUD operations on the echo resource.",
+//                 Version:     "1.0.0",
+//         },
+//         SecurityDefinitions: openapiv2.SecurityDefinitions{
+//                 Security: map[string]openapiv2.SecurityScheme{
+//                         "OAuth2": openapiv2.SecurityScheme{
+//                                 Scopes: openapiv2.Scopes{
+//                                         Scope: map[string]string{
+//                                                 "admin": "Grants read and write access to administrative information",
+//                                                 "read":  "Grants read access",
+//                                                 "write": "Grants write access",
+//                                         },
+//                                 },
+//                         },
+//                 },
+//         },
+// }
+package echo
+
+import (
+	"github.com/gunk/opt/openapiv2"
+)
+
+type Message struct {
+    Name string `pb:"1" json:"name"`
+}
+
+type Service interface {
+	// +gunk openapiv2.Operation{
+	//         Tags:        []string{"Message"},
+	//         Description: "Get message",
+	//         Summary:     "Retrieves message",
+	// }
+	GetMessage(Message) Message
+}
+
+-- messages.golden.pot --
+# Messages.pot - Contains all msgid extracted from swagger definitions.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid   ""
+msgstr  "Project-Id-Version: %s\n"
+		"Report-Msgid-Bugs-To: %s\n"
+		"POT-Creation-Date: %s\n"
+		"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+		"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+		"Language-Team: LANGUAGE <LL@li.org>\n"
+		"Language: \n"
+		"MIME-Version: 1.0\n"
+		"Content-Type: text/plain; charset=CHARSET\n"
+		"Content-Transfer-Encoding: 8bit\n"
+
+msgid "1.0.0"
+msgstr ""
+
+msgid "2.0"
+msgstr ""
+
+msgid "Echo API"
+msgstr ""
+
+msgid "Get message"
+msgstr ""
+
+msgid "Grants read access"
+msgstr ""
+
+msgid "Grants read and write access to administrative information"
+msgstr ""
+
+msgid "Grants write access"
+msgstr ""
+
+msgid "Provides CRUD operations on the echo resource."
+msgstr ""
+
+msgid "Retrieves message"
+msgstr ""

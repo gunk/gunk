@@ -1,7 +1,8 @@
 # Docgen
 
 Docgen is a plugin of gunk. For now, it goes through the same gunk package used
-in `gunk generate` command and generates a `messages.pot`.
+in `gunk generate` command and generates a documentation markdown file `all.md`
+and a `messages.pot`.
 The `messages.pot` files contains all strings from the openapi annotations.
 
 ## Installation
@@ -23,3 +24,7 @@ In your `.gunkconfig` add the following:
 command=docgen
 out=examples/util/v1/
 ```
+
+## Contributing
+
+After any changes on `templates/api.md`, make sure to perform `go generate` in `assets` folder to embed your changes.

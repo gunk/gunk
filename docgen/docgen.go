@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -9,7 +10,7 @@ import (
 	google_protobuf "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
 
-	"github.com/gunk/gunk/docgen/extract"
+	"github.com/gunk/gunk/docgen/generate"
 	"github.com/gunk/gunk/plugin"
 )
 
@@ -20,7 +21,6 @@ func main() {
 type docPlugin struct{}
 
 func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.CodeGeneratorResponse, error) {
-	// For now, we only care about all.proto
 	var source *google_protobuf.FileDescriptorProto
 	for _, f := range req.GetProtoFile() {
 		if strings.Contains(f.GetName(), "all.proto") {
@@ -33,18 +33,23 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 		return nil, fmt.Errorf("no file to generate")
 	}
 
-	dest := proto.String(filepath.Join(filepath.Dir(source.GetName()), "messages.pot"))
+	base := filepath.Join(filepath.Dir(source.GetName()))
 
-	e, err := extract.Run(source)
+	var buf bytes.Buffer
+	pb, err := generate.Run(&buf, source)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed markdown generation: %v", err)
 	}
 
 	return &plugin_go.CodeGeneratorResponse{
 		File: []*plugin_go.CodeGeneratorResponse_File{
 			{
-				Name:    dest,
-				Content: proto.String(e.String()),
+				Name:    proto.String(filepath.Join(base, "messages.pot")),
+				Content: proto.String(pb.String()),
+			},
+			{
+				Name:    proto.String(filepath.Join(base, "all.md")),
+				Content: proto.String(buf.String()),
 			},
 		},
 	}, nil

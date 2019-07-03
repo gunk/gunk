@@ -5,4 +5,5 @@ package assets
 //go:generate protoc -Ibundled/ --include_imports -ogenerated/google_protobuf_timestamp.fdp bundled/google/protobuf/timestamp.proto
 //go:generate protoc -Ibundled/ --include_imports -ogenerated/google_protobuf_duration.fdp bundled/google/protobuf/duration.proto
 //go:generate protoc -Ibundled/ --include_imports -ogenerated/protoc-gen-swagger_options_annotations.fdp bundled/protoc-gen-swagger/options/annotations.proto
+//go:generate cp ../docgen/templates/api.md generated/api.md
 //go:generate vfsgendev -source="github.com/gunk/gunk/assets".Assets

@@ -8,7 +8,6 @@ import (
 	"go/token"
 	"go/types"
 	"io/ioutil"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -261,19 +260,9 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 		// messages. Not sure what is best to do here, but
 		// it should be consistent with running protoc-gen-*
 		// errors (which currently don't use the /path/to/protoc-gen).
-		return execError("protoc", err)
+		return log.ExecError("protoc", err)
 	}
 	return nil
-}
-
-func execError(command string, err error) error {
-	if xerr, ok := err.(*exec.ExitError); ok && len(xerr.Stderr) > 0 {
-		// If the error contains some stderr, include it.
-		// If we're running in verbose mode, stderr was already written
-		// directly to os.Stderr, so it may not be here.
-		err = fmt.Errorf("%v: %s", xerr.ProcessState, xerr.Stderr)
-	}
-	return fmt.Errorf("error executing %q: %v", command, err)
 }
 
 func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.Generator) error {
@@ -290,7 +279,7 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.G
 	cmd.Stdin = bytes.NewReader(bs)
 	out, err := cmd.Output()
 	if err != nil {
-		return execError(gen.Command, err)
+		return log.ExecError(gen.Command, err)
 	}
 	var resp plugin.CodeGeneratorResponse
 	if err := proto.Unmarshal(out, &resp); err != nil {

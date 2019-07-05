@@ -198,5 +198,5 @@ func protocDownloadURL(os, arch string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("could not find platform release asset for %q", ver)
+	return "", fmt.Errorf("could not find platform %s release asset for %q", platform, ver)
 }

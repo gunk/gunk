@@ -208,6 +208,9 @@ msgstr ""
 msgid "Accounts API"
 msgstr ""
 
+msgid "Annex"
+msgstr ""
+
 msgid "Base Path"
 msgstr ""
 
@@ -221,6 +224,15 @@ msgid "CurrentTerm is the account validity period."
 msgstr ""
 
 msgid "DueDate is the loan maturity date."
+msgstr ""
+
+msgid "EntityType describes the type of the entity."
+msgstr ""
+
+msgid "EntityType_Org is an organisation customer."
+msgstr ""
+
+msgid "EntityType_Pers is an individual customer."
 msgstr ""
 
 msgid "HTTP Request"
@@ -350,4 +362,15 @@ acc, err := c.GetAccount(
 |--------|------------------------------------------|
 | 200    | Request executed successfully.           |
 | 404    | Returned when the resource is not found. |
+
+## Annex
+
+####  EntityType
+
+EntityType describes the type of the entity.
+
+| Value | Description                                 |
+|-------|---------------------------------------------|
+| Pers  | EntityType_Pers is an individual customer.  |
+| Org   | EntityType_Org is an organisation customer. |
 

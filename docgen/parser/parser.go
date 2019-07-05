@@ -23,6 +23,7 @@ const (
 	// see https://github.com/golang/protobuf/blob/master/protoc-gen-go/descriptor/descriptor.pb.go#L2424
 	messageFlag = 4
 	fieldFlag   = 2
+	enumFlag    = 5
 )
 
 // ParseFile parses a proto file.
@@ -39,6 +40,7 @@ func ParseFile(file *google_protobuf.FileDescriptorProto) (*File, error) {
 	f := &File{
 		Messages: messages,
 		Services: services,
+		Enums:    parseEnums(pkgName, comments, file.GetEnumType()),
 	}
 
 	if proto.HasExtension(file.GetOptions(), options.E_Openapiv2Swagger) {
@@ -50,6 +52,32 @@ func ParseFile(file *google_protobuf.FileDescriptorProto) (*File, error) {
 	}
 
 	return f, nil
+}
+
+func parseEnums(pkgName string, comments map[string]*Comment, enums []*google_protobuf.EnumDescriptorProto) map[string]*Enum {
+	res := map[string]*Enum{}
+	for i, e := range enums {
+		p := fmt.Sprintf("%d.%d", enumFlag, i)
+		res[getQualifiedName(pkgName, e.GetName())] = &Enum{
+			Name:    e.GetName(),
+			Comment: nonNilComment(comments[p]),
+			Values:  parseValues(p, comments, e.GetValue()),
+		}
+	}
+	return res
+}
+
+func parseValues(path string, comments map[string]*Comment, values []*google_protobuf.EnumValueDescriptorProto) []*Value {
+	res := make([]*Value, 0, len(values))
+	for i, v := range values {
+		if v.GetName() != "_" {
+			res = append(res, &Value{
+				Name:    v.GetName(),
+				Comment: nonNilComment(comments[fmt.Sprintf("%s.%d.%d", path, fieldFlag, i)]),
+			})
+		}
+	}
+	return res
 }
 
 func parseMessages(pkgName string, comments map[string]*Comment, messages []*google_protobuf.DescriptorProto) map[string]*Message {

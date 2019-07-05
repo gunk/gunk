@@ -423,6 +423,9 @@ msgstr ""
 msgid "Accounts API"
 msgstr ""
 
+msgid "Annex"
+msgstr ""
+
 msgid "Base Path"
 msgstr ""
 
@@ -454,6 +457,15 @@ msgid "Delete an account"
 msgstr ""
 
 msgid "DueDate is the loan maturity date."
+msgstr ""
+
+msgid "EntityType describes the type of the entity."
+msgstr ""
+
+msgid "EntityType_Org is an organisation customer."
+msgstr ""
+
+msgid "EntityType_Pers is an individual customer."
 msgstr ""
 
 msgid "HTTP Request"
@@ -777,4 +789,15 @@ curl -X PUT \
 | 401    | Returned when the request does not contains the user's credentials.                    |
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
+
+## Annex
+
+####  EntityType
+
+EntityType describes the type of the entity.
+
+| Value | Description                                 |
+|-------|---------------------------------------------|
+| Pers  | EntityType_Pers is an individual customer.  |
+| Org   | EntityType_Org is an organisation customer. |
 

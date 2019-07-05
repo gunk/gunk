@@ -11,6 +11,14 @@
 
 {{GetText $m.Operation.Description}}
 
+```sh
+curl -X {{$m.Request.Verb}} \
+	{{$.Swagger.Host}}{{$m.Request.URI}} \
+	-H 'Authorization: Bearer {{GetText "USE_YOUR_TOKEN"}}' {{if $m.Request.Example}}\
+	-d '{{$m.Request.Example}}'
+	{{end}}
+```
+
 {{AddSnippet $m.Name}}
 
 ### {{GetText "HTTP Request"}}
@@ -22,14 +30,14 @@
 
 Name | Type | Description
 ---- | ---- | -----------
-{{range $p := $m.Request.Query}}{{$p.Name}} | {{$p.Type}} |{{GetText $p.Comment.Leading}}
+{{range $p := $m.Request.Query}}{{$p.Name}} | {{$p.Type.Name}} |{{GetText $p.Comment.Leading}}
 {{end}}{{end}}
 {{if $m.Request.Body}}
 ### {{GetText "Body Parameters"}}
 
 Name | Type | Description
 ---- | ---- | -----------
-{{range $p := $m.Request.Body.Fields}}{{$p.Name}} | {{$p.Type}} |{{GetText $p.Comment.Leading}}
+{{range $p := $m.Request.Body.Fields}}{{$p.Name}} | {{$p.Type.Name}} |{{GetText $p.Comment.Leading}}
 {{end}}{{end}}
 ### {{GetText "Responses"}}
 {{if $m.Response}}
@@ -37,7 +45,7 @@ Name | Type | Description
 
 Name | Type | Description
 ---- | ---- | -----------
-{{range $f := $m.Response.Fields}}{{$f.Name}} | {{$f.Type}} | {{GetText $f.Comment.Leading}}
+{{range $f := $m.Response.Fields}}{{$f.Name}} | {{$f.Type.Name}} | {{GetText $f.Comment.Leading}}
 {{end}}{{end}}
 
 <!-- TODO: add example -->

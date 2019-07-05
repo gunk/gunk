@@ -267,6 +267,9 @@ msgstr ""
 
 msgid "TODO: add comment."
 msgstr ""
+
+msgid "USE_YOUR_TOKEN"
+msgstr ""
 -- all.md.golden --
 
 # Accounts API v1.0.0
@@ -279,6 +282,11 @@ Provides CRUD operations on the accounts resource.
 
 Retrieves all data from an account, selected by the account_id you supplied.
 
+```sh
+curl -X GET \
+	https://openbank.com/v1/accounts/{AccountID} \
+	-H 'Authorization: Bearer USE_YOUR_TOKEN'
+```
 ```go
 import apb "github.com/openbank/gunk/gunk/v1/accounts"
 

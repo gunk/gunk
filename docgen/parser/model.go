@@ -13,17 +13,25 @@ type File struct {
 
 // Message describes a proto message.
 type Message struct {
-	Name           string
-	Comment        *Comment
-	Fields         []*Field
-	NestedMessages map[string]*Message
+	Name    string
+	Comment *Comment
+	Fields  []*Field
 }
 
 // Field describes a proto field.
 type Field struct {
-	Name    string
-	Comment *Comment
-	Type    string
+	Name     string
+	Comment  *Comment
+	Type     *Type
+	JSONName string
+}
+
+// Type describes a field type.
+type Type struct {
+	Name          string
+	QualifiedName string
+	IsArray       bool
+	IsEnum        bool
 }
 
 // Service describes a proto service.
@@ -35,20 +43,21 @@ type Service struct {
 
 // Method describes a proto method.
 type Method struct {
-	Name        string
-	Comment     *Comment
-	HTTPRequest string
-	Request     *Request
-	Response    *Message
-	Operation   *options.Operation
+	Name      string
+	Comment   *Comment
+	Request   *Request
+	Response  *Message
+	Operation *options.Operation
+	Curl      string
 }
 
 // Request describes an HTTP request.
 type Request struct {
-	Verb  string
-	URI   string
-	Body  *Message
-	Query []*Field
+	Verb    string
+	URI     string
+	Body    *Message
+	Query   []*Field
+	Example string
 }
 
 // Comment describes a comment.

@@ -1,8 +1,11 @@
 package parser
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -54,10 +57,9 @@ func parseMessages(pkgName string, comments map[string]*Comment, messages []*goo
 	for i, m := range messages {
 		p := fmt.Sprintf("%d.%d", messageFlag, i)
 		res[getQualifiedName(pkgName, m.GetName())] = &Message{
-			Name:           m.GetName(),
-			Comment:        nonNilComment(comments[p]),
-			Fields:         parseFields(p, comments, m.GetField()),
-			NestedMessages: parseMessages(pkgName, comments, m.GetNestedType()),
+			Name:    m.GetName(),
+			Comment: nonNilComment(comments[p]),
+			Fields:  parseFields(p, comments, m.GetField()),
 		}
 	}
 	return res
@@ -66,22 +68,37 @@ func parseMessages(pkgName string, comments map[string]*Comment, messages []*goo
 func parseFields(path string, comments map[string]*Comment, fields []*google_protobuf.FieldDescriptorProto) []*Field {
 	res := make([]*Field, len(fields))
 	for i, f := range fields {
-
 		res[i] = &Field{
-			Name:    f.GetName(),
-			Comment: nonNilComment(comments[fmt.Sprintf("%s.%d.%d", path, fieldFlag, i)]),
-			Type:    getType(f),
+			Name:     f.GetName(),
+			Comment:  nonNilComment(comments[fmt.Sprintf("%s.%d.%d", path, fieldFlag, i)]),
+			Type:     getType(f),
+			JSONName: f.GetJsonName(),
 		}
 	}
 	return res
 }
 
-func getType(f *google_protobuf.FieldDescriptorProto) string {
-	if t := f.GetTypeName(); t != "" {
-		s := strings.Split(t, ".")
-		return s[len(s)-1]
+func getType(f *google_protobuf.FieldDescriptorProto) *Type {
+	t := &Type{
+		IsEnum:        f.GetType() == google_protobuf.FieldDescriptorProto_TYPE_ENUM,
+		IsArray:       f.GetLabel() == google_protobuf.FieldDescriptorProto_LABEL_REPEATED,
+		QualifiedName: f.GetTypeName(),
 	}
-	return strings.ToLower(strings.TrimPrefix(f.GetType().String(), "TYPE_"))
+
+	name := ""
+	if t.IsArray {
+		name = "[]"
+	}
+
+	if tn := f.GetTypeName(); tn != "" {
+		s := strings.Split(tn, ".")
+		name += s[len(s)-1]
+	} else {
+		name += strings.ToLower(strings.TrimPrefix(f.GetType().String(), "TYPE_"))
+	}
+	t.Name = name
+
+	return t
 }
 
 func parseServices(pkgName string, messages map[string]*Message, services []*google_protobuf.ServiceDescriptorProto) (map[string]*Service, error) {
@@ -118,7 +135,7 @@ func parseMethods(pkgName string, messages map[string]*Message, methods []*googl
 			return nil, err
 		}
 
-		req, err := parseRequest(extHTTP.(*method.HttpRule), messages[m.GetInputType()])
+		req, err := parseRequest(extHTTP.(*method.HttpRule), messages, m.GetInputType())
 		if err != nil {
 			return nil, err
 		}
@@ -133,7 +150,7 @@ func parseMethods(pkgName string, messages map[string]*Message, methods []*googl
 	return res, nil
 }
 
-func parseRequest(rule *method.HttpRule, message *Message) (*Request, error) {
+func parseRequest(rule *method.HttpRule, messages map[string]*Message, name string) (*Request, error) {
 	var verb, uri string
 
 	switch p := rule.GetPattern().(type) {
@@ -154,22 +171,31 @@ func parseRequest(rule *method.HttpRule, message *Message) (*Request, error) {
 	}
 
 	var body *Message
+	var example string
 	if rule.GetBody() != "" {
 		// Body is defined in the gunk annotation with "*",
 		// meaning that the operation uses the request
 		// message has the request body.
-		body = message
+		body = messages[name]
+
+		p := genJSONExample(messages, name)
+		b, err := p.MarshalJSON()
+		if err != nil {
+			return nil, err
+		}
+		example = string(b)
 	}
 
-	query, err := parseQuery(uri, message)
+	query, err := parseQuery(uri, messages[name])
 	if err != nil {
 		return nil, err
 	}
 	return &Request{
-		Verb:  verb,
-		URI:   uri,
-		Body:  body,
-		Query: query,
+		Verb:    verb,
+		URI:     uri,
+		Body:    body,
+		Query:   query,
+		Example: example,
 	}, nil
 }
 
@@ -217,4 +243,61 @@ func nonNilComment(c *Comment) *Comment {
 
 func getQualifiedName(pkgName, name string) string {
 	return fmt.Sprintf(".%s.%s", pkgName, name)
+}
+
+func genJSONExample(messages map[string]*Message, path string) properties {
+	m := messages[path]
+	op := properties{}
+	for _, f := range m.Fields {
+		if f.Type.QualifiedName == "" || f.Type.IsEnum {
+			op = append(op, keyVal{Key: f.JSONName, Value: f.Type.Name})
+			continue
+		}
+
+		var v interface{} = genJSONExample(messages, f.Type.QualifiedName)
+		if f.Type.IsArray {
+			// Create an slice of type v and append v to it as an example.
+			b := reflect.New(reflect.SliceOf(reflect.TypeOf(v)))
+			v = reflect.Append(b.Elem(), reflect.ValueOf(v)).Interface()
+		}
+		op = append(op, keyVal{
+			Key:   f.JSONName,
+			Value: v,
+		})
+	}
+	return op
+}
+
+type keyVal struct {
+	Key   string
+	Value interface{}
+}
+
+type properties []keyVal
+
+// MarshalJSON returns an JSON encoding of properties
+// in form of "key": "value"
+func (p properties) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	buf.WriteString("{\n")
+	for i, kv := range p {
+		if i != 0 {
+			buf.WriteString(",\n")
+		}
+		key, err := json.Marshal(kv.Key)
+		if err != nil {
+			return nil, err
+		}
+		buf.WriteString("\t\t")
+		buf.Write(key)
+		buf.WriteString(": ")
+		val, err := json.MarshalIndent(kv.Value, "\t\t", "\t")
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(val)
+	}
+
+	buf.WriteString("\n\t}")
+	return buf.Bytes(), nil
 }

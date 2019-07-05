@@ -528,6 +528,9 @@ msgstr ""
 msgid "TODO: add comment."
 msgstr ""
 
+msgid "USE_YOUR_TOKEN"
+msgstr ""
+
 msgid "Update an account"
 msgstr ""
 
@@ -545,6 +548,33 @@ Provides CRUD operations on the accounts resource.
 
 Creates a new account
 
+```sh
+curl -X POST \
+	https://openbank.com/v1/accounts \
+	-H 'Authorization: Bearer USE_YOUR_TOKEN' \
+	-d '{
+		"account_id": "string",
+		"description": "string",
+		"account_roles": [
+			{
+				"entity_number": "string",
+				"entity_type": "EntityType",
+				"role": "string"
+			}
+		],
+		"branch": "string",
+		"customer": "string",
+		"debit_transaction": {
+			"amount": "string",
+			"debit_account": "string",
+			"exchange_rate": "string",
+			"is_fx": "bool"
+		},
+		"interest_rate": "string",
+		"maturity_date": "string",
+		"minor": "string"
+	}'
+```
 ### HTTP Request
 
 `POST https://openbank.com/v1/accounts`
@@ -555,7 +585,7 @@ Creates a new account
 |------------------|------------------|---------------------------------------------|
 | AccountID        | string           | AccountID is the identifier of the account. |
 | Description      | string           | TODO: add comment.                          |
-| AccountRoles     | AccountRole      | TODO: add comment.                          |
+| AccountRoles     | []AccountRole    | TODO: add comment.                          |
 | Branch           | string           | TODO: add comment.                          |
 | Customer         | string           | TODO: add comment.                          |
 | DebitTransaction | DebitTransaction | TODO: add comment.                          |
@@ -589,6 +619,11 @@ Creates a new account
 
 Permanently delete an account.
 
+```sh
+curl -X DELETE \
+	https://openbank.com/v1/accounts/{AccountID} \
+	-H 'Authorization: Bearer USE_YOUR_TOKEN'
+```
 ### HTTP Request
 
 `DELETE https://openbank.com/v1/accounts/{AccountID}`
@@ -616,6 +651,11 @@ Permanently delete an account.
 
 Retrieves all data from an account, selected by the account_id you supplied.
 
+```sh
+curl -X GET \
+	https://openbank.com/v1/accounts/{AccountID} \
+	-H 'Authorization: Bearer USE_YOUR_TOKEN'
+```
 ### HTTP Request
 
 `GET https://openbank.com/v1/accounts/{AccountID}`
@@ -666,6 +706,11 @@ Retrieves all data from an account, selected by the account_id you supplied.
 
 Returns a list containing up to 20 accounts. You can paginate through account by supplying nextstartingindex in your subsequents calls. nextstartingindex contains the accountid of the last accountid of the current page.
 
+```sh
+curl -X GET \
+	https://openbank.com/v1/accounts \
+	-H 'Authorization: Bearer USE_YOUR_TOKEN'
+```
 ### HTTP Request
 
 `GET https://openbank.com/v1/accounts`
@@ -674,10 +719,10 @@ Returns a list containing up to 20 accounts. You can paginate through account by
 
 #### Response body
 
-| Name    | Type    | Description                                             |
-|---------|---------|---------------------------------------------------------|
-| Result  | Account | Result is a list containing up to 20 Accounts.          |
-| HasMore | bool    | HasMore indicates if there are more accounts available. |
+| Name    | Type      | Description                                             |
+|---------|-----------|---------------------------------------------------------|
+| Result  | []Account | Result is a list containing up to 20 Accounts.          |
+| HasMore | bool      | HasMore indicates if there are more accounts available. |
 
 <!-- TODO: add example -->
 #### Response codes
@@ -694,6 +739,15 @@ Returns a list containing up to 20 accounts. You can paginate through account by
 
 Updates an account with all the fields supplied.
 
+```sh
+curl -X PUT \
+	https://openbank.com/v1/accounts/{AccountID} \
+	-H 'Authorization: Bearer USE_YOUR_TOKEN' \
+	-d '{
+		"account_id": "string",
+		"description": "string"
+	}'
+```
 ### HTTP Request
 
 `PUT https://openbank.com/v1/accounts/{AccountID}`

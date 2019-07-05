@@ -56,3 +56,16 @@ Status | Description
 {{range $k, $v := $m.Operation.Responses}}{{$k}} | {{GetText $v.Description}}
 {{end}}{{range $k, $v := $.Swagger.Responses}}{{$k}} | {{GetText $v.Description}}
 {{end}}{{end}}{{end}}
+
+## {{GetText "Annex"}}
+
+{{range $e := .Enums}}
+
+#### {{$e.Name}}
+
+{{GetText $e.Comment.Leading}}
+
+Value | Description
+----- | -----------
+{{range $v := $e.Values}}{{$v.Name}} | {{GetText $v.Comment.Leading}}
+{{end}}{{end}}

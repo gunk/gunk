@@ -9,6 +9,7 @@ type File struct {
 	Swagger  *options.Swagger
 	Messages map[string]*Message
 	Services map[string]*Service
+	Enums    map[string]*Enum
 }
 
 // Message describes a proto message.
@@ -65,4 +66,17 @@ type Comment struct {
 	Leading  string
 	Trailing string
 	Detached []string
+}
+
+// Enum describes an enumeration type.
+type Enum struct {
+	Name    string
+	Comment *Comment
+	Values  []*Value
+}
+
+// Value describes an enum possible value.
+type Value struct {
+	Name    string
+	Comment *Comment
 }

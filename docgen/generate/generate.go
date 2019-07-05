@@ -7,6 +7,7 @@ import (
 	"text/template"
 
 	google_protobuf "github.com/golang/protobuf/protoc-gen-go/descriptor"
+	"github.com/knq/snaker"
 
 	"github.com/gunk/gunk/assets"
 	"github.com/gunk/gunk/docgen/parser"
@@ -16,7 +17,7 @@ import (
 // Run generates a markdown file describing the API
 // and a messages.pot containing all sentences that need to be
 // translated.
-func Run(w io.Writer, f *google_protobuf.FileDescriptorProto) (pot.Builder, error) {
+func Run(w io.Writer, f *google_protobuf.FileDescriptorProto, lang []string) (pot.Builder, error) {
 	pb := pot.NewBuilder()
 
 	b, err := loadTemplate()
@@ -31,6 +32,9 @@ func Run(w io.Writer, f *google_protobuf.FileDescriptorProto) (pot.Builder, erro
 					pb.AddTranslations([]string{txt})
 				}
 				return fmt.Sprintf("%s", txt)
+			},
+			"AddSnippet": func(name string) string {
+				return fmt.Sprintf("{{snippet %s %v}}", snaker.CamelToSnake(name), lang)
 			},
 		}).
 		Parse(string(b)))

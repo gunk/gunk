@@ -1,17 +1,17 @@
 # {{GetText .Swagger.Info.Title}} v{{.Swagger.Info.Version}}
 
-{{GetText .Swagger.Info.Description}}
-
-* {{GetText "Host"}} `{{.Swagger.Host}}`
-* {{GetText "Base Path"}} `{{.Swagger.BasePath}}`
+{{GetText .Swagger.Info.Description}}  
+* {{GetText "Host"}} `{{.Swagger.Host}}`  
+* {{GetText "Base Path"}} `{{.Swagger.BasePath}}`  
 
 {{range $s := .Services}}
 {{range $m := $s.Methods}}
+
 ## {{GetText $m.Operation.Summary}}
 
 {{GetText $m.Operation.Description}}
 
-<!-- TODO: add languages examples -->
+{{AddSnippet $m.Name}}
 
 ### {{GetText "HTTP Request"}}
 

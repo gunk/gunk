@@ -25,6 +25,29 @@ command=docgen
 out=examples/util/v1/
 ```
 
+### Code examples
+
+To generate code examples, add the following to the `.gunkconfig` docgen section:
+
+```ini
+lang=go
+```
+
+Then add your `*.go` files near your gunk files.
+The examples files must be named according to the gunk method you want to showcase.
+
+Example:
+
+```go
+// UpdateAccount updates an account.
+UpdateAccount(UpdateAccountRequest)
+
+// DeleteAccount deletes an account.
+DeleteAccount(DeleteAccountRequest)
+```
+
+You should have `update_account.go` and `delete_account.go`.
+
 ## Contributing
 
 After any changes on `templates/api.md`, make sure to perform `go generate` in `assets` folder to embed your changes.

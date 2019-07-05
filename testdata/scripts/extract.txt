@@ -1,6 +1,6 @@
 gunk generate accounts.gunk
-cmp messages.pot messages.golden.pot
-cmp all.md all.golden.md
+cmp messages.pot messages.pot.golden
+cmp all.md all.md.golden
 
 -- go.mod --
 module testdata.tld/util
@@ -377,7 +377,7 @@ type AccountService interface {
 	DeleteAccount(DeleteAccountRequest)
 }
 
--- messages.golden.pot --
+-- messages.pot.golden --
 # Messages.pot - Contains all msgid extracted from swagger definitions.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
@@ -533,221 +533,194 @@ msgstr ""
 
 msgid "Updates an account with all the fields supplied."
 msgstr ""
--- all.golden.md --
+-- all.md.golden --
+
 # Accounts API v1.0.0
 
-Provides CRUD operations on the accounts resource.
-
-* Host `https://openbank.com`
+Provides CRUD operations on the accounts resource.  
+* Host `https://openbank.com`  
 * Base Path `/v1`
-
-
 
 ## Create an account
 
 Creates a new account
 
-<!-- TODO: add languages examples -->
-
 ### HTTP Request
 
 `POST https://openbank.com/v1/accounts`
 
-
-
 ### Body Parameters
 
-Name | Type | Description
----- | ---- | -----------
-AccountID | string |AccountID is the identifier of the account.
-Description | string |TODO: add comment.
-AccountRoles | AccountRole |TODO: add comment.
-Branch | string |TODO: add comment.
-Customer | string |TODO: add comment.
-DebitTransaction | DebitTransaction |TODO: add comment.
-InterestRate | string |TODO: add comment.
-MaturityDate | string |TODO: add comment.
-Minor | string |TODO: add comment.
+| Name             | Type             | Description                                 |
+|------------------|------------------|---------------------------------------------|
+| AccountID        | string           | AccountID is the identifier of the account. |
+| Description      | string           | TODO: add comment.                          |
+| AccountRoles     | AccountRole      | TODO: add comment.                          |
+| Branch           | string           | TODO: add comment.                          |
+| Customer         | string           | TODO: add comment.                          |
+| DebitTransaction | DebitTransaction | TODO: add comment.                          |
+| InterestRate     | string           | TODO: add comment.                          |
+| MaturityDate     | string           | TODO: add comment.                          |
+| Minor            | string           | TODO: add comment.                          |
 
 ### Responses
 
 #### Response body
 
-Name | Type | Description
----- | ---- | -----------
-AccountID | string | AccountID is the unique identifier of the newly created account.
-CreditTransactionNumber | string | CreditTransactionNumber is the transaction number of the credited account.
-DebitTransactionNumber | string | DebitTransactionNumber is the transaction number of the debited account.
-Minor | string | TODO: add comment.
-
+| Name                    | Type   | Description                                                                |
+|-------------------------|--------|----------------------------------------------------------------------------|
+| AccountID               | string | AccountID is the unique identifier of the newly created account.           |
+| CreditTransactionNumber | string | CreditTransactionNumber is the transaction number of the credited account. |
+| DebitTransactionNumber  | string | DebitTransactionNumber is the transaction number of the debited account.   |
+| Minor                   | string | TODO: add comment.                                                         |
 
 <!-- TODO: add example -->
-
 #### Response codes
-Status | Description
------- | -----------
-201 | Account created successfully.
-400 | Returned when the request body is malformatted or does not match the expected request.
-401 | Returned when the request does not contains the user's credentials.
-403 | Returned when the user does not have permission to access the resource.
-500 | Returned when an unexpected error occured on the server side.
+
+| Status | Description                                                                            |
+|--------|----------------------------------------------------------------------------------------|
+| 201    | Account created successfully.                                                          |
+| 400    | Returned when the request body is malformatted or does not match the expected request. |
+| 401    | Returned when the request does not contains the user's credentials.                    |
+| 403    | Returned when the user does not have permission to access the resource.                |
+| 500    | Returned when an unexpected error occured on the server side.                          |
 
 ## Delete an account
 
 Permanently delete an account.
 
-<!-- TODO: add languages examples -->
-
 ### HTTP Request
 
 `DELETE https://openbank.com/v1/accounts/{AccountID}`
 
-
 ### Query Parameters
 
-Name | Type | Description
----- | ---- | -----------
-AccountID | string |AccountID is the unique identifier of the account to delete.
-
+| Name      | Type   | Description                                                  |
+|-----------|--------|--------------------------------------------------------------|
+| AccountID | string | AccountID is the unique identifier of the account to delete. |
 
 ### Responses
 
-
 <!-- TODO: add example -->
-
 #### Response codes
-Status | Description
------- | -----------
-204 | Account deleted successfully.
-400 | Returned when the request body is malformatted or does not match the expected request.
-401 | Returned when the request does not contains the user's credentials.
-403 | Returned when the user does not have permission to access the resource.
-500 | Returned when an unexpected error occured on the server side.
+
+| Status | Description                                                                            |
+|--------|----------------------------------------------------------------------------------------|
+| 204    | Account deleted successfully.                                                          |
+| 400    | Returned when the request body is malformatted or does not match the expected request. |
+| 401    | Returned when the request does not contains the user's credentials.                    |
+| 403    | Returned when the user does not have permission to access the resource.                |
+| 500    | Returned when an unexpected error occured on the server side.                          |
 
 ## Retrieve an account
 
 Retrieves all data from an account, selected by the account_id you supplied.
 
-<!-- TODO: add languages examples -->
-
 ### HTTP Request
 
 `GET https://openbank.com/v1/accounts/{AccountID}`
 
-
 ### Query Parameters
 
-Name | Type | Description
----- | ---- | -----------
-AccountID | string |
-
+| Name      | Type   | Description |
+|-----------|--------|-------------|
+| AccountID | string |             |
 
 ### Responses
 
 #### Response body
 
-Name | Type | Description
----- | ---- | -----------
-AccountID | string | AccountID is the unique identifier of an account.Should not be returned as is.
-Branch | string | TODO: add comment.
-BranchName | string | TODO: add comment.
-Status | string | Status is the status of the account.
-AccruedInterestAtMaturityDate | string | TODO: add comment.
-AvailableCreditLimit | string | TODO: add comment.
-CheckingInterestRate | string | TODO: add comment.
-ContractDate | string | ContractDate is the date of the contract initialization.
-CreditLimit | string | CreditLimit is the allowed credit limit.
-CurrentAccruedInterest | string | TODO: add comment.
-CurrentTerm | string | CurrentTerm is the account validity period.
-DueDate | string | DueDate is the loan maturity date.
-InterestRate | string | TODO: add comment.
-MaturityDate | string | MaturityDate is the maturity date, format is ISO 8601
-NextPaymentDueDate | string | TODO: add comment.
-OwnerName | string | OwnerName is the name of the account's owner.
-StartDate | string | TODO: add comment.
-
+| Name                          | Type   | Description                                                                    |
+|-------------------------------|--------|--------------------------------------------------------------------------------|
+| AccountID                     | string | AccountID is the unique identifier of an account.Should not be returned as is. |
+| Branch                        | string | TODO: add comment.                                                             |
+| BranchName                    | string | TODO: add comment.                                                             |
+| Status                        | string | Status is the status of the account.                                           |
+| AccruedInterestAtMaturityDate | string | TODO: add comment.                                                             |
+| AvailableCreditLimit          | string | TODO: add comment.                                                             |
+| CheckingInterestRate          | string | TODO: add comment.                                                             |
+| ContractDate                  | string | ContractDate is the date of the contract initialization.                       |
+| CreditLimit                   | string | CreditLimit is the allowed credit limit.                                       |
+| CurrentAccruedInterest        | string | TODO: add comment.                                                             |
+| CurrentTerm                   | string | CurrentTerm is the account validity period.                                    |
+| DueDate                       | string | DueDate is the loan maturity date.                                             |
+| InterestRate                  | string | TODO: add comment.                                                             |
+| MaturityDate                  | string | MaturityDate is the maturity date, format is ISO 8601                          |
+| NextPaymentDueDate            | string | TODO: add comment.                                                             |
+| OwnerName                     | string | OwnerName is the name of the account's owner.                                  |
+| StartDate                     | string | TODO: add comment.                                                             |
 
 <!-- TODO: add example -->
-
 #### Response codes
-Status | Description
------- | -----------
-200 | Request executed successfully.
-404 | Returned when the resource is not found.
-400 | Returned when the request body is malformatted or does not match the expected request.
-401 | Returned when the request does not contains the user's credentials.
-403 | Returned when the user does not have permission to access the resource.
-500 | Returned when an unexpected error occured on the server side.
+
+| Status | Description                                                                            |
+|--------|----------------------------------------------------------------------------------------|
+| 200    | Request executed successfully.                                                         |
+| 404    | Returned when the resource is not found.                                               |
+| 400    | Returned when the request body is malformatted or does not match the expected request. |
+| 401    | Returned when the request does not contains the user's credentials.                    |
+| 403    | Returned when the user does not have permission to access the resource.                |
+| 500    | Returned when an unexpected error occured on the server side.                          |
 
 ## List all accounts
 
-Returns a list containing up to 20 accounts. You can paginate through account by supplying next_starting_index in your subsequents calls. next_starting_index contains the account_id of the last account_id of the current page.
-
-<!-- TODO: add languages examples -->
+Returns a list containing up to 20 accounts. You can paginate through account by supplying nextstartingindex in your subsequents calls. nextstartingindex contains the accountid of the last accountid of the current page.
 
 ### HTTP Request
 
 `GET https://openbank.com/v1/accounts`
 
-
-
 ### Responses
 
 #### Response body
 
-Name | Type | Description
----- | ---- | -----------
-Result | Account | Result is a list containing up to 20 Accounts.
-HasMore | bool | HasMore indicates if there are more accounts available.
-
+| Name    | Type    | Description                                             |
+|---------|---------|---------------------------------------------------------|
+| Result  | Account | Result is a list containing up to 20 Accounts.          |
+| HasMore | bool    | HasMore indicates if there are more accounts available. |
 
 <!-- TODO: add example -->
-
 #### Response codes
-Status | Description
------- | -----------
-200 | Request executed successfully.
-400 | Returned when the request body is malformatted or does not match the expected request.
-401 | Returned when the request does not contains the user's credentials.
-403 | Returned when the user does not have permission to access the resource.
-500 | Returned when an unexpected error occured on the server side.
+
+| Status | Description                                                                            |
+|--------|----------------------------------------------------------------------------------------|
+| 200    | Request executed successfully.                                                         |
+| 400    | Returned when the request body is malformatted or does not match the expected request. |
+| 401    | Returned when the request does not contains the user's credentials.                    |
+| 403    | Returned when the user does not have permission to access the resource.                |
+| 500    | Returned when an unexpected error occured on the server side.                          |
 
 ## Update an account
 
 Updates an account with all the fields supplied.
 
-<!-- TODO: add languages examples -->
-
 ### HTTP Request
 
 `PUT https://openbank.com/v1/accounts/{AccountID}`
 
-
 ### Query Parameters
 
-Name | Type | Description
----- | ---- | -----------
-AccountID | string |AccountID is the unique identifier of the account to update.
-
+| Name      | Type   | Description                                                  |
+|-----------|--------|--------------------------------------------------------------|
+| AccountID | string | AccountID is the unique identifier of the account to update. |
 
 ### Body Parameters
 
-Name | Type | Description
----- | ---- | -----------
-AccountID | string |AccountID is the unique identifier of the account to update.
-Description | string |TODO: add comment.
+| Name        | Type   | Description                                                  |
+|-------------|--------|--------------------------------------------------------------|
+| AccountID   | string | AccountID is the unique identifier of the account to update. |
+| Description | string | TODO: add comment.                                           |
 
 ### Responses
 
-
 <!-- TODO: add example -->
-
 #### Response codes
-Status | Description
------- | -----------
-204 | Account updated successfully.
-400 | Returned when the request body is malformatted or does not match the expected request.
-401 | Returned when the request does not contains the user's credentials.
-403 | Returned when the user does not have permission to access the resource.
-500 | Returned when an unexpected error occured on the server side.
+
+| Status | Description                                                                            |
+|--------|----------------------------------------------------------------------------------------|
+| 204    | Account updated successfully.                                                          |
+| 400    | Returned when the request body is malformatted or does not match the expected request. |
+| 401    | Returned when the request does not contains the user's credentials.                    |
+| 403    | Returned when the user does not have permission to access the resource.                |
+| 500    | Returned when an unexpected error occured on the server side.                          |
 

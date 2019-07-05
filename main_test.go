@@ -34,6 +34,7 @@ func TestMain(m *testing.M) {
 			"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway",
 			"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger",
 			"github.com/gunk/gunk/docgen",
+			"github.com/Kunde21/pulpMd",
 			"./testdata/protoc-gen-strict",
 		)
 		cmd.Stderr = os.Stderr

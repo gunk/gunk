@@ -1,0 +1,186 @@
+gunk generate types.gunk
+cmp messages.pot messages.pot.golden
+cmp all.md all.md.golden
+
+-- go.mod --
+module testdata.tld/util
+
+require (
+	github.com/gunk/opt v0.0.0-20190514110406-385321f21939
+)
+-- .gunkconfig --
+[generate]
+command=docgen
+-- types.gunk --
+package types
+
+// Amount defines a transaction amount.
+type Amount struct {
+	// Cur is the currency of the amount.
+	Cur string `pb:"1" json:"cur"`
+	// Num is the value of the amount.
+	Num string `pb:"2" json:"num"`
+}
+
+// MajorType describes the type of the account.
+type MajorType int
+
+const (
+	_ MajorType = iota
+	// Checking account.
+	Checking
+	// Saving account.
+	Saving
+	// TimeDeposit for a time deposit account.
+	TimeDeposit
+	// CommercialLoan for a business loan account.
+	CommercialLoan
+	// MortgageLoan for a home loan account.
+	MortgageLoan
+	// ConsumerLoan for a consumer loan account.
+	ConsumerLoan
+)
+
+// MajorCategory describes the category of the account.
+type MajorCategory int
+
+const (
+	_ MajorCategory = iota
+	// Dep for deposit category.
+	Dep
+	// Loan for loan category.
+	Loan
+)
+
+// BankCode indicates which bank to use; these should be a list of banks
+// that we are currently integrated with
+// This is the updated list of banks per January 2018
+type BankCode int
+
+const (
+	_ BankCode = iota
+	Mandiri
+	Bca
+	Bni
+	Bri
+	DummyBank
+	Bdo
+	//Bpi
+	Aceh
+)
+
+-- messages.pot.golden --
+# Messages.pot - Contains all msgid extracted from swagger definitions.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid   ""
+msgstr  "Project-Id-Version: %s\n"
+		"Report-Msgid-Bugs-To: %s\n"
+		"POT-Creation-Date: %s\n"
+		"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+		"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+		"Language-Team: LANGUAGE <LL@li.org>\n"
+		"Language: \n"
+		"MIME-Version: 1.0\n"
+		"Content-Type: text/plain; charset=CHARSET\n"
+		"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Amount defines a transaction amount."
+msgstr ""
+
+msgid "Annex"
+msgstr ""
+
+msgid "BankCode indicates which bank to use; these should be a list of banksthat we are currently integrated withThis is the updated list of banks per January 2018"
+msgstr ""
+
+msgid "Bpi"
+msgstr ""
+
+msgid "Cur is the currency of the amount."
+msgstr ""
+
+msgid "MajorCategory describes the category of the account."
+msgstr ""
+
+msgid "MajorCategory_Dep for deposit category."
+msgstr ""
+
+msgid "MajorCategory_Loan for loan category."
+msgstr ""
+
+msgid "MajorType describes the type of the account."
+msgstr ""
+
+msgid "MajorType_Checking account."
+msgstr ""
+
+msgid "MajorType_CommercialLoan for a business loan account."
+msgstr ""
+
+msgid "MajorType_ConsumerLoan for a consumer loan account."
+msgstr ""
+
+msgid "MajorType_MortgageLoan for a home loan account."
+msgstr ""
+
+msgid "MajorType_Saving account."
+msgstr ""
+
+msgid "MajorType_TimeDeposit for a time deposit account."
+msgstr ""
+
+msgid "Num is the value of the amount."
+msgstr ""
+-- all.md.golden --
+
+# Annex
+
+##  Amount
+
+Amount defines a transaction amount.
+
+| Name | Type   | Description                        |
+|------|--------|------------------------------------|
+| Cur  | string | Cur is the currency of the amount. |
+| Num  | string | Num is the value of the amount.    |
+
+##  BankCode
+
+BankCode indicates which bank to use; these should be a list of banksthat we are currently integrated withThis is the updated list of banks per January 2018
+
+| Value     | Description |
+|-----------|-------------|
+| Mandiri   |             |
+| Bca       |             |
+| Bni       |             |
+| Bri       |             |
+| DummyBank |             |
+| Bdo       |             |
+| Aceh      | Bpi         |
+
+##  MajorCategory
+
+MajorCategory describes the category of the account.
+
+| Value | Description                             |
+|-------|-----------------------------------------|
+| Dep   | MajorCategory_Dep for deposit category. |
+| Loan  | MajorCategory_Loan for loan category.   |
+
+##  MajorType
+
+MajorType describes the type of the account.
+
+| Value          | Description                                           |
+|----------------|-------------------------------------------------------|
+| Checking       | MajorType_Checking account.                           |
+| Saving         | MajorType_Saving account.                             |
+| TimeDeposit    | MajorType_TimeDeposit for a time deposit account.     |
+| CommercialLoan | MajorType_CommercialLoan for a business loan account. |
+| MortgageLoan   | MajorType_MortgageLoan for a home loan account.       |
+| ConsumerLoan   | MajorType_ConsumerLoan for a consumer loan account.   |
+

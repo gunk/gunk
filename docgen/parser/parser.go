@@ -113,19 +113,17 @@ func getType(f *google_protobuf.FieldDescriptorProto) *Type {
 		QualifiedName: f.GetTypeName(),
 	}
 
-	name := ""
 	if t.IsArray {
-		name = "[]"
+		t.Name = "[]"
 	}
 
 	if tn := f.GetTypeName(); tn != "" {
 		s := strings.Split(tn, ".")
-		name += s[len(s)-1]
-	} else {
-		name += strings.ToLower(strings.TrimPrefix(f.GetType().String(), "TYPE_"))
+		t.Name += s[len(s)-1]
+		return t
 	}
-	t.Name = name
 
+	t.Name += strings.ToLower(strings.TrimPrefix(f.GetType().String(), "TYPE_"))
 	return t
 }
 

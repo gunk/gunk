@@ -12,6 +12,11 @@ type File struct {
 	Enums    map[string]*Enum
 }
 
+// HasServices returns true when file contains service definitions.
+func (f *File) HasServices() bool {
+	return len(f.Services) > 0
+}
+
 // Message describes a proto message.
 type Message struct {
 	Name    string

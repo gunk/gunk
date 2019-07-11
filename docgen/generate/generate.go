@@ -20,12 +20,22 @@ import (
 func Run(w io.Writer, f *google_protobuf.FileDescriptorProto, lang []string) (pot.Builder, error) {
 	pb := pot.NewBuilder()
 
-	b, err := loadTemplate()
+	api, err := parser.ParseFile(f)
 	if err != nil {
 		return nil, err
 	}
 
-	tmpl := template.Must(template.New("api.md").
+	tplName := "annex.md"
+	if api.HasServices() {
+		tplName = "api.md"
+	}
+
+	b, err := loadTemplate(tplName)
+	if err != nil {
+		return nil, err
+	}
+
+	tmpl := template.Must(template.New("doc").
 		Funcs(template.FuncMap{
 			"GetText": func(txt string) string {
 				if txt != "" {
@@ -39,19 +49,14 @@ func Run(w io.Writer, f *google_protobuf.FileDescriptorProto, lang []string) (po
 		}).
 		Parse(string(b)))
 
-	api, err := parser.ParseFile(f)
-	if err != nil {
-		return nil, err
-	}
-
 	if err := tmpl.Execute(w, api); err != nil {
 		return nil, err
 	}
 	return pb, nil
 }
 
-func loadTemplate() ([]byte, error) {
-	file, err := assets.Assets.Open("api.md")
+func loadTemplate(name string) ([]byte, error) {
+	file, err := assets.Assets.Open(name)
 	if err != nil {
 		return nil, err
 	}

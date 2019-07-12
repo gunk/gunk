@@ -1,7 +1,9 @@
 package pot
 
 import (
+	"bufio"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 
@@ -30,7 +32,8 @@ msgstr  "Project-Id-Version: %s\n"
 
 // Builder provides pot building methods.
 type Builder interface {
-	AddTranslations(msg []string)
+	AddTranslation(msg string)
+	AddFromFile(name string) error
 	String() string
 }
 
@@ -46,10 +49,8 @@ func NewBuilder() Builder {
 }
 
 // AddTranslations add a list of translations..
-func (b *builder) AddTranslations(msg []string) {
-	for _, m := range msg {
-		b.entries[m] = struct{}{}
-	}
+func (b *builder) AddTranslation(msg string) {
+	b.entries[msg] = struct{}{}
 }
 
 // String returns a pot-formatted string representation of
@@ -66,4 +67,26 @@ func (b *builder) String() string {
 		fmt.Fprintf(s, "msgstr \"\"\n")
 	}
 	return s.String()
+}
+
+// AddFromFile reads translations from the POT file and
+// add its entries to the receiver.
+func (b *builder) AddFromFile(name string) error {
+	f, err := os.Open(name)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	defer f.Close()
+
+	s := bufio.NewScanner(f)
+	for s.Scan() {
+		l := s.Text()
+		if strings.HasPrefix(l, "msgid \"") {
+			e := strings.TrimSuffix(strings.TrimPrefix(l, "msgid \""), "\"")
+			if e != "" {
+				b.AddTranslation(e)
+			}
+		}
+	}
+	return nil
 }

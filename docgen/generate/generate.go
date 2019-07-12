@@ -39,7 +39,7 @@ func Run(w io.Writer, f *google_protobuf.FileDescriptorProto, lang []string) (po
 		Funcs(template.FuncMap{
 			"GetText": func(txt string) string {
 				if txt != "" {
-					pb.AddTranslations([]string{txt})
+					pb.AddTranslation(txt)
 				}
 				return fmt.Sprintf("%s", txt)
 			},

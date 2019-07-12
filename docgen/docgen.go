@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -15,6 +17,8 @@ import (
 	"github.com/gunk/gunk/plugin"
 )
 
+const modeAppend = "append"
+
 func main() {
 	plugin.RunMain(new(docPlugin))
 }
@@ -23,6 +27,7 @@ type docPlugin struct{}
 
 func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.CodeGeneratorResponse, error) {
 	var lang []string
+	var mode, dir string
 	if param := req.GetParameter(); param != "" {
 		ps := strings.Split(param, ",")
 		for _, p := range ps {
@@ -34,6 +39,13 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 			switch k {
 			case "lang":
 				lang = append(lang, v)
+			case "mode":
+				if v != modeAppend {
+					return nil, fmt.Errorf("unknown mode: %s", v)
+				}
+				mode = v
+			case "out":
+				dir = v
 			default:
 				return nil, fmt.Errorf("unknown parameter: %s", k)
 			}
@@ -58,6 +70,20 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 	pb, err := generate.Run(&buf, source, lang)
 	if err != nil {
 		return nil, fmt.Errorf("failed markdown generation: %v", err)
+	}
+
+	if mode == modeAppend {
+		// Load content from existing all.md
+		e, err := ioutil.ReadFile(filepath.Join(dir, "all.md"))
+		if err != nil && !os.IsNotExist(err) {
+			return nil, err
+		}
+		buf = *bytes.NewBuffer(append(e, buf.Bytes()...))
+
+		// Get existing entries from messages.pot
+		if err := pb.AddFromFile(filepath.Join(dir, "messages.pot")); err != nil {
+			return nil, err
+		}
 	}
 
 	// execute pulpMd to inject code snippets for examples.

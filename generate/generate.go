@@ -269,7 +269,10 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.G
 	// Due to problems with some generators (grpc-gateway),
 	// we need to ensure we either send a non-empty string or nil.
 	if ps := gen.ParamString(); ps != "" {
-		req.Parameter = proto.String(gen.ParamString())
+		if gen.Out != "" {
+			ps += fmt.Sprintf(",out=%s", gen.Out)
+		}
+		req.Parameter = proto.String(ps)
 	}
 	bs, err := proto.Marshal(&req)
 	if err != nil {

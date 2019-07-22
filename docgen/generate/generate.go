@@ -41,7 +41,7 @@ func Run(w io.Writer, f *google_protobuf.FileDescriptorProto, lang []string) (po
 				if txt != "" {
 					pb.AddTranslation(txt)
 				}
-				return fmt.Sprintf("%s", txt)
+				return txt
 			},
 			"AddSnippet": func(name string) string {
 				return fmt.Sprintf("{{snippet %s %v}}", snaker.CamelToSnake(name), lang)

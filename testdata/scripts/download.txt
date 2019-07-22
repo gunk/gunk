@@ -1,4 +1,5 @@
-[!net] skip 'requires network access'
+# TODO: use [!net] once it does something useful.
+# See https://github.com/rogpeppe/go-internal/issues/75.
 [short] skip 'requires network access'
 
 # Use a separate $HOME, to not reuse a cached protoc.

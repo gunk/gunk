@@ -10,8 +10,9 @@ exists gitfile/all.pb.go
 
 # Check that the project root is assumed to be where the go.mod file it.
 # The parent module can't see packages inside the child module, so cd into it.
+# Go 1.13 and later errors directly; hence the second error match.
 ! gunk generate ./gomod
-stderr 'no Gunk packages to generate'
+stderr 'no Gunk packages to generate|directory gomod is outside main module'
 
 cd gomod
 gunk generate .

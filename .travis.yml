@@ -11,5 +11,5 @@ env:
 install: true
 
 script:
-  - go run main.go download
+  - go run main.go download all
   - go test -coverprofile=cover.out -v ./...

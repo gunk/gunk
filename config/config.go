@@ -73,10 +73,12 @@ func (g Generator) OutPath(packageDir string) string {
 }
 
 type Config struct {
-	Dir        string
-	Out        string
-	ImportPath string
-	Generators []Generator
+	Dir           string
+	Out           string
+	ImportPath    string
+	ProtocPath    string
+	ProtocVersion string
+	Generators    []Generator
 }
 
 // Load will attempt to find the .gunkconfig in the 'dir', working
@@ -158,12 +160,24 @@ func Load(dir string) (*Config, error) {
 	}
 
 	// Merge the found configs.
-	cfg := cfgs[0]
+	config := cfgs[0]
 	for i := 1; i < len(cfgs); i++ {
-		cfg.Generators = append(cfg.Generators, cfgs[i].Generators...)
+		c := cfgs[i]
+
+		// Set the protoc path + version to the first non-blank values found (if any).
+		// They are visited in order of specificity, so a .gunkconfig in a child directory can
+		// override the protoc configuration specified in its parent.
+		if protocVer := c.ProtocVersion; config.ProtocVersion == "" {
+			config.ProtocVersion = protocVer
+		}
+		if protocPath := c.ProtocPath; config.ProtocPath == "" {
+			config.ProtocPath = protocPath
+		}
+
+		config.Generators = append(config.Generators, c.Generators...)
 	}
 
-	return cfg, nil
+	return config, nil
 }
 
 func load(reader io.Reader) (*Config, error) {
@@ -185,6 +199,8 @@ func load(reader io.Reader) (*Config, error) {
 				return nil, err
 			}
 			continue
+		case name == "protoc":
+			err = handleProtoc(config, s)
 		case name == "generate":
 			gen, err = handleGenerate(s)
 		case strings.HasPrefix(name, "generate"):
@@ -218,6 +234,21 @@ func load(reader io.Reader) (*Config, error) {
 		}
 	}
 	return config, nil
+}
+
+func handleProtoc(config *Config, section *parser.Section) error {
+	for _, k := range section.RawKeys() {
+		v := section.GetRaw(k)
+		switch k {
+		case "path":
+			config.ProtocPath = v
+		case "version":
+			config.ProtocVersion = v
+		default:
+			return fmt.Errorf("unexpected key %q in protoc section", k)
+		}
+	}
+	return nil
 }
 
 func handleGenerate(section *parser.Section) (*Generator, error) {

@@ -6,11 +6,11 @@
 env HOME=$WORK/home
 
 # Download protoc.
-gunk download -v
+gunk download protoc -v
 ! stdout .
 stderr 'downloaded protoc to'
 
 # This shouldn't download anything.
-gunk download -v
+gunk download protoc -v
 ! stdout .
 ! stderr .

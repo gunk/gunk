@@ -146,13 +146,13 @@ $ go get -u github.com/gunk/gunk
 
 ## Protobuf Dependency and Caching
 
-The `gunk` command-line tool uses the `protoc` command-line tool. If `protoc`
-is not available on `$PATH` (Linux/macOS) / `%PATH%` (Windows), `gunk` will
+The `gunk` command-line tool uses the `protoc` command-line tool. `gunk` can be configured
+to use `protoc` at a specified path. If it isn't available, `gunk` will
 [download the latest protobuf release][protobuf-releases] to the user's cache,
-for use.
+for use. It's also possible to pin a specific version, see the section on [protoc configuration][].
 
-**Note:** future releases of Gunk may provide the ability to configure a
-specific version of the `protoc` binary.
+[protoc configuration]: #section-protoc
+
 
 ## Protocol Types and Messages
 
@@ -178,10 +178,10 @@ type Util interface {
 	// Echo echoes a message.
 	//
 	// +gunk http.Match{
-	//		Method:	"POST",
-	// 		Path:	"/v1/echo",
-	// 		Body:	"*",
-	//	}
+	// 	Method:	"POST",
+	// 	Path:	"/v1/echo",
+	// 	Body:	"*",
+	// }
 	Echo(Message) Message
 }
 ```
@@ -259,8 +259,8 @@ Gunk's Go-derived syntax uses Go `const`'s for declaring enums:
 type MyEnum int
 
 const (
-    MYENUM  MyEnum = iota
-    MYENUM2
+	MYENUM MyEnum = iota
+	MYENUM2
 )
 ```
 
@@ -273,11 +273,11 @@ Gunk's Go-derived syntax uses Go `map`'s for declaring `map` fields:
 
 ```go
 type Project struct {
-    ProjectID string `pb:"1" json:"project_id"`
+	ProjectID string `pb:"1" json:"project_id"`
 }
 
 type GetProjectResponse struct {
-    Projects map[string]Project `pb:"1"`
+	Projects map[string]Project `pb:"1"`
 }
 ```
 
@@ -288,7 +288,7 @@ repeated field:
 
 ```go
 type MyMessage struct {
-    FieldA []string `pb:"1"`
+	FieldA []string `pb:"1"`
 }
 ```
 
@@ -298,7 +298,7 @@ Gunk's Go-derived syntax uses Go `chan` syntax for declaring streams:
 
 ```go
 type MessageService interface {
-    List(chan Message) chan Message
+	List(chan Message) chan Message
 }
 ```
 
@@ -320,14 +320,14 @@ or service:
 ```go
 // MyOption is an option.
 type MyOption struct {
-    Name string `pb:"1"`
+	Name string `pb:"1"`
 }
 
 // +gunk MyOption {
-//   Name: "test",
+// 	Name: "test",
 // }
 type MyMessage struct {
-    /* ... */
+	/* ... */
 }
 ```
 
@@ -377,6 +377,22 @@ command=protoc-gen-go
 out=v1/js
 protoc=js
 ```
+
+### Section `[protoc]`
+
+The path where to check for (or where to download) the `protoc` binary can be configured.
+The version can also be pinned.
+
+#### Parameters
+
+* `version` - the version of protoc to use. If unspecified, defaults
+  to the latest release available. Otherwise, gunk will either download the specified
+  version, or check that the version of `protoc` at the specified path matches what was
+  configured.
+
+* `path` - the path to check for the `protoc` binary. If unspecified, defaults appropriate user 
+   cache directory for the user's OS. If no file exists at the path, `gunk` will attempt to download
+   protoc.
 
 ### Section `[generate[ <type>]]`
 
@@ -442,16 +458,16 @@ annotations, such as Google HTTP options, including all builtin/standard
 package message
 
 import (
-    "github.com/gunk/opt/http"
-    "github.com/gunk/opt/file/java"
+	"github.com/gunk/opt/http"
+	"github.com/gunk/opt/file/java"
 )
 
 type Util interface {
 	// +gunk http.Match{
-	//		Method:	"POST",
-	// 		Path:	"/v1/echo",
-	// 		Body:	"*",
-	//	}
+	// 	Method:	"POST",
+	// 	Path:	"/v1/echo",
+	// 	Body:	"*",
+	// }
 	Echo()
 }
 ```

@@ -32,7 +32,11 @@ var (
 	dmpPatterns = dmp.Arg("patterns", "patterns of Gunk packages").Strings()
 	dmpFormat   = dmp.Flag("format", "output format: proto (default), or json").String()
 
-	download = app.Command("download", "Download required tools for Gunk, e.g., protoc")
+	download     = app.Command("download", "Download required tools for Gunk, e.g., protoc")
+	dlAll        = download.Command("all", "download all required tools")
+	dlProtoc     = download.Command("protoc", "download protoc")
+	dlProtocPath = dlProtoc.Flag("path", "path to check for protoc binary, or where to download it to").String()
+	dlProtocVer  = dlProtoc.Flag("version", "version of protoc to use").String()
 
 	ver = app.Command("version", "Show Gunk version.")
 )
@@ -61,6 +65,9 @@ func main1() (code int) {
 	gen.Flag("verbose", "print the names of packages as they are generated").Short('v').BoolVar(&log.Verbose)
 
 	download.Flag("verbose", "print details of downloaded tools").Short('v').BoolVar(&log.Verbose)
+	downloadSubcommands := []func() error{
+		downloadProtoc,
+	}
 
 	command, err := app.Parse(os.Args[1:])
 	if code != 0 {
@@ -81,12 +88,24 @@ func main1() (code int) {
 		err = format.Run("", *frmtPatterns...)
 	case dmp.FullCommand():
 		err = dump.Run(*dmpFormat, "", *dmpPatterns...)
-	case download.FullCommand():
-		_, err = generate.CheckOrDownloadProtoc()
+	case dlAll.FullCommand():
+		for _, dl := range downloadSubcommands {
+			err = dl()
+			if err != nil {
+				break
+			}
+		}
+	case dlProtoc.FullCommand():
+		err = downloadProtoc()
 	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		return 1
 	}
 	return 0
+}
+
+func downloadProtoc() error {
+	_, err := generate.CheckOrDownloadProtoc(*dlProtocPath, *dlProtocVer)
+	return err
 }

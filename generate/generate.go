@@ -42,11 +42,6 @@ func Run(dir string, args ...string) error {
 	}
 
 	// Check that protoc exists, if not download it.
-	protocPath, err := CheckOrDownloadProtoc()
-	if err != nil {
-		return err
-	}
-
 	pkgs, err := g.Load(args...)
 	if err != nil {
 		return err
@@ -84,6 +79,11 @@ func Run(dir string, args ...string) error {
 	// Finally, run the code generators.
 	for _, pkg := range pkgs {
 		cfg := pkgConfigs[pkg.Dir]
+		protocPath, err := CheckOrDownloadProtoc(cfg.ProtocPath, cfg.ProtocVersion)
+		if err != nil {
+			return err
+		}
+
 		if err := g.GeneratePkg(pkg.PkgPath, cfg.Generators, protocPath); err != nil {
 			return err
 		}

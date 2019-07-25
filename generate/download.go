@@ -12,38 +12,45 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strings"
 
 	"github.com/gunk/gunk/log"
 	"github.com/rogpeppe/go-internal/lockedfile"
 )
 
-const protocGitHubRepo = "ProtocolBuffers/protobuf"
-
-// CheckOrDownloadProtoc downloads protoc to a cache folder, unless it's already
-// been downloaded. The user can pin a version in their config; otherwise, the
-// latest version is fetched from GitHub.
-func CheckOrDownloadProtoc() (string, error) {
-	// Get the os specific cache directory.
-	cachePath, err := os.UserCacheDir()
-	if err != nil {
-		return "", err
-	}
-	cacheDir := filepath.Join(cachePath, "gunk")
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
-		return "", err
+// CheckOrDownloadProtoc downloads protoc to the specified path, unless it's already
+// been downloaded. If no path is provided, it uses an OS-appropriate user cache.
+// If the version is not specified, the latest version is fetched from GitHub.
+// If both version and path are specified and a file already exists at the path,
+// it checks whether the output of `protoc --version` is an exact match.
+func CheckOrDownloadProtoc(path, version string) (string, error) {
+	if version == "" {
+		version = "latest"
 	}
 
-	version := "latest"
-	// TODO: support specifying the version in the config
+	dstPath := path
+	if dstPath == "" {
+		// Get the os specific cache directory.
+		cachePath, err := os.UserCacheDir()
+		if err != nil {
+			return "", err
+		}
+		cacheDir := filepath.Join(cachePath, "gunk")
+		if err := os.MkdirAll(cacheDir, 0755); err != nil {
+			return "", err
+		}
 
-	// The proto command path to use or download to.
-	dstPath := filepath.Join(cacheDir, fmt.Sprintf("protoc-%s", version))
+		// The proto command path to use or download to.
+		dstPath = filepath.Join(cacheDir, fmt.Sprintf("protoc-%s", version))
+	}
 
 	// Check the cache path to see if it has been previously
 	// downloaded by gunk.
 	dstFile, err := lockedfile.OpenFile(dstPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0775)
 	if os.IsExist(err) {
-		// already exists; nothing to do
+		if err := verifyProtocBinary(dstPath, version); err != nil {
+			return "", err
+		}
 		return dstPath, nil
 	}
 	if err != nil {
@@ -51,9 +58,9 @@ func CheckOrDownloadProtoc() (string, error) {
 	}
 	defer dstFile.Close()
 
-	url, err := protocDownloadURL(runtime.GOOS, runtime.GOARCH)
+	url, err := protocDownloadURL(runtime.GOOS, runtime.GOARCH, version)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("downloading protoc: %v", err)
 	}
 
 	// Download protoc since we were unable to find a usable
@@ -104,9 +111,39 @@ func CheckOrDownloadProtoc() (string, error) {
 			return "", err
 		}
 		log.Verbosef("downloaded protoc to %s", dstPath)
+
+		if err := verifyProtocBinary(dstPath, version); err != nil {
+			return "", err
+		}
+
 		return dstPath, nil
 	}
 	return "", fmt.Errorf("unable to download and extract protoc")
+}
+func verifyProtocBinary(path, version string) error {
+	cmd := log.ExecCommand(path, "--version")
+	out, err := cmd.Output()
+	if err != nil {
+		return log.ExecError(path, err)
+	}
+
+	versionOutput := string(out)
+	if versionOutput[:9] != "libprotoc" {
+		return fmt.Errorf("%q was not a valid protoc binary", path)
+	}
+
+	if version == "latest" {
+		return nil
+	}
+
+	// NOTE: the output of protoc --version doesn't include a 'v',
+	// but the release tags do
+	gotVersion := strings.TrimSpace(versionOutput[10:])
+	if gotVersion != version[1:] {
+		return fmt.Errorf("want protoc version %q got %q", version, gotVersion)
+	}
+
+	return nil
 }
 
 // githubAsset wraps asset information for a github release.
@@ -116,9 +153,13 @@ type githubAsset struct {
 	ContentType        string `json:"content_type"`
 }
 
-// githubLatestAssets retrieves the latest release assets from the named repo.
-func githubLatestAssets(repo string) (string, []githubAsset, error) {
-	urlstr := "https://api.github.com/repos/" + repo + "/releases/latest"
+// githubAssets retrieves the specified release assets from the named repo.
+func githubAssets(repo, version string) (string, []githubAsset, error) {
+	urlstr := "https://api.github.com/repos/" + repo + "/releases/"
+	if version != "latest" {
+		urlstr += "tags/"
+	}
+	urlstr += version
 
 	// create request
 	req, err := http.NewRequest("GET", urlstr, nil)
@@ -159,7 +200,7 @@ func githubLatestAssets(repo string) (string, []githubAsset, error) {
 // 	win64
 //
 // See: https://github.com/protocolbuffers/protobuf/releases/latest
-func protocDownloadURL(os, arch string) (string, error) {
+func protocDownloadURL(os, arch, version string) (string, error) {
 	// determine the platform
 	var platform string
 	switch {
@@ -184,8 +225,9 @@ func protocDownloadURL(os, arch string) (string, error) {
 		return "", fmt.Errorf("unknown os %q and arch %q", os, arch)
 	}
 
-	// retrieve the latest release assets
-	ver, assets, err := githubLatestAssets(protocGitHubRepo)
+	// retrieve the specified version's release assets
+	const protocGitHubRepo = "ProtocolBuffers/protobuf"
+	ver, assets, err := githubAssets(protocGitHubRepo, version)
 	if err != nil {
 		return "", err
 	}
@@ -198,5 +240,9 @@ func protocDownloadURL(os, arch string) (string, error) {
 		}
 	}
 
+	// if the requested version doesn't exist, githubAssets will return a blank string
+	if ver == "" {
+		ver = version
+	}
 	return "", fmt.Errorf("could not find platform %s release asset for %q", platform, ver)
 }

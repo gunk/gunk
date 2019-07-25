@@ -1,0 +1,83 @@
+# TODO: use [!net] once it does something useful.
+# See https://github.com/rogpeppe/go-internal/issues/75.
+[short] skip 'requires network access' 
+
+# Use a separate $HOME, to not reuse a cached protoc.
+env HOME=$WORK/protoc_home
+
+# Specify a valid protoc version.
+#
+# Note that the parent gunkconfig uses an invalid
+# version but since it's overriden by any existing child config
+# (i.e. here and in the succeeding tests) nothing blows up
+gunk generate ./version
+exists protoc_home/.cache/gunk/protoc-v3.8.0
+exists version/all.pb.go
+
+# Specify an invalid version
+! gunk generate ./badversion
+stderr 'error: downloading protoc: could not find platform linux-x86_64 release asset for "invalid"'
+! exists badversion/all.pb.go
+
+# Don't specify a path or version
+gunk generate ./noversion
+exists protoc_home/.cache/gunk/protoc-latest
+exists noversion/all.pb.go
+
+# Specify the path where the first test's binary was downloaded to,
+# but specify a different version
+! gunk generate ./pathversion
+stderr 'error: want protoc version "v3.7.0" got "3.8.0"'
+! exists pathversion/all.pb.go
+
+-- go.mod --
+module testdata.tld/util
+
+-- .gunkconfig --
+[generate]
+version=ignored
+command=protoc-gen-go
+plugins=grpc
+
+-- version/.gunkconfig --
+[protoc]
+version=v3.8.0
+
+-- badversion/.gunkconfig --
+[protoc]
+version=invalid
+
+-- noversion/.gunkconfig --
+
+-- pathversion/.gunkconfig --
+[protoc]
+path=protoc_home/.cache/gunk/protoc-v3.8.0
+version=v3.7.0
+
+-- version/version.gunk --
+package version
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
+-- badversion/badversion.gunk --
+package badversion
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
+-- noversion/noversion.gunk --
+package noversion
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
+-- pathversion/pathversion.gunk --
+package pathversion
+
+type Message struct {
+	Msg string `pb:"1"`
+}

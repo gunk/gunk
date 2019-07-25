@@ -17,21 +17,15 @@ import (
 // Run converts proto files or folders to gunk files, saving the files in
 // the same folder as the proto file.
 func Run(paths []string, overwrite bool) error {
-	// Check that protoc exists, if not download it.
-	protocPath, err := generate.CheckOrDownloadProtoc()
-	if err != nil {
-		return err
-	}
-
 	for _, path := range paths {
-		if err := run(path, overwrite, protocPath); err != nil {
+		if err := run(path, overwrite); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func run(path string, overwrite bool, protocPath string) error {
+func run(path string, overwrite bool) error {
 	fi, err := os.Stat(path)
 	if err != nil {
 		return err
@@ -40,9 +34,16 @@ func run(path string, overwrite bool, protocPath string) error {
 	// Look for a .gunkconfig
 	absPath, _ := filepath.Abs(path)
 	cfg, err := config.Load(filepath.Dir(absPath))
-	var importPath string
+	var cfgProtocPath, cfgProtocVer, importPath string
 	if err == nil {
 		importPath = filepath.Join(cfg.Dir, cfg.ImportPath)
+		cfgProtocPath = cfg.ProtocPath
+		cfgProtocVer = cfg.ProtocVersion
+	}
+
+	protocPath, err := generate.CheckOrDownloadProtoc(cfgProtocPath, cfgProtocVer)
+	if err != nil {
+		return err
 	}
 
 	// Determine whether the path is a file or a directory.

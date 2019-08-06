@@ -82,6 +82,8 @@ func parseValues(path string, comments map[string]*Comment, values []*google_pro
 
 func parseMessages(pkgName string, comments map[string]*Comment, messages []*google_protobuf.DescriptorProto) map[string]*Message {
 	res := map[string]*Message{}
+
+	// convert each proto message to our Message representation
 	for i, m := range messages {
 		p := fmt.Sprintf("%d.%d", messageFlag, i)
 		res[getQualifiedName(pkgName, m.GetName())] = &Message{
@@ -90,7 +92,57 @@ func parseMessages(pkgName string, comments map[string]*Comment, messages []*goo
 			Fields:  parseFields(p, comments, m.GetField()),
 		}
 	}
+
+	// once we've defined all Messages, populate the NestedMessages
+	// member of each Message
+	for _, m := range res {
+		populateNestedMessages(m, res)
+	}
 	return res
+}
+
+// populateNestedMessages populates the NestedMessages field of a Message.
+//
+// its first argument is the Message to check. an iterative breadth-first search is conducted
+// to find any fields that are Messages (whose fields are then searched, and so on).
+// these are then added to the original Message's NestedMessages field.
+//
+// the definitions of the Messages are taken from the second argument,
+// which is a map that is expected to contain all Messages parsed from the package.
+func populateNestedMessages(message *Message, messages map[string]*Message) {
+	var nestedMessages []*Message
+
+	stack := []*Message{message}
+	seen := make(map[string]bool)
+
+	// do an iterative breadth-first search on the message's fields to find all
+	// fields that are messages (i.e. not primitives/scalar values), all of their
+	// fields that are messages, and so on.
+	//
+	// keep track of messages that we've already seen to prevent duplicates
+	for len(stack) > 0 {
+		m := stack[0]
+		stack = stack[1:]
+		for _, f := range m.Fields {
+			typ := f.Type
+			name := typ.QualifiedName
+			if !typ.IsMessage || seen[name] {
+				continue
+			}
+
+			seen[name] = true
+
+			nm, ok := messages[name]
+			if !ok { // shouldn't happen
+				panic(fmt.Sprintf("message %q not found", name))
+			}
+
+			stack = append(stack, nm)
+			nestedMessages = append(nestedMessages, nm)
+		}
+	}
+
+	message.NestedMessages = nestedMessages
 }
 
 func parseFields(path string, comments map[string]*Comment, fields []*google_protobuf.FieldDescriptorProto) []*Field {
@@ -107,8 +159,10 @@ func parseFields(path string, comments map[string]*Comment, fields []*google_pro
 }
 
 func getType(f *google_protobuf.FieldDescriptorProto) *Type {
+	typ := f.GetType()
 	t := &Type{
-		IsEnum:        f.GetType() == google_protobuf.FieldDescriptorProto_TYPE_ENUM,
+		IsMessage:     typ == google_protobuf.FieldDescriptorProto_TYPE_MESSAGE,
+		IsEnum:        typ == google_protobuf.FieldDescriptorProto_TYPE_ENUM,
 		IsArray:       f.GetLabel() == google_protobuf.FieldDescriptorProto_LABEL_REPEATED,
 		QualifiedName: f.GetTypeName(),
 	}

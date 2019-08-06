@@ -19,9 +19,10 @@ func (f *File) HasServices() bool {
 
 // Message describes a proto message.
 type Message struct {
-	Name    string
-	Comment *Comment
-	Fields  []*Field
+	Name           string
+	Comment        *Comment
+	Fields         []*Field
+	NestedMessages []*Message
 }
 
 // Field describes a proto field.
@@ -36,6 +37,7 @@ type Field struct {
 type Type struct {
 	Name          string
 	QualifiedName string
+	IsMessage     bool
 	IsArray       bool
 	IsEnum        bool
 }

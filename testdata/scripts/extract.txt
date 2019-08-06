@@ -483,6 +483,9 @@ msgstr ""
 msgid "MaturityDate is the maturity date, format is ISO 8601"
 msgstr ""
 
+msgid "Objects"
+msgstr ""
+
 msgid "OwnerName is the name of the account's owner."
 msgstr ""
 
@@ -604,6 +607,25 @@ curl -X POST \
 | InterestRate     | string           | TODO: add comment.                          |
 | MaturityDate     | string           | TODO: add comment.                          |
 | Minor            | string           | TODO: add comment.                          |
+
+##### Objects
+
+###### AccountRole
+
+| Name         | Type       | Description        |
+|--------------|------------|--------------------|
+| EntityNumber | string     | TODO: add comment. |
+| EntityType   | EntityType | TODO: add comment. |
+| Role         | string     | TODO: add comment. |
+
+###### DebitTransaction
+
+| Name         | Type   | Description        |
+|--------------|--------|--------------------|
+| Amount       | string | TODO: add comment. |
+| DebitAccount | string | TODO: add comment. |
+| ExchangeRate | string | TODO: add comment. |
+| IsFx         | bool   | TODO: add comment. |
 
 ### Responses
 
@@ -735,6 +757,30 @@ curl -X GET \
 |---------|-----------|---------------------------------------------------------|
 | Result  | []Account | Result is a list containing up to 20 Accounts.          |
 | HasMore | bool      | HasMore indicates if there are more accounts available. |
+
+##### Objects
+
+###### Account
+
+| Name                          | Type   | Description                                                                    |
+|-------------------------------|--------|--------------------------------------------------------------------------------|
+| AccountID                     | string | AccountID is the unique identifier of an account.Should not be returned as is. |
+| Branch                        | string | TODO: add comment.                                                             |
+| BranchName                    | string | TODO: add comment.                                                             |
+| Status                        | string | Status is the status of the account.                                           |
+| AccruedInterestAtMaturityDate | string | TODO: add comment.                                                             |
+| AvailableCreditLimit          | string | TODO: add comment.                                                             |
+| CheckingInterestRate          | string | TODO: add comment.                                                             |
+| ContractDate                  | string | ContractDate is the date of the contract initialization.                       |
+| CreditLimit                   | string | CreditLimit is the allowed credit limit.                                       |
+| CurrentAccruedInterest        | string | TODO: add comment.                                                             |
+| CurrentTerm                   | string | CurrentTerm is the account validity period.                                    |
+| DueDate                       | string | DueDate is the loan maturity date.                                             |
+| InterestRate                  | string | TODO: add comment.                                                             |
+| MaturityDate                  | string | MaturityDate is the maturity date, format is ISO 8601                          |
+| NextPaymentDueDate            | string | TODO: add comment.                                                             |
+| OwnerName                     | string | OwnerName is the name of the account's owner.                                  |
+| StartDate                     | string | TODO: add comment.                                                             |
 
 <!-- TODO: add example -->
 #### Response codes

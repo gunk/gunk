@@ -37,49 +37,14 @@ Name | Type | Description
 
 {{if $m.Request.Body}}
 ### {{GetText "Body Parameters"}}
-
-{{/* TODO: extract request/response body tables into another template */}}
-Name | Type | Description
----- | ---- | -----------
-{{range $p := $m.Request.Body.Fields}}{{$p.Name}} | {{$p.Type.Name}} |{{GetText $p.Comment.Leading}}
-{{end}}{{/* end request body range*/}}
-
-{{if $m.Request.Body.NestedMessages}}
-##### {{GetText "Objects"}}
-
-{{range $nm := $m.Request.Body.NestedMessages}}
-###### {{$nm.Name}}
-
-Name | Type | Description
----- | ---- | -----------
-{{range $nf := $nm.Fields}}{{$nf.Name}} | {{$nf.Type.Name}} | {{GetText $nf.Comment.Leading}}
-{{end}}{{/* end nested message field range */}}
-{{end}}{{/* end nested messages range */}}
-{{end}}{{/* end response nested messages if */}}
+{{template "message" $m.Request.Body}}
 {{end}}{{/* end request body if*/}}
 
 ### {{GetText "Responses"}}
 
 {{if $m.Response}}
 #### {{GetText "Response body"}}
-
-Name | Type | Description
----- | ---- | -----------
-{{range $f := $m.Response.Fields}}{{$f.Name}} | {{$f.Type.Name}} | {{GetText $f.Comment.Leading}}
-{{end}}{{/* end response field range */}}
-
-{{if $m.Response.NestedMessages}}
-##### {{GetText "Objects"}}
-
-{{range $nm := $m.Response.NestedMessages}}
-###### {{$nm.Name}}
-
-Name | Type | Description
----- | ---- | -----------
-{{range $nf := $nm.Fields}}{{$nf.Name}} | {{$nf.Type.Name}} | {{GetText $nf.Comment.Leading}}
-{{end}}{{/* end nested message field range */}}
-{{end}}{{/* end nested messages range */}}
-{{end}}{{/* end response nested messages if */}}
+{{template "message" $m.Response}}
 {{end}}{{/* end response if */}}
 
 <!-- TODO: add example -->
@@ -107,3 +72,24 @@ Value | Description
 {{end}}{{/* end enum values range */}}
 {{end}}{{/* end enum range */}}
 {{end}}{{/* end enum if */}}
+
+{{- define "message"}}
+
+Name | Type | Description
+---- | ---- | -----------
+{{range $f := .Fields}}{{$f.Name}} | {{$f.Type.Name}} | {{GetText $f.Comment.Leading}}
+{{end}}{{/* end field range */}}
+
+{{if .NestedMessages}}
+##### {{GetText "Objects"}}
+
+{{range $nm := .NestedMessages}}
+###### {{$nm.Name}}
+
+Name | Type | Description
+---- | ---- | -----------
+{{range $nf := $nm.Fields}}{{$nf.Name}} | {{$nf.Type.Name}} | {{GetText $nf.Comment.Leading}}
+{{end}}{{/* end nested message field range */}}
+{{end}}{{/* end nested message range*/}}
+{{end}}{{/* end nested message if*/}}
+{{end}}{{/* end message template*/}}

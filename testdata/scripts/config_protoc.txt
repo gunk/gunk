@@ -4,6 +4,7 @@
 
 # Use a separate $HOME, to not reuse a cached protoc.
 env HOME=$WORK/protoc_home
+env CACHEDIR=$HOME/$CACHEPATH
 
 # Specify a valid protoc version.
 #
@@ -11,21 +12,24 @@ env HOME=$WORK/protoc_home
 # version but since it's overriden by any existing child config
 # (i.e. here and in the succeeding tests) nothing blows up
 gunk generate ./version
-exists protoc_home/.cache/gunk/protoc-v3.8.0
+exists $CACHEDIR/gunk/protoc-v3.8.0
 exists version/all.pb.go
 
 # Specify an invalid version
 ! gunk generate ./badversion
-stderr 'error: downloading protoc: could not find platform linux-x86_64 release asset for "invalid"'
+stderr 'error: downloading protoc: could not find platform .* release asset for "invalid"'
 ! exists badversion/all.pb.go
 
 # Don't specify a path or version
 gunk generate ./noversion
-exists protoc_home/.cache/gunk/protoc-latest
+exists $CACHEDIR/gunk/protoc-latest
 exists noversion/all.pb.go
 
 # Specify the path where the first test's binary was downloaded to,
 # but specify a different version
+# copy the downloaded protoc-v3.8.0 to current directory to make
+# pathversion/.gunkconfig work correctly across OSes
+cp $CACHEDIR/gunk/protoc-v3.8.0 protoc-v3.8.0
 ! gunk generate ./pathversion
 stderr 'error: want protoc version "v3.7.0" got "3.8.0"'
 ! exists pathversion/all.pb.go
@@ -51,7 +55,7 @@ version=invalid
 
 -- pathversion/.gunkconfig --
 [protoc]
-path=protoc_home/.cache/gunk/protoc-v3.8.0
+path=./protoc-v3.8.0
 version=v3.7.0
 
 -- version/version.gunk --

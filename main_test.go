@@ -8,11 +8,13 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
-	"github.com/gunk/gunk/generate"
 	"github.com/rogpeppe/go-internal/goproxytest"
 	"github.com/rogpeppe/go-internal/testscript"
+
+	"github.com/gunk/gunk/generate"
 )
 
 var write = flag.Bool("w", false, "overwrite testdata output files")
@@ -138,13 +140,33 @@ func TestScripts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	cachePath, err := userCachePath()
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	testscript.Run(t, testscript.Params{
 		Dir: filepath.Join("testdata", "scripts"),
 		Setup: func(e *testscript.Env) error {
 			e.Vars = append(e.Vars, "GOPROXY="+proxyURL)
 			e.Vars = append(e.Vars, "GONOSUMDB=*")
 			e.Vars = append(e.Vars, "HOME="+home)
+			e.Vars = append(e.Vars, "CACHEPATH="+cachePath)
 			return nil
 		},
 	})
+}
+
+// userCacheDir returns relative path of user cached data directory from home directory.
+func userCachePath() (string, error) {
+	realUserCacheDir, err := os.UserCacheDir()
+	if err != nil {
+		return "", err
+	}
+	realHomeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimPrefix(realUserCacheDir, realHomeDir), nil
 }

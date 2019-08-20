@@ -175,6 +175,12 @@ func githubAssets(repo, version string) (string, []githubAsset, error) {
 	}
 	defer res.Body.Close()
 
+	if res.StatusCode >= 400 {
+		// This can easily happen if we make tons of requests to GitHub
+		// from one machine, as the IP hits their default rate limit.
+		return "", nil, fmt.Errorf("GET %s: %s", urlstr, http.StatusText(res.StatusCode))
+	}
+
 	var release struct {
 		Name   string        `json:"name"`
 		Assets []githubAsset `json:"assets"`

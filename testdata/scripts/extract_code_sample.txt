@@ -355,7 +355,29 @@ acc, err := c.GetAccount(
 | OwnerName                     | string | OwnerName is the name of the account's owner.                                  |
 | StartDate                     | string | TODO: add comment.                                                             |
 
-<!-- TODO: add example -->
+Example:
+
+```json
+{
+  "account_id": "string",
+  "branch": "string",
+  "branch_name": "string",
+  "status": "string",
+  "accrued_interest_at_maturity_date": "string",
+  "available_credit_limit": "string",
+  "checking_interest_rate": "string",
+  "contract_date": "string",
+  "credit_limit": "string",
+  "current_accrued_interest": "string",
+  "current_term": "string",
+  "due_date": "string",
+  "interest_rate": "string",
+  "maturity_date": "string",
+  "next_payment_due_date": "string",
+  "owner_name": "string",
+  "start_date": "string"
+}
+```
 #### Response codes
 
 | Status | Description                              |

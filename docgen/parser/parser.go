@@ -220,14 +220,44 @@ func parseMethods(pkgName string, messages map[string]*Message, methods []*googl
 			return nil, err
 		}
 
+		var rsp *Response
+		rspMsg, ok := messages[m.GetOutputType()]
+		if ok {
+			example, err := generateResponseExample(messages, m.GetOutputType())
+			if err != nil {
+				return nil, err
+			}
+			rsp = &Response{
+				Message: rspMsg,
+				Example: example,
+			}
+		}
+
 		res[getQualifiedName(pkgName, m.GetName())] = &Method{
 			Name:      m.GetName(),
-			Response:  messages[m.GetOutputType()],
-			Operation: extOp.(*options.Operation),
 			Request:   req,
+			Response:  rsp,
+			Operation: extOp.(*options.Operation),
 		}
 	}
 	return res, nil
+}
+
+func generateResponseExample(messages map[string]*Message, name string) (string, error) {
+	_, ok := messages[name]
+	if !ok {
+		return "", nil
+	}
+	p := genJSONExample(messages, name)
+	b, err := p.MarshalJSON()
+	if err != nil {
+		return "", err
+	}
+	var indented bytes.Buffer
+	if err = json.Indent(&indented, b, "", "  "); err != nil {
+		return "", err
+	}
+	return indented.String(), nil
 }
 
 func parseRequest(rule *method.HttpRule, messages map[string]*Message, name string) (*Request, error) {
@@ -263,7 +293,13 @@ func parseRequest(rule *method.HttpRule, messages map[string]*Message, name stri
 		if err != nil {
 			return nil, err
 		}
-		example = string(b)
+
+		var indented bytes.Buffer
+		if err = json.Indent(&indented, b, "\t", "\t"); err != nil {
+			return nil, err
+		}
+
+		example = indented.String()
 	}
 
 	query, err := parseQuery(uri, messages[name])
@@ -359,25 +395,24 @@ type properties []keyVal
 // in form of "key": "value"
 func (p properties) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
-	buf.WriteString("{\n")
+	buf.WriteString("{")
 	for i, kv := range p {
 		if i != 0 {
-			buf.WriteString(",\n")
+			buf.WriteString(",")
 		}
 		key, err := json.Marshal(kv.Key)
 		if err != nil {
 			return nil, err
 		}
-		buf.WriteString("\t\t")
 		buf.Write(key)
 		buf.WriteString(": ")
-		val, err := json.MarshalIndent(kv.Value, "\t\t", "\t")
+		val, err := json.Marshal(kv.Value)
 		if err != nil {
 			return nil, err
 		}
 		buf.Write(val)
 	}
 
-	buf.WriteString("\n\t}")
+	buf.WriteString("}")
 	return buf.Bytes(), nil
 }

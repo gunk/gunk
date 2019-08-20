@@ -213,7 +213,13 @@ curl -X POST \
 |---------------|--------|----------------------------------------------------------------------|
 | TransactionID | string | TransactionID is the unique identifier for the recorded transaction. |
 
-<!-- TODO: add example -->
+Example:
+
+```json
+{
+  "transaction_id": "string"
+}
+```
 #### Response codes
 
 | Status | Description                       |
@@ -273,7 +279,28 @@ curl -X GET \
 | Common  | string | Common is the common name for a currency. |
 | ISO4217 | string | ISO4217 is the ISO 4217 currency code.    |
 
-<!-- TODO: add example -->
+Example:
+
+```json
+{
+  "id": "string",
+  "amount": {
+    "curr": {
+      "common": "string",
+      "iso": "string"
+    },
+    "num": "string"
+  },
+  "to": {
+    "number": "string",
+    "name": "string"
+  },
+  "from": {
+    "number": "string",
+    "name": "string"
+  }
+}
+```
 #### Response codes
 
 | Status | Description                              |

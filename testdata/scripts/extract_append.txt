@@ -344,7 +344,16 @@ curl -X GET \
 | BranchName | string | TODO: add comment.                                                             |
 | Status     | string | Status is the status of the account.                                           |
 
-<!-- TODO: add example -->
+Example:
+
+```json
+{
+  "account_id": "string",
+  "branch": "string",
+  "branch_name": "string",
+  "status": "string"
+}
+```
 #### Response codes
 
 | Status | Description                              |

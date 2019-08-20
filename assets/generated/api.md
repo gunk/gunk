@@ -45,9 +45,13 @@ Name | Type | Description
 {{if $m.Response}}
 #### {{GetText "Response body"}}
 {{template "message" $m.Response}}
-{{end}}{{/* end response if */}}
 
-<!-- TODO: add example -->
+Example:
+
+```json
+{{$m.Response.Example}}
+```
+{{end}}{{/* end response if */}}
 
 #### {{GetText "Response codes"}}
 Status | Description

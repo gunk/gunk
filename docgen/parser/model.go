@@ -25,6 +25,12 @@ type Message struct {
 	NestedMessages []*Message
 }
 
+// Response describes a response of a service.
+type Response struct {
+	*Message
+	Example string
+}
+
 // Field describes a proto field.
 type Field struct {
 	Name     string
@@ -54,9 +60,8 @@ type Method struct {
 	Name      string
 	Comment   *Comment
 	Request   *Request
-	Response  *Message
+	Response  *Response
 	Operation *options.Operation
-	Curl      string
 }
 
 // Request describes an HTTP request.

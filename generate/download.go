@@ -21,7 +21,7 @@ import (
 	"github.com/gunk/gunk/log"
 )
 
-var rateLimiter = rate.NewLimiter(30, 1)
+var rateLimiter = rate.NewLimiter(10, 1)
 
 // SetRateLimiter sets the global rate limiter to the given one in parameter.
 func SetRateLimiter(limiter *rate.Limiter) {

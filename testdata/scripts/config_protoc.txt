@@ -17,7 +17,7 @@ exists version/all.pb.go
 
 # Specify an invalid version
 ! gunk generate ./badversion
-stderr 'error: downloading protoc: could not find platform .* release asset for "invalid"'
+stderr 'error: downloading protoc: GET https://api.github.com/repos/ProtocolBuffers/protobuf/releases/tags/invalid: Not Found'
 ! exists badversion/all.pb.go
 
 # Don't specify a path or version

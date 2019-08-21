@@ -3,6 +3,7 @@ package generate
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,9 +15,18 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/gunk/gunk/log"
 	"github.com/rogpeppe/go-internal/lockedfile"
+	"golang.org/x/time/rate"
+
+	"github.com/gunk/gunk/log"
 )
+
+var rateLimiter = rate.NewLimiter(30, 1)
+
+// SetRateLimiter sets the global rate limiter to the given one in parameter.
+func SetRateLimiter(limiter *rate.Limiter) {
+	rateLimiter = limiter
+}
 
 // CheckOrDownloadProtoc downloads protoc to the specified path, unless it's already
 // been downloaded. If no path is provided, it uses an OS-appropriate user cache.
@@ -24,6 +34,12 @@ import (
 // If both version and path are specified and a file already exists at the path,
 // it checks whether the output of `protoc --version` is an exact match.
 func CheckOrDownloadProtoc(path, version string) (string, error) {
+	if rateLimiter != nil {
+		if err := rateLimiter.Wait(context.Background()); err != nil {
+			return "", err
+		}
+	}
+
 	if version == "" {
 		version = "latest"
 	}

@@ -3,20 +3,21 @@ package generate
 import (
 	"archive/zip"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 
-	"github.com/gunk/gunk/log"
 	"github.com/rogpeppe/go-internal/lockedfile"
+
+	"github.com/gunk/gunk/log"
 )
+
+const defaultProtocVersion = "v3.9.1"
 
 // CheckOrDownloadProtoc downloads protoc to the specified path, unless it's already
 // been downloaded. If no path is provided, it uses an OS-appropriate user cache.
@@ -25,7 +26,7 @@ import (
 // it checks whether the output of `protoc --version` is an exact match.
 func CheckOrDownloadProtoc(path, version string) (string, error) {
 	if version == "" {
-		version = "latest"
+		version = defaultProtocVersion
 	}
 
 	dstPath := path
@@ -132,10 +133,6 @@ func verifyProtocBinary(path, version string) error {
 		return fmt.Errorf("%q was not a valid protoc binary", path)
 	}
 
-	if version == "latest" {
-		return nil
-	}
-
 	// NOTE: the output of protoc --version doesn't include a 'v',
 	// but the release tags do
 	gotVersion := strings.TrimSpace(versionOutput[10:])
@@ -144,52 +141,6 @@ func verifyProtocBinary(path, version string) error {
 	}
 
 	return nil
-}
-
-// githubAsset wraps asset information for a github release.
-type githubAsset struct {
-	BrowserDownloadURL string `json:"browser_download_url"`
-	Name               string `json:"name"`
-	ContentType        string `json:"content_type"`
-}
-
-// githubAssets retrieves the specified release assets from the named repo.
-func githubAssets(repo, version string) (string, []githubAsset, error) {
-	urlstr := "https://api.github.com/repos/" + repo + "/releases/"
-	if version != "latest" {
-		urlstr += "tags/"
-	}
-	urlstr += version
-
-	// create request
-	req, err := http.NewRequest("GET", urlstr, nil)
-	if err != nil {
-		return "", nil, err
-	}
-
-	// do request
-	cl := &http.Client{}
-	res, err := cl.Do(req)
-	if err != nil {
-		return "", nil, err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode >= 400 {
-		// This can easily happen if we make tons of requests to GitHub
-		// from one machine, as the IP hits their default rate limit.
-		return "", nil, fmt.Errorf("GET %s: %s", urlstr, http.StatusText(res.StatusCode))
-	}
-
-	var release struct {
-		Name   string        `json:"name"`
-		Assets []githubAsset `json:"assets"`
-	}
-	if err := json.NewDecoder(res.Body).Decode(&release); err != nil {
-		return "", nil, err
-	}
-
-	return release.Name, release.Assets, nil
 }
 
 // protocDownloadURL builds a URL for retrieving for the protoc tool artifact
@@ -205,8 +156,15 @@ func githubAssets(repo, version string) (string, []githubAsset, error) {
 // 	win32
 // 	win64
 //
-// See: https://github.com/protocolbuffers/protobuf/releases/latest
+// Example: https://github.com/protocolbuffers/protobuf/releases/download/v3.9.1/protoc-3.9.1-linux-x86_64.zip
 func protocDownloadURL(os, arch, version string) (string, error) {
+	// retrieve the specified version's release assets
+	const protocGitHubRepo = "protocolbuffers/protobuf"
+
+	if !strings.HasPrefix(version, "v") {
+		return "", fmt.Errorf("invalid version: %s", version)
+	}
+
 	// determine the platform
 	var platform string
 	switch {
@@ -231,24 +189,10 @@ func protocDownloadURL(os, arch, version string) (string, error) {
 		return "", fmt.Errorf("unknown os %q and arch %q", os, arch)
 	}
 
-	// retrieve the specified version's release assets
-	const protocGitHubRepo = "ProtocolBuffers/protobuf"
-	ver, assets, err := githubAssets(protocGitHubRepo, version)
-	if err != nil {
-		return "", err
-	}
-
-	// find the asset
-	nameRE := regexp.MustCompile(`^protoc-[0-9]+\.[0-9]+\.[0-9]+-` + platform + `\.zip$`)
-	for _, asset := range assets {
-		if nameRE.MatchString(asset.Name) {
-			return asset.BrowserDownloadURL, nil
-		}
-	}
-
-	// if the requested version doesn't exist, githubAssets will return a blank string
-	if ver == "" {
-		ver = version
-	}
-	return "", fmt.Errorf("could not find platform %s release asset for %q", platform, ver)
+	return fmt.Sprintf("https://github.com/%s/releases/download/%s/protoc-%s-%s.zip",
+		protocGitHubRepo,
+		version,
+		version[1:], // the version string is guaranteed to starts with "v", removing it
+		platform,
+	), nil
 }

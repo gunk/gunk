@@ -13,7 +13,7 @@ cmp p2/p2.gunk p2/p2.gunk.golden
 
 # loading files from different packages with types should error
 ! gunk generate p1/p1.gunk p2/p2.gunk
-stderr 'package p2; expected p1'
+stderr '-: gunk package name mismatch: "p1" "p2"'
 
 -- go.mod --
 module testdata.tld/util

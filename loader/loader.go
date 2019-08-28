@@ -349,6 +349,11 @@ func (l *Loader) parseGunkPackage(pkg *GunkPackage) {
 		pkg.ProtoName = pkg.Name
 	}
 
+	// the reported error will be handle at generate.Run function.
+	if len(pkg.Errors) > 0 {
+		return
+	}
+
 	if !l.Types {
 		return
 	}

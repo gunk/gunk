@@ -1,0 +1,14 @@
+# make sure go modules is turned off, and GOPATH is set to a nonexistent directory
+env GO111MODULE=off GOPATH=/this-directory-does-not-exist
+! gunk generate echo.gunk -v
+stderr '.*could not import github.com/gunk/opt/http.*'
+
+-- .gunkconfig --
+[generate]
+command=protoc-gen-go
+-- echo.gunk --
+package util
+
+import (
+	"github.com/gunk/opt/http"
+)

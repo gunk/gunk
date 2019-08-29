@@ -1,8 +1,15 @@
 package parser
 
 import (
+	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 )
+
+// FileDescWrapper is a wrapper for FileDescriptorProto for holding a map of dependencies.
+type FileDescWrapper struct {
+	*descriptor.FileDescriptorProto
+	DependencyMap map[string]*descriptor.FileDescriptorProto
+}
 
 // File is a proto parsed file.
 type File struct {

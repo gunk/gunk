@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"text/template"
 
-	google_protobuf "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/knq/snaker"
 
 	"github.com/gunk/gunk/assets"
@@ -17,7 +16,7 @@ import (
 // Run generates a markdown file describing the API
 // and a messages.pot containing all sentences that need to be
 // translated.
-func Run(w io.Writer, f *google_protobuf.FileDescriptorProto, lang []string) (pot.Builder, error) {
+func Run(w io.Writer, f *parser.FileDescWrapper, lang []string) (pot.Builder, error) {
 	pb := pot.NewBuilder()
 
 	api, err := parser.ParseFile(f)

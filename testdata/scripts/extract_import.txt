@@ -1,0 +1,156 @@
+gunk generate ./...
+cmp accounts/all.md accounts/all.md.golden
+cmp accounts/messages.pot accounts/messages.pot.golden
+cmp types/all.md types/all.md.golden
+cmp types/messages.pot types/messages.pot.golden
+
+-- go.mod --
+module testdata.tld/util
+
+require (
+	github.com/gunk/opt v0.0.0-20190514110406-385321f21939
+)
+-- .gunkconfig --
+[generate]
+command=docgen
+-- accounts/accounts.gunk --
+package accounts
+
+import (
+	"time"
+
+	types "testdata.tld/util/types"
+)
+
+// Account holds all details about a bank account.
+type Account struct {
+    // AmountDue is here to make sure docgen works for import files.
+	AmountDue types.Amount `pb:"1" json:"amount_due"`
+}
+
+-- types/types.gunk --
+package types
+
+// Amount defines a transaction amount.
+type Amount struct {
+	// Cur is the currency of the amount.
+	Cur string `pb:"1" json:"cur"`
+	// Num is the value of the amount.
+	Num string `pb:"2" json:"num"`
+}
+
+-- profiles/profiles.gunk --
+package profiles
+
+import (
+	"time"
+
+	"github.com/gunk/opt/http"
+	"github.com/gunk/opt/openapiv2"
+
+	accounts "testdata.tld/util/accounts"
+)
+// GetProfileResponse is the response message for retrieving customer profiles.
+type GetProfileResponse struct {
+	Accounts []accounts.Account `pb:"2" json:"accounts"`
+}
+-- accounts/all.md.golden --
+
+# Annex
+
+##  Account
+
+Account holds all details about a bank account.
+
+| Name      | Type   | Description                                                   |
+|-----------|--------|---------------------------------------------------------------|
+| AmountDue | Amount | AmountDue is here to make sure docgen works for import files. |
+
+##  Amount
+
+Amount defines a transaction amount.
+
+| Name | Type   | Description                        |
+|------|--------|------------------------------------|
+| Cur  | string | Cur is the currency of the amount. |
+| Num  | string | Num is the value of the amount.    |
+
+-- accounts/messages.pot.golden --
+# Messages.pot - Contains all msgid extracted from swagger definitions.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid   ""
+msgstr  "Project-Id-Version: %s\n"
+		"Report-Msgid-Bugs-To: %s\n"
+		"POT-Creation-Date: %s\n"
+		"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+		"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+		"Language-Team: LANGUAGE <LL@li.org>\n"
+		"Language: \n"
+		"MIME-Version: 1.0\n"
+		"Content-Type: text/plain; charset=CHARSET\n"
+		"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Account holds all details about a bank account."
+msgstr ""
+
+msgid "Amount defines a transaction amount."
+msgstr ""
+
+msgid "AmountDue is here to make sure docgen works for import files."
+msgstr ""
+
+msgid "Annex"
+msgstr ""
+
+msgid "Cur is the currency of the amount."
+msgstr ""
+
+msgid "Num is the value of the amount."
+msgstr ""
+-- types/all.md.golden --
+
+# Annex
+
+##  Amount
+
+Amount defines a transaction amount.
+
+| Name | Type   | Description                        |
+|------|--------|------------------------------------|
+| Cur  | string | Cur is the currency of the amount. |
+| Num  | string | Num is the value of the amount.    |
+
+-- types/messages.pot.golden --
+# Messages.pot - Contains all msgid extracted from swagger definitions.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid   ""
+msgstr  "Project-Id-Version: %s\n"
+		"Report-Msgid-Bugs-To: %s\n"
+		"POT-Creation-Date: %s\n"
+		"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+		"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+		"Language-Team: LANGUAGE <LL@li.org>\n"
+		"Language: \n"
+		"MIME-Version: 1.0\n"
+		"Content-Type: text/plain; charset=CHARSET\n"
+		"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Amount defines a transaction amount."
+msgstr ""
+
+msgid "Annex"
+msgstr ""
+
+msgid "Cur is the currency of the amount."
+msgstr ""
+
+msgid "Num is the value of the amount."
+msgstr ""

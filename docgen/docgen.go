@@ -9,10 +9,10 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/proto"
-	google_protobuf "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
 
 	"github.com/gunk/gunk/docgen/generate"
+	"github.com/gunk/gunk/docgen/parser"
 	"github.com/gunk/gunk/log"
 	"github.com/gunk/gunk/plugin"
 )
@@ -52,19 +52,23 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 		}
 	}
 
-	var source *google_protobuf.FileDescriptorProto
+	// find the source by looping through the protofiles and finding the one that matches the FileToGenerate
+	var source *parser.FileDescWrapper
 	for _, f := range req.GetProtoFile() {
 		if strings.Contains(f.GetName(), "all.proto") {
-			source = f
-			break
+			for _, fileToGenerate := range req.FileToGenerate{
+				if fileToGenerate == f.GetName(){
+					source = &parser.FileDescWrapper{FileDescriptorProto: f}
+					break
+				}
+			}
 		}
 	}
-
 	if source == nil {
 		return nil, fmt.Errorf("no file to generate")
 	}
-
 	base := filepath.Join(filepath.Dir(source.GetName()))
+	source.DependencyMap = parser.GenerateDependencyMap(source.FileDescriptorProto,req.GetProtoFile())
 
 	var buf bytes.Buffer
 	pb, err := generate.Run(&buf, source, lang)

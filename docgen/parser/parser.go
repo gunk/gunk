@@ -27,11 +27,14 @@ const (
 )
 
 // ParseFile parses a proto file.
-func ParseFile(file *google_protobuf.FileDescriptorProto) (*File, error) {
+func ParseFile(file *FileDescWrapper) (*File, error) {
 	comments := parseComments(file.GetSourceCodeInfo())
 
 	pkgName := file.GetPackage()
-	messages := parseMessages(pkgName, comments, file.GetMessageType())
+	messages, err := nestedDescriptorMessages(*file.FileDescriptorProto, file.DependencyMap)
+	if err != nil {
+		return nil, err
+	}
 	services, err := parseServices(pkgName, messages, file.GetService())
 	if err != nil {
 		return nil, err
@@ -52,6 +55,90 @@ func ParseFile(file *google_protobuf.FileDescriptorProto) (*File, error) {
 	}
 
 	return f, nil
+}
+
+// GenerateDependencyMap recursively loops through dependencies and creates a map for their names and FileDescriptorProto
+func GenerateDependencyMap(source *google_protobuf.FileDescriptorProto, protos []*google_protobuf.FileDescriptorProto) map[string]*google_protobuf.FileDescriptorProto{
+	// get dependencies recursively
+	returnedDependencies := make(map[string]*google_protobuf.FileDescriptorProto)
+	for _,d := range source.GetDependency(){
+		for _, p := range protos{
+			if p.GetName() == d{
+				returnedDependencies[d] = p
+				dependencies := GenerateDependencyMap(p,protos)
+				for name,dep := range dependencies{
+					returnedDependencies[name] = dep
+				}
+				break
+			}
+		}
+	}
+	return returnedDependencies
+}
+
+// nestedDescriptorMessages generates a map of messages with a few steps:
+// it loops through the file's dependency list and checks if it is needed
+// if it is need it recursively runs with the new file to
+// it merges the messages generate on each recursion
+func nestedDescriptorMessages(file google_protobuf.FileDescriptorProto, genFiles map[string]*google_protobuf.FileDescriptorProto) (map[string]*Message, error) {
+	// (TODO kofo) this could be improved
+	messages := make(map[string]*Message)
+	dependencies := file.GetDependency()
+	pkgName := file.GetPackage()
+	comments := parseComments(file.GetSourceCodeInfo())
+	for _, dep := range dependencies {
+		if _, ok := genFiles[dep]; !ok || !isDepNeeded(file, genFiles[dep]) {
+			continue
+		}
+
+		// get all the messages in this dependency
+		dependencyMessages, err := nestedDescriptorMessages(*genFiles[dep], genFiles)
+		if err != nil {
+			return nil, err
+		}
+
+		for name, msg := range dependencyMessages{
+			messages[name] = msg
+		}
+		// loop through all fields in this file then add all Messages in dependencyMessages that are referenced by a field
+		//for _, msg := range file.GetMessageType() {
+		//	for _, field := range msg.GetField() {
+		//		if depMsg, ok := dependencyMessages[field.GetTypeName()]; ok {
+		//			messages[field.GetTypeName()] = depMsg
+		//		}
+		//		// check if the field is a message type and if the package name is the same as the dependency package
+		//		//if field.GetType() == google_protobuf.FieldDescriptorProto_TYPE_MESSAGE && fieldPackage(field.GetTypeName()) == genFiles[dep].GetPackage() {
+		//		//
+		//		//}
+		//	}
+		//}
+
+	}
+	for name, msg := range parseMessages(pkgName, comments, file.GetMessageType(), messages) {
+		messages[name] = msg
+	}
+	return messages, nil
+}
+
+// isDepNeeded checks if the dependency is truly needed for message types (annotation)
+// by going through all messages in the file and checking for a package match
+func isDepNeeded(file google_protobuf.FileDescriptorProto, dep *google_protobuf.FileDescriptorProto) bool {
+	for _, message := range file.GetMessageType() {
+		for _, field := range message.GetField() {
+			if field.GetType() == google_protobuf.FieldDescriptorProto_TYPE_MESSAGE {
+				if fieldPackage(field.GetTypeName()) == *dep.Package {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// fieldPackage gets the package owner of a field from the name e.g
+// types.CustomDate returns types
+func fieldPackage(typeName string) string {
+	return strings.Trim(typeName[:strings.LastIndex(typeName, ".")], ".")
 }
 
 func parseEnums(pkgName string, comments map[string]*Comment, enums []*google_protobuf.EnumDescriptorProto) map[string]*Enum {
@@ -80,13 +167,11 @@ func parseValues(path string, comments map[string]*Comment, values []*google_pro
 	return res
 }
 
-func parseMessages(pkgName string, comments map[string]*Comment, messages []*google_protobuf.DescriptorProto) map[string]*Message {
-	res := map[string]*Message{}
-
+func parseMessages(pkgName string, comments map[string]*Comment, messages []*google_protobuf.DescriptorProto, merge map[string]*Message) map[string]*Message {
 	// convert each proto message to our Message representation
 	for i, m := range messages {
 		p := fmt.Sprintf("%d.%d", messageFlag, i)
-		res[getQualifiedName(pkgName, m.GetName())] = &Message{
+		merge[getQualifiedName(pkgName, m.GetName())] = &Message{
 			Name:    m.GetName(),
 			Comment: nonNilComment(comments[p]),
 			Fields:  parseFields(p, comments, m.GetField()),
@@ -95,10 +180,10 @@ func parseMessages(pkgName string, comments map[string]*Comment, messages []*goo
 
 	// once we've defined all Messages, populate the NestedMessages
 	// member of each Message
-	for _, m := range res {
-		populateNestedMessages(m, res)
+	for _, m := range merge {
+		populateNestedMessages(m, merge)
 	}
-	return res
+	return merge
 }
 
 // populateNestedMessages populates the NestedMessages field of a Message.

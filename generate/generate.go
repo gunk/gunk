@@ -375,7 +375,7 @@ func (g *Generator) translatePkg(pkgPath string) error {
 	g.usedImports = make(map[string]bool)
 
 	// Get file options for package
-	fo, err := g.fileOptions(gpkg)
+	fo, err := fileOptions(gpkg)
 	if err != nil {
 		return fmt.Errorf("unable to get file options: %v", err)
 	}
@@ -440,7 +440,7 @@ func (g *Generator) translatePkg(pkgPath string) error {
 
 // fileOptions will return the proto file options that have been set in the
 // gunk package. These include "JavaPackage", "Deprecated", "PhpNamespace", etc.
-func (g *Generator) fileOptions(pkg *loader.GunkPackage) (*desc.FileOptions, error) {
+func fileOptions(pkg *loader.GunkPackage) (*desc.FileOptions, error) {
 	fo := &desc.FileOptions{}
 	for _, f := range pkg.GunkSyntax {
 		for _, tag := range pkg.GunkTags[f] {

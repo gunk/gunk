@@ -125,19 +125,24 @@ func valueFor(typ reflect.Type, tag reflect.StructTag, value interface{}) reflec
 		}
 		return mp
 	case reflect.Slice:
+		etyp := typ.Elem()
 		list := reflect.MakeSlice(typ, 0, 0)
 		switch value := value.(type) {
 		case *ast.CompositeLit:
 			for _, elt := range value.Elts {
-				list = reflect.Append(list, valueFor(typ.Elem(), tag, elt))
+				list = reflect.Append(list, valueFor(etyp, tag, elt))
 			}
 		case *protop.Literal:
+			// convert string to slice of bytes, uint8 and byte are the same kind
+			if etyp.Kind() == reflect.Uint8 && value.IsString {
+				return reflect.ValueOf([]byte(value.SourceRepresentation()))
+			}
 			if value.Array == nil {
-				list = reflect.Append(list, valueFor(typ.Elem(), tag, value))
+				list = reflect.Append(list, valueFor(etyp, tag, value))
 				break
 			}
 			for _, lit := range value.Array {
-				list = reflect.Append(list, valueFor(typ.Elem(), tag, lit))
+				list = reflect.Append(list, valueFor(etyp, tag, lit))
 			}
 		default:
 			panic(fmt.Sprintf("%T is not a valid value for %s", value, typ))

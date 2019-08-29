@@ -1,0 +1,31 @@
+gunk convert util.proto
+cmp util.gunk util.gunk.golden
+
+-- util.proto --
+syntax = "proto3";
+
+package util;
+
+message Util {
+    option (grpc.gateway.protoc_gen_swagger.options.openapiv2_schema) = {
+	  example: {
+	    value: '{ "status": "ok" }'
+	  }
+    };
+
+    string hello = 1;
+}
+
+-- util.gunk.golden --
+package util
+
+import (
+	"github.com/gunk/opt/openapiv2"
+)
+
+type Util struct {
+	// +gunk openapiv2.Schema{
+	//         Example: openapiv2.Any{Value: []byte(`'{"status":"ok"}'`)},
+	// }
+	Hello string `pb:"1" json:"hello"`
+}

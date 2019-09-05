@@ -136,7 +136,6 @@ msgstr ""
 msgid "Num is the value of the amount."
 msgstr ""
 -- all.md.golden --
-
 # Annex
 
 ##  Amount
@@ -183,4 +182,3 @@ MajorType describes the type of the account.
 | CommercialLoan | MajorType_CommercialLoan for a business loan account. |
 | MortgageLoan   | MajorType_MortgageLoan for a home loan account.       |
 | ConsumerLoan   | MajorType_ConsumerLoan for a consumer loan account.   |
-

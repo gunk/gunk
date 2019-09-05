@@ -283,11 +283,12 @@ msgstr ""
 msgid "USE_YOUR_TOKEN"
 msgstr ""
 -- all.md.golden --
-
 # Accounts API v1.0.0
 
-Provides CRUD operations on the accounts resource.  
-* Host `https://openbank.com`  
+Provides CRUD operations on the accounts resource.
+
+* Host `https://openbank.com`
+
 * Base Path `/v1`
 
 ## Retrieve an account
@@ -395,4 +396,3 @@ EntityType describes the type of the entity.
 |-------|---------------------------------------------|
 | Pers  | EntityType_Pers is an individual customer.  |
 | Org   | EntityType_Org is an organisation customer. |
-

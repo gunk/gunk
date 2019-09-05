@@ -135,11 +135,12 @@ type TransactionService interface {
 	CreateTransaction(Transaction) CreateTransactionResponse
 }
 -- all.md.golden --
-
 # Transactions API v1.0.0
 
-Provides create and read operations on the transaction resource.  
-* Host `https://openbank.com`  
+Provides create and read operations on the transaction resource.
+
+* Host `https://openbank.com`
+
 * Base Path `/v1`
 
 ## Create a transaction
@@ -307,7 +308,6 @@ Example:
 |--------|------------------------------------------|
 | 200    | Request executed successfully.           |
 | 404    | Returned when the resource is not found. |
-
 -- messages.pot.golden --
 # Messages.pot - Contains all msgid extracted from swagger definitions.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER

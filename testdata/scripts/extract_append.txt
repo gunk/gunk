@@ -307,11 +307,12 @@ msgstr ""
 msgid "USE_YOUR_TOKEN"
 msgstr ""
 -- all.md.golden --
-
 # Accounts API v1.0.0
 
-Provides CRUD operations on the accounts resource.  
-* Host `https://openbank.com`  
+Provides CRUD operations on the accounts resource.
+
+* Host `https://openbank.com`
+
 * Base Path `/v1`
 
 ## Retrieve an account
@@ -418,4 +419,3 @@ MajorType describes the type of the account.
 | CommercialLoan | MajorType_CommercialLoan for a business loan account. |
 | MortgageLoan   | MajorType_MortgageLoan for a home loan account.       |
 | ConsumerLoan   | MajorType_ConsumerLoan for a consumer loan account.   |
-

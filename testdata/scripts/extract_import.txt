@@ -55,7 +55,6 @@ type GetProfileResponse struct {
 	Accounts []accounts.Account `pb:"2" json:"accounts"`
 }
 -- accounts/all.md.golden --
-
 # Annex
 
 ##  Account
@@ -74,7 +73,6 @@ Amount defines a transaction amount.
 |------|--------|------------------------------------|
 | Cur  | string | Cur is the currency of the amount. |
 | Num  | string | Num is the value of the amount.    |
-
 -- accounts/messages.pot.golden --
 # Messages.pot - Contains all msgid extracted from swagger definitions.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
@@ -112,7 +110,6 @@ msgstr ""
 msgid "Num is the value of the amount."
 msgstr ""
 -- types/all.md.golden --
-
 # Annex
 
 ##  Amount
@@ -123,7 +120,6 @@ Amount defines a transaction amount.
 |------|--------|------------------------------------|
 | Cur  | string | Cur is the currency of the amount. |
 | Num  | string | Num is the value of the amount.    |
-
 -- types/messages.pot.golden --
 # Messages.pot - Contains all msgid extracted from swagger definitions.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER

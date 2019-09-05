@@ -56,8 +56,8 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 	var source *parser.FileDescWrapper
 	for _, f := range req.GetProtoFile() {
 		if strings.Contains(f.GetName(), "all.proto") {
-			for _, fileToGenerate := range req.FileToGenerate{
-				if fileToGenerate == f.GetName(){
+			for _, fileToGenerate := range req.FileToGenerate {
+				if fileToGenerate == f.GetName() {
 					source = &parser.FileDescWrapper{FileDescriptorProto: f}
 					break
 				}
@@ -68,7 +68,7 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 		return nil, fmt.Errorf("no file to generate")
 	}
 	base := filepath.Join(filepath.Dir(source.GetName()))
-	source.DependencyMap = parser.GenerateDependencyMap(source.FileDescriptorProto,req.GetProtoFile())
+	source.DependencyMap = parser.GenerateDependencyMap(source.FileDescriptorProto, req.GetProtoFile())
 
 	var buf bytes.Buffer
 	pb, err := generate.Run(&buf, source, lang)

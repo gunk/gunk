@@ -1,0 +1,16 @@
+! gunk generate
+stderr 'anonymous.gunk:3:18: anonymous struct fields are not supported'
+
+-- .gunkconfig --
+[generate go]
+
+-- anonymous.gunk --
+package anonymous
+
+type SomeMessage struct {
+	AnonType `pb:"1"`
+}
+
+type AnonType struct {
+	SomeField int `pb:"1"`
+}

@@ -58,15 +58,15 @@ func ParseFile(file *FileDescWrapper) (*File, error) {
 }
 
 // GenerateDependencyMap recursively loops through dependencies and creates a map for their names and FileDescriptorProto
-func GenerateDependencyMap(source *google_protobuf.FileDescriptorProto, protos []*google_protobuf.FileDescriptorProto) map[string]*google_protobuf.FileDescriptorProto{
+func GenerateDependencyMap(source *google_protobuf.FileDescriptorProto, protos []*google_protobuf.FileDescriptorProto) map[string]*google_protobuf.FileDescriptorProto {
 	// get dependencies recursively
 	returnedDependencies := make(map[string]*google_protobuf.FileDescriptorProto)
-	for _,d := range source.GetDependency(){
-		for _, p := range protos{
-			if p.GetName() == d{
+	for _, d := range source.GetDependency() {
+		for _, p := range protos {
+			if p.GetName() == d {
 				returnedDependencies[d] = p
-				dependencies := GenerateDependencyMap(p,protos)
-				for name,dep := range dependencies{
+				dependencies := GenerateDependencyMap(p, protos)
+				for name, dep := range dependencies {
 					returnedDependencies[name] = dep
 				}
 				break
@@ -97,21 +97,9 @@ func nestedDescriptorMessages(file google_protobuf.FileDescriptorProto, genFiles
 			return nil, err
 		}
 
-		for name, msg := range dependencyMessages{
+		for name, msg := range dependencyMessages {
 			messages[name] = msg
 		}
-		// loop through all fields in this file then add all Messages in dependencyMessages that are referenced by a field
-		//for _, msg := range file.GetMessageType() {
-		//	for _, field := range msg.GetField() {
-		//		if depMsg, ok := dependencyMessages[field.GetTypeName()]; ok {
-		//			messages[field.GetTypeName()] = depMsg
-		//		}
-		//		// check if the field is a message type and if the package name is the same as the dependency package
-		//		//if field.GetType() == google_protobuf.FieldDescriptorProto_TYPE_MESSAGE && fieldPackage(field.GetTypeName()) == genFiles[dep].GetPackage() {
-		//		//
-		//		//}
-		//	}
-		//}
 
 	}
 	for name, msg := range parseMessages(pkgName, comments, file.GetMessageType(), messages) {

@@ -405,6 +405,14 @@ func (l *Loader) validatePackage(pkg *GunkPackage) {
 				return true
 			}
 
+			// Look through all fields for anonymous/unnamed types.
+			for _, field := range st.Fields.List {
+				if len(field.Names) < 1 {
+					pkg.addError(ParseError, st.Pos(), l.Fset, "anonymous struct fields are not supported")
+					return false
+				}
+			}
+
 			// Check for struct tag 'pb' and ensure that if it does exist
 			// it is a valid integer, and it is unique in that struct.
 			// The other validation should happen in format and generate

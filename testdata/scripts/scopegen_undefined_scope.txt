@@ -1,0 +1,66 @@
+! gunk generate -v echo.gunk
+stderr 'failed to parse, scope "delete" of method "/test.Service/GetMessage" is undefined'
+! exists all.scopes.json.golden
+! exists all.scopes.go.golden
+-- go.mod --
+module testdata.tld/util
+
+require (
+	github.com/gunk/opt v0.0.0-20190514110406-385321f21939
+)
+-- .gunkconfig --
+[generate]
+command=scopegen
+go=true
+json=true
+-- echo.gunk --
+// +gunk openapiv2.Swagger{
+//         Swagger: "2.0",
+//         Info: openapiv2.Info{
+//                 Title: "this is a title",
+//         },
+//         SecurityDefinitions: openapiv2.SecurityDefinitions{
+//                 Security: map[string]openapiv2.SecurityScheme{
+//                          "OAuth2": openapiv2.SecurityScheme{
+//                                  Type: openapiv2.TYPE_OAUTH2,
+//                                  Scopes: openapiv2.Scopes{
+//                                         Scope: map[string]string{
+//                                                  "admin": "Grants read and write access to administrative information",
+//                                                  "read":  "Grants read access",
+//                                                  "write": "Grants write access",
+//                                         },
+//                                  },
+//                          },
+//                 },
+//         },
+// }
+package test
+
+import (
+	"github.com/gunk/opt/http"
+	"github.com/gunk/opt/openapiv2"
+)
+
+// Message comment
+type Message struct {
+	Name string `pb:"1" json:"name"`
+}
+
+type Service interface {
+	// +gunk openapiv2.Operation{
+	//         Security: []openapiv2.SecurityRequirement{
+	//                 {
+	//                         SecurityRequirement: map[string]openapiv2.SecurityRequirement_SecurityRequirementValue{
+	//                                 "OAuth2": openapiv2.SecurityRequirement_SecurityRequirementValue{
+	//                                         Scope: []string{
+	//                                                 "read",
+	//                                                 "write",
+	//                                                 "delete",
+	//                                         },
+	//                                 },
+	//                         },
+	//                 },
+	//         },
+	// }
+	GetMessage(Message) Message
+}

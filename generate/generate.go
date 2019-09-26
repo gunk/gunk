@@ -17,6 +17,7 @@ import (
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
+	"github.com/knq/snaker"
 	"google.golang.org/genproto/googleapis/api/annotations"
 
 	"github.com/gunk/gunk/config"
@@ -653,7 +654,7 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, 
 		if len(field.Names) != 1 {
 			return nil, fmt.Errorf("need all fields to have one name")
 		}
-		fieldName := field.Names[0].Name
+		fieldName := snaker.CamelToSnake(field.Names[0].Name)
 		g.addDoc(field.Doc.Text(), messagePath, g.messageIndex, messageFieldPath, int32(i))
 		ftype := g.curPkg.TypesInfo.TypeOf(field.Type)
 		g.curPos = field.Pos()

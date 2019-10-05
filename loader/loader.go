@@ -339,7 +339,7 @@ func (l *Loader) parseGunkPackage(pkg *GunkPackage) {
 		}
 		if pkg.ProtoName == "" {
 			pkg.ProtoName = name
-		} else if name != "" {
+		} else if name != "" && l.Types {
 			pkg.addError(ValidateError, 0, nil, "proto package name mismatch: %q %q",
 				pkg.ProtoName, name)
 			continue

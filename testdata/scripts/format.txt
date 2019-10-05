@@ -12,6 +12,11 @@ cd broken
 stderr 'echo.gunk:1'
 cd ..
 
+# formatting files from different packages and checking the result
+gunk format echo.gunk ./diffpkg/notutil.gunk
+cmp echo.gunk echo.gunk.golden
+cmp ./diffpkg/notutil.gunk notutil.gunk.golden
+
 -- go.mod --
 module testdata.tld/util
 -- empty/empty.go --
@@ -50,6 +55,31 @@ Echo(Message) Message
 // }
 Echo2(Message) Message
 }
+-- diffpkg/notutil.gunk --
+// +gunk java.Package("com.testdata.v1")
+// +gunk file.Deprecated(true)
+package notutil   // proto "testdata.v1.notutil"
+
+import (
+"github.com/gunk/opt/file"
+"github.com/gunk/opt/file/java"
+)
+
+type Message struct {
+Text string    `pb:"1" json:"text"`
+}
+
+// Util is a utility service.
+type Util interface {
+// Echo echoes a message.
+//
+// +gunk http.Match{
+// Method: "POST",
+// Path: "/v1/echo",
+// Body: "*",
+// }
+Echo(Message) Message
+}
 
 -- echo.gunk.golden --
 // +gunk java.Package("com.testdata.v1")
@@ -82,4 +112,29 @@ type Util interface {
 	//         Body:   "*",
 	// }
 	Echo2(Message) Message
+}
+-- notutil.gunk.golden --
+// +gunk java.Package("com.testdata.v1")
+// +gunk file.Deprecated(true)
+package notutil // proto "testdata.v1.notutil"
+
+import (
+	"github.com/gunk/opt/file"
+	"github.com/gunk/opt/file/java"
+)
+
+type Message struct {
+	Text string `pb:"1" json:"text"`
+}
+
+// Util is a utility service.
+type Util interface {
+	// Echo echoes a message.
+	//
+	// +gunk http.Match{
+	//         Method: "POST",
+	//         Path:   "/v1/echo",
+	//         Body:   "*",
+	// }
+	Echo(Message) Message
 }

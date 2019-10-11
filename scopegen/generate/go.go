@@ -15,7 +15,7 @@ type AuthScope string
 {{ if .Scopes -}}
 const (
 {{- range $scope := .Scopes }}
-	Scope_{{ $scope.Name }} AuthScope = "{{ $scope.Value }}",
+	Scope_{{ $scope.Name }} AuthScope = "{{ $scope.Value }}"
 {{- end }}
 )
 

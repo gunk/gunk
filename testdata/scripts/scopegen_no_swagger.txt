@@ -1,4 +1,5 @@
 gunk generate -v echo.gunk
+exec go build all.scopes.go
 cmp all.scopes.json all.scopes.json.golden
 cmp all.scopes.go all.scopes.go.golden
 -- go.mod --

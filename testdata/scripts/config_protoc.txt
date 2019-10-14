@@ -3,8 +3,12 @@
 [short] skip 'requires network access' 
 
 # Use a separate $HOME, to not reuse a cached protoc.
-env HOME=$WORK/protoc_home
-env CACHEDIR=$HOME/$CACHEPATH
+env VHOME=$WORK/protoc_home
+env HOME=$VHOME
+env LocalAppData=$VHOME
+env home=$VHOME
+env CACHEDIR=$VHOME$CACHEPATH
+env XDG_CACHE_HOME=$CACHEDIR
 
 # Specify a valid protoc version.
 #

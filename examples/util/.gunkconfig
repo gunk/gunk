@@ -1,11 +1,10 @@
-[generate]
+[generate go]
 out=v1/
-command=protoc-gen-go
 plugins=grpc
 
 [generate]
 out=v1/
-command=protoc-gen-grpc-gateway
+protoc=grpc-gateway
 logtostderr=true
 
 [generate]

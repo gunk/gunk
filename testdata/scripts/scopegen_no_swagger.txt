@@ -36,6 +36,40 @@ type Service interface {
 package test
 
 type AuthScope string
+type ServiceScope struct{}
 
-var AuthScopes = map[string][]AuthScope{
+var authScopes = map[string][]AuthScope{
+}
+
+// Any allows a loose challenge, for claims containing any of the method scopes.
+//
+// Use All method as a default for OAuth2 style scopes.  Any is useful with more complex scope definitions.
+func (svcSc ServiceScope) Any(method string, claims []string) bool {
+	ch := authScopes[method]
+	for _, s := range ch {
+		for _, c := range claims {
+			if string(s) == c {
+				return true
+			}
+		}
+	}
+	return len(ch) == 0
+}
+
+// All is the default OAuth2 challenge method, ensuring claims contains all method scopes.
+func (svcSc ServiceScope) All(method string, claims []string) bool {
+	ch := authScopes[method]
+	if len(ch) > len(claims) {
+		return false
+	}
+scopes:
+	for _, s := range ch {
+		for _, c := range claims {
+			if string(s) == c {
+				continue scopes
+			}
+		}
+		return false
+	}
+	return true
 }

@@ -35,7 +35,7 @@ type File struct {
 func (f *File) validate() error {
 	for _, method := range f.Methods {
 		for _, scope := range method.Scopes {
-			var defined = false
+			defined := false
 			for _, definedScope := range f.Scopes {
 				if definedScope.Name == scope {
 					defined = true
@@ -47,7 +47,6 @@ func (f *File) validate() error {
 			}
 		}
 	}
-
 	return nil
 }
 
@@ -55,7 +54,7 @@ func (f *File) validate() error {
 // It is reserve-engineered from protoc-gen-go.
 // Reference: https://github.com/golang/protobuf/blob/822fe56949f5d56c9e2f02367c657e0e9b4d27d1/protoc-gen-go/grpc/grpc.go
 func generateFullMethodName(pkg, servName, methName string) string {
-	var fullServName = servName
+	fullServName := servName
 	if pkg != "" {
 		fullServName = pkg + "." + fullServName
 	}
@@ -154,7 +153,7 @@ func parseMethods(securitySchemeName string, file *descriptor.FileDescriptorProt
 	sort.Strings(methodNames)
 
 	for _, name := range methodNames {
-		var methodScopes = methods[name]
+		methodScopes := methods[name]
 		sort.Strings(methodScopes)
 		result = append(result, Method{
 			Name:   name,
@@ -167,7 +166,7 @@ func parseMethods(securitySchemeName string, file *descriptor.FileDescriptorProt
 
 // ParseFile parsed the given proto file to extract its OAuth2 scopes information.
 func ParseFile(file *descriptor.FileDescriptorProto) (*File, error) {
-	var f = &File{
+	f := &File{
 		Package: file.GetPackage(),
 	}
 

@@ -30,13 +30,25 @@ func Verbosef(format string, args ...interface{}) {
 
 func ExecCommand(command string, args ...string) *exec.Cmd {
 	if PrintCommands {
-		Printf("%s %s", command, strings.Join(args, " "))
+		Printf(formatCommand(command, args...))
 	}
 	cmd := exec.Command(command, args...)
 	if Verbose {
 		cmd.Stderr = Out
 	}
 	return cmd
+}
+
+// formatCommand formats the command output
+func formatCommand(name string, params ...string) string {
+	paramstr := " " + strings.Join(params, " ")
+	if (len(paramstr) + len(name)) >= 40 {
+		paramstr = ""
+		for _, p := range params {
+			paramstr += " \\\n  " + p
+		}
+	}
+	return name + paramstr
 }
 
 // ExecError looks for plugin error if present in stderr.

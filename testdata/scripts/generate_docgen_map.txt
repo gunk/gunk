@@ -1,0 +1,82 @@
+gunk generate ./...
+cmp all.md all.md.golden
+cmp messages.pot messages.pot.golden
+
+-- go.mod --
+module testdata.tld/util
+
+require (
+	github.com/gunk/opt v0.0.0-20190514110406-385321f21939
+)
+-- .gunkconfig --
+[generate]
+command=docgen
+-- docgentest.gunk --
+package docgentest
+
+// Account holds all details about a bank account.
+type Sample struct {
+	// MapStringInt is a simple map of a <string,int>.
+	MapStringInt   map[string]int   `pb:"1" json:"map_string_int"`
+	// MapStringInt is a simple map of a <int,string>.
+	MapIntString   map[int]string   `pb:"2" json:"map_int_string"`
+	// MapStringPrice is a sample map of <string,price>.
+	MapStringPrice map[string]Price `pb:"3" json:"map_string_price"`
+}
+
+type Price struct {
+	Amount   int    `pb:"1" json:"amount"`
+	Currency string `pb:"2" json:"currency"`
+}
+-- all.md.golden --
+# Annex
+
+##  Price
+
+| Name     | Type   | Description |
+|----------|--------|-------------|
+| Amount   | int32  |             |
+| Currency | string |             |
+
+##  Sample
+
+Account holds all details about a bank account.
+
+| Name           | Type             | Description                                       |
+|----------------|------------------|---------------------------------------------------|
+| MapStringInt   | map[string]int32 | MapStringInt is a simple map of a <string,int>.   |
+| MapIntString   | map[int]string   | MapStringInt is a simple map of a <int,string>.   |
+| MapStringPrice | map[string]Price | MapStringPrice is a sample map of <string,price>. |
+-- messages.pot.golden --
+# Messages.pot - Contains all msgid extracted from swagger definitions.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid   ""
+msgstr  "Project-Id-Version: %s\n"
+		"Report-Msgid-Bugs-To: %s\n"
+		"POT-Creation-Date: %s\n"
+		"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+		"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+		"Language-Team: LANGUAGE <LL@li.org>\n"
+		"Language: \n"
+		"MIME-Version: 1.0\n"
+		"Content-Type: text/plain; charset=CHARSET\n"
+		"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Account holds all details about a bank account."
+msgstr ""
+
+msgid "Annex"
+msgstr ""
+
+msgid "MapStringInt is a simple map of a <int,string>."
+msgstr ""
+
+msgid "MapStringInt is a simple map of a <string,int>."
+msgstr ""
+
+msgid "MapStringPrice is a sample map of <string,price>."
+msgstr ""

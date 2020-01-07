@@ -155,14 +155,69 @@ func parseValues(path string, comments map[string]*Comment, values []*google_pro
 	return res
 }
 
+// extractMapFields generates an array of fields that correspond to map type fields for messages, which are stored in
+// the NestedType field of the DescriptorProto struct
+func extractMapFields(message *google_protobuf.DescriptorProto, path string, comments map[string]*Comment) []*Field {
+	fields := make([]*Field, len(message.NestedType))
+	for i, n := range message.GetNestedType() {
+		// a nested type of map will always have two fields for key and value
+		if !n.GetOptions().GetMapEntry(){
+			continue
+		}
+		if len(n.GetField()) != 2 {
+			panic("a map type message should always have two fields")
+		}
+
+		nestedTypeName := strings.TrimSuffix(n.GetName(), "Entry")
+		// find position and fieldDescriptorProto of the map type from the message fields
+		pos := -1
+		var fieldDescriptorProto *google_protobuf.FieldDescriptorProto
+		for i, f := range message.GetField() {
+			if f.GetName() == nestedTypeName {
+				pos = i
+				fieldDescriptorProto = f
+				break
+			}
+		}
+		if pos == -1 || fieldDescriptorProto == nil {
+			continue
+		}
+
+		// get key type. key can only be string or int32
+		var keyType string
+		switch n.GetField()[0].GetType() {
+		case google_protobuf.FieldDescriptorProto_TYPE_INT32:
+			keyType = "int"
+		case google_protobuf.FieldDescriptorProto_TYPE_STRING:
+			keyType = "string"
+		default:
+			panic("key should either be a string or an int32")
+		}
+
+		field := Field{
+			Name:    nestedTypeName,
+			Comment: nonNilComment(comments[fmt.Sprintf("%s.%d.%d", path, fieldFlag, pos)]),
+			Type: &Type{
+				Name:          fmt.Sprintf("map[%s]%s", keyType, getType(n.GetField()[1]).Name),
+				IsArray:       true,
+			},
+		}
+		fields[i] = &field
+	}
+	return fields
+}
+
 func parseMessages(pkgName string, comments map[string]*Comment, messages []*google_protobuf.DescriptorProto, merge map[string]*Message) map[string]*Message {
 	// convert each proto message to our Message representation
 	for i, m := range messages {
 		p := fmt.Sprintf("%d.%d", messageFlag, i)
+		mapFields := extractMapFields(m, p, comments)
+		fields := parseFields(p, comments, m.GetField())
+		fields = append(fields, mapFields...)
 		merge[getQualifiedName(pkgName, m.GetName())] = &Message{
 			Name:    m.GetName(),
 			Comment: nonNilComment(comments[p]),
-			Fields:  parseFields(p, comments, m.GetField()),
+			Fields:  fields,
 		}
 	}
 
@@ -219,14 +274,19 @@ func populateNestedMessages(message *Message, messages map[string]*Message) {
 }
 
 func parseFields(path string, comments map[string]*Comment, fields []*google_protobuf.FieldDescriptorProto) []*Field {
-	res := make([]*Field, len(fields))
+	var res []*Field
 	for i, f := range fields {
-		res[i] = &Field{
+		// check if this field is a map which should be handled by the extractMapField
+		if strings.Contains(f.GetTypeName(), f.GetName()+"Entry") {
+			continue
+		}
+		field := &Field{
 			Name:     f.GetName(),
 			Comment:  nonNilComment(comments[fmt.Sprintf("%s.%d.%d", path, fieldFlag, i)]),
 			Type:     getType(f),
 			JSONName: f.GetJsonName(),
 		}
+		res = append(res, field)
 	}
 	return res
 }

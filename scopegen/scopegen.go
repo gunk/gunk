@@ -24,12 +24,14 @@ type scopePlugin struct{}
 
 func (s *scopePlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.CodeGeneratorResponse, error) {
 	const (
-		jsonLangName = "json"
-		goLangName   = "go"
+		jsonLangName         = "json"
+		goLangName           = "go"
+		defaultOutputVersion = 1
 	)
 	var (
-		langs   = make(map[string]struct{})
-		baseDir string
+		langs         = make(map[string]struct{})
+		baseDir       string
+		outputVersion int
 	)
 
 	if param := req.GetParameter(); param != "" {
@@ -51,6 +53,11 @@ func (s *scopePlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.
 				}
 			case "out":
 				baseDir = v
+			case "output_version":
+				var err error
+				if outputVersion, err = strconv.Atoi(v); err != nil {
+					return nil, fmt.Errorf("unknown output version: err=%s", err.Error())
+				}
 			default:
 				return nil, fmt.Errorf("unknown parameter: %s", k)
 			}
@@ -82,17 +89,21 @@ func (s *scopePlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.
 		baseDir = filepath.Dir(f.GetName())
 	}
 
+	if outputVersion == 0 {
+		outputVersion = defaultOutputVersion
+	}
+
 	var resp = &plugin_go.CodeGeneratorResponse{}
 
 	for lang := range langs {
 		var buf = bytes.NewBuffer(nil)
 		switch lang {
 		case jsonLangName:
-			if err = generate.JSON(buf, parsed); err != nil {
+			if err = generate.JSON(buf, parsed, outputVersion); err != nil {
 				return nil, fmt.Errorf("failed to generate scopes: lang=%s err=%s", lang, err.Error())
 			}
 		case goLangName:
-			if err = generate.Go(buf, parsed); err != nil {
+			if err = generate.Go(buf, parsed, outputVersion); err != nil {
 				return nil, fmt.Errorf("failed to generate scopes: lang=%s err=%s", lang, err.Error())
 			}
 		default:

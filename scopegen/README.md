@@ -30,4 +30,27 @@ In your project's `.gunkconfig` add the following:
     command=scopegen
     go=true
     json=true
+    output_version=2
+```
+
+
+## Output Version
+
+Output version is configured with `output_version` configuration key, valid values are: 1, 2.
+Output version 2 generates codes in a simplified form that doesn't use any custom type and preserve the scope name, 
+description.
+Output version 1 is kept only for backward compatible, and will be deprecated soon.
+
+Example:
+
+Output version 1:
+
+```json
+{"/test.Service/GetMessage":["read","write"],"/test.Service/GetMessage3":["read"]}
+```
+
+Output version 2:
+
+```json
+{"scopes":{"admin":"Grants read and write access to administrative information","read":"Grants read access","write":"Grants write access"},"auth_scopes":{"/test.Service/GetMessage":["read","write"],"/test.Service/GetMessage3":["read"]}}
 ```

@@ -14,21 +14,23 @@ import (
 func jsonV1(w io.Writer, f *parser.File) error {
 	var result = make(map[string][]string, len(f.Methods))
 	for _, method := range f.Methods {
-		result[method.Name] = method.Scopes
+		if len(method.Scopes) != 0 {
+			result[method.Name] = method.Scopes[0]
+		}
 	}
 	return json.NewEncoder(w).Encode(result)
 }
 
 type model struct {
-	Scopes     map[string]string   `json:"scopes"`
-	AuthScopes map[string][]string `json:"auth_scopes"`
+	Scopes     map[string]string     `json:"scopes"`
+	AuthScopes map[string][][]string `json:"auth_scopes"`
 }
 
 // jsonV2 generates mapping between service full method names and its OAuth2 scope in JSON format.
 func jsonV2(w io.Writer, f *parser.File) error {
 	m := &model{
 		Scopes:     make(map[string]string, len(f.Scopes)),
-		AuthScopes: make(map[string][]string, len(f.Methods)),
+		AuthScopes: make(map[string][][]string, len(f.Methods)),
 	}
 
 	for _, method := range f.Methods {

@@ -25,7 +25,9 @@ const (
 {{ end -}}
 var authScopes = map[string][]AuthScope{
 {{- range $method := .Methods }}
-	"{{ $method.Name }}": []AuthScope{ {{- range $index, $scope := $method.Scopes }}{{ if $index }}, {{ end }}Scope_{{ $scope }}{{ end -}} },
+    {{- if $method.Scopes }}
+	"{{ $method.Name }}": []AuthScope{ {{- range $index, $scope := (index $method.Scopes 0) }}{{ if $index }}, {{ end }}Scope_{{ $scope }}{{ end -}} },
+    {{- end }}
 {{- end }}
 }
 
@@ -71,9 +73,13 @@ var Scopes = map[string]string{
 {{- end }}
 }
 
-var AuthScopes = map[string][]string{
+var AuthScopes = map[string][][]string{
 {{- range $method := .Methods }}
-	"{{ $method.Name }}": []string{ {{- range $index, $scope := $method.Scopes }}{{ if $index }}, {{ end }}"{{ $scope }}"{{ end -}} },
+	"{{ $method.Name }}": [][]string{
+	{{- range $scopes := $method.Scopes }}
+		{{"{"}}{{ range $index, $scope := $scopes }}{{ if $index }}, {{ end }}"{{ $scope }}"{{ end }},{{"}"}},
+	{{- end }}
+	},
 {{- end }}
 }
 `))

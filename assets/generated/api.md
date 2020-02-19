@@ -8,7 +8,11 @@
 {{- range $s := .Services}}
 {{- range $m := $s.Methods}}
 
+{{if $.CustomHeaderIds}}
+## {{GetText $m.Operation.Summary}} {#{{$m.HeaderID}}}
+{{else}}
 ## {{GetText $m.Operation.Summary}}
+{{end}}
 
 {{GetText $m.Operation.Description}}
 

@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"strings"
+	
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 )
@@ -17,6 +19,8 @@ type File struct {
 	Messages map[string]*Message
 	Services map[string]*Service
 	Enums    map[string]*Enum
+
+	CustomHeaderIds bool
 }
 
 // HasServices returns true when file contains service definitions.
@@ -69,6 +73,13 @@ type Method struct {
 	Request   *Request
 	Response  *Response
 	Operation *options.Operation
+}
+
+func (m *Method) HeaderID() string {
+	name := "method-"
+	name = name + strings.ToLower(m.Request.Verb) + "-"
+	name = name + strings.ToLower(m.Name)
+	return name
 }
 
 // Request describes an HTTP request.

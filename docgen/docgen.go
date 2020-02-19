@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/golang/protobuf/proto"
@@ -28,6 +29,7 @@ type docPlugin struct{}
 func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.CodeGeneratorResponse, error) {
 	var lang []string
 	var mode, dir string
+	var customHeaderIds bool
 	if param := req.GetParameter(); param != "" {
 		ps := strings.Split(param, ",")
 		for _, p := range ps {
@@ -46,6 +48,14 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 				mode = v
 			case "out":
 				dir = v
+			case "custom-header-ids":
+				boolVal, err := strconv.ParseBool(v)
+				if err != nil {
+					return nil, err
+				}
+				if boolVal {
+					customHeaderIds = boolVal
+				}
 			default:
 				return nil, fmt.Errorf("unknown parameter: %s", k)
 			}
@@ -71,7 +81,7 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 	source.DependencyMap = parser.GenerateDependencyMap(source.FileDescriptorProto, req.GetProtoFile())
 
 	var buf bytes.Buffer
-	pb, err := generate.Run(&buf, source, lang)
+	pb, err := generate.Run(&buf, source, lang, customHeaderIds)
 	if err != nil {
 		return nil, fmt.Errorf("failed markdown generation: %v", err)
 	}

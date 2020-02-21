@@ -42,8 +42,11 @@ acc, err := c.GetAccount(
 //                 Description: "Provides CRUD operations on the accounts resource.",
 //                 Version:     "1.0.0",
 //         },
-//		   Host: "https://openbank.com",
-//         BasePath: "/v1",
+//         Host: "openbank.com",
+//         BasePath: "/path",
+//         Schemes: []openapiv2.SwaggerScheme{
+//                 openapiv2.HTTPS,
+//         },
 // }
 package accounts
 
@@ -289,7 +292,7 @@ Provides CRUD operations on the accounts resource.
 
 * Host `https://openbank.com`
 
-* Base Path `/v1`
+* Base Path `/path`
 
 ## Retrieve an account
 
@@ -297,7 +300,7 @@ Retrieves all data from an account, selected by the account_id you supplied.
 
 ```sh
 curl -X GET \
-	https://openbank.com/v1/accounts/{AccountID} \
+	https://openbank.com/path/v1/accounts/{AccountID} \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN'
 ```
 ```go
@@ -324,7 +327,7 @@ acc, err := c.GetAccount(
 ```
 ### HTTP Request
 
-`GET https://openbank.com/v1/accounts/{AccountID}`
+`GET https://openbank.com/path/v1/accounts/{AccountID}`
 
 ### Query Parameters
 

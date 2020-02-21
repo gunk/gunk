@@ -121,6 +121,7 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 	}
 	return "", fmt.Errorf("unable to download and extract protoc")
 }
+
 func verifyProtocBinary(path, version string) error {
 	cmd := log.ExecCommand(path, "--version")
 	out, err := cmd.Output()

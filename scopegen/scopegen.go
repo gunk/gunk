@@ -93,10 +93,10 @@ func (s *scopePlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.
 		outputVersion = defaultOutputVersion
 	}
 
-	var resp = &plugin_go.CodeGeneratorResponse{}
+	resp := &plugin_go.CodeGeneratorResponse{}
 
 	for lang := range langs {
-		var buf = bytes.NewBuffer(nil)
+		buf := bytes.NewBuffer(nil)
 		switch lang {
 		case jsonLangName:
 			if err = generate.JSON(buf, parsed, outputVersion); err != nil {

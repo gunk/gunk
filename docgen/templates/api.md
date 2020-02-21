@@ -2,7 +2,7 @@
 
 {{GetText .Swagger.Info.Description}}
 
-* {{GetText "Host"}} `{{.Swagger.Host}}`
+* {{GetText "Host"}} `{{$.SwaggerScheme}}{{.Swagger.Host}}`
 
 * {{GetText "Base Path"}} `{{.Swagger.BasePath}}`
 {{- range $s := .Services}}
@@ -18,7 +18,7 @@
 
 ```sh
 curl -X {{$m.Request.Verb}} \
-	{{$.Swagger.Host}}{{$m.Request.URI}} \
+	{{$.SwaggerScheme}}{{$.Swagger.Host}}{{$.Swagger.BasePath}}{{$m.Request.URI}} \
 	-H 'Authorization: Bearer {{GetText "USE_YOUR_TOKEN"}}' {{if $m.Request.Example}}\
 	-d '{{$m.Request.Example}}'
 	{{end}}
@@ -28,7 +28,7 @@ curl -X {{$m.Request.Verb}} \
 
 ### {{GetText "HTTP Request"}}
 
-`{{$m.Request.Verb}} {{$.Swagger.Host}}{{$m.Request.URI}}`
+`{{$m.Request.Verb}} {{$.SwaggerScheme}}{{$.Swagger.Host}}{{$.Swagger.BasePath}}{{$m.Request.URI}}`
 
 {{if $m.Request.Query}}
 

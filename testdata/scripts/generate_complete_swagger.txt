@@ -28,7 +28,7 @@ require (
     }
   },
   "host": "brank.as",
-  "basePath": "/v1",
+  "basePath": "/path",
   "schemes": [
     "http",
     "https",
@@ -171,7 +171,7 @@ require (
 //                 Version: "1.0",
 //         },
 //         Host:     "brank.as",
-//         BasePath: "/v1",
+//         BasePath: "/path",
 //         Schemes: []openapiv2.SwaggerScheme{
 //                 openapiv2.HTTP,
 //                 openapiv2.HTTPS,

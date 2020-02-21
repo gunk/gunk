@@ -19,8 +19,8 @@ command=docgen
 //                 Description: "Provides CRUD operations on the accounts resource.",
 //                 Version:     "1.0.0",
 //         },
-//		   Host: "https://openbank.com",
-//         BasePath: "/v1",
+//         Host: "openbank.com",
+//         BasePath: "/path",
 //         Schemes: []openapiv2.SwaggerScheme{
 //                 openapiv2.HTTPS,
 //         },
@@ -558,7 +558,7 @@ Provides CRUD operations on the accounts resource.
 
 * Host `https://openbank.com`
 
-* Base Path `/v1`
+* Base Path `/path`
 
 ## Create an account
 
@@ -566,7 +566,7 @@ Creates a new account
 
 ```sh
 curl -X POST \
-	https://openbank.com/v1/accounts \
+	https://openbank.com/path/v1/accounts \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN' \
 	-d '{
 		"account_id": "string",
@@ -593,7 +593,7 @@ curl -X POST \
 ```
 ### HTTP Request
 
-`POST https://openbank.com/v1/accounts`
+`POST https://openbank.com/path/v1/accounts`
 
 ### Body Parameters
 
@@ -665,12 +665,12 @@ Permanently delete an account.
 
 ```sh
 curl -X DELETE \
-	https://openbank.com/v1/accounts/{AccountID} \
+	https://openbank.com/path/v1/accounts/{AccountID} \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN'
 ```
 ### HTTP Request
 
-`DELETE https://openbank.com/v1/accounts/{AccountID}`
+`DELETE https://openbank.com/path/v1/accounts/{AccountID}`
 
 ### Query Parameters
 
@@ -696,12 +696,12 @@ Retrieves all data from an account, selected by the account_id you supplied.
 
 ```sh
 curl -X GET \
-	https://openbank.com/v1/accounts/{AccountID} \
+	https://openbank.com/path/v1/accounts/{AccountID} \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN'
 ```
 ### HTTP Request
 
-`GET https://openbank.com/v1/accounts/{AccountID}`
+`GET https://openbank.com/path/v1/accounts/{AccountID}`
 
 ### Query Parameters
 
@@ -773,12 +773,12 @@ Returns a list containing up to 20 accounts. You can paginate through account by
 
 ```sh
 curl -X GET \
-	https://openbank.com/v1/accounts \
+	https://openbank.com/path/v1/accounts \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN'
 ```
 ### HTTP Request
 
-`GET https://openbank.com/v1/accounts`
+`GET https://openbank.com/path/v1/accounts`
 
 ### Responses
 
@@ -857,7 +857,7 @@ Updates an account with all the fields supplied.
 
 ```sh
 curl -X PUT \
-	https://openbank.com/v1/accounts/{AccountID} \
+	https://openbank.com/path/v1/accounts/{AccountID} \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN' \
 	-d '{
 		"account_id": "string",
@@ -866,7 +866,7 @@ curl -X PUT \
 ```
 ### HTTP Request
 
-`PUT https://openbank.com/v1/accounts/{AccountID}`
+`PUT https://openbank.com/path/v1/accounts/{AccountID}`
 
 ### Query Parameters
 

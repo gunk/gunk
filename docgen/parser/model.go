@@ -23,6 +23,33 @@ type File struct {
 	CustomHeaderIds bool
 }
 
+// SwaggerScheme gets scheme that you most probably want.
+// The order is https - http - wss - ws.
+// Includes "://" string if present, returns empty string if there is no valid scheme.
+func (f *File) SwaggerScheme() string {
+	if len(f.Swagger.Schemes) == 0 {
+		return ""
+	}
+	hasScheme := map[options.Swagger_SwaggerScheme]bool{}
+	for _, scheme := range f.Swagger.Schemes {
+		hasScheme[scheme] = true
+	}
+	if hasScheme[options.Swagger_HTTPS] {
+		return "https://"
+	}
+	if hasScheme[options.Swagger_HTTP] {
+		return "http://"
+	}
+	// TODO - should we include websocket at all? CURL won't work anyway
+	if hasScheme[options.Swagger_WSS] {
+		return "wss://"
+	}
+	if hasScheme[options.Swagger_WS] {
+		return "ws://"
+	}
+	return ""
+}
+
 // HasServices returns true when file contains service definitions.
 func (f *File) HasServices() bool {
 	return len(f.Services) > 0

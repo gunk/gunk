@@ -11,7 +11,6 @@ require (
 -- .gunkconfig --
 [generate]
 command=docgen
-custom-header-ids=true
 -- accounts.gunk --
 // +gunk openapiv2.Swagger{
 //         Swagger: "2.0",
@@ -20,10 +19,13 @@ custom-header-ids=true
 //                 Description: "Provides CRUD operations on the accounts resource.",
 //                 Version:     "1.0.0",
 //         },
-//         Host: "openbank.com",
+//		   Host: "openbank.com",
 //         BasePath: "/path",
 //         Schemes: []openapiv2.SwaggerScheme{
+//                 openapiv2.HTTP,
 //                 openapiv2.HTTPS,
+//                 openapiv2.WS,
+//                 openapiv2.WSS,
 //         },
 //         Consumes: []string{
 //                 "application/json",
@@ -561,7 +563,7 @@ Provides CRUD operations on the accounts resource.
 
 * Base Path `/path`
 
-## Create an account {#method-post-createaccount}
+## Create an account
 
 Creates a new account
 
@@ -660,7 +662,7 @@ Example:
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
 
-## Delete an account {#method-delete-deleteaccount}
+## Delete an account
 
 Permanently delete an account.
 
@@ -691,7 +693,7 @@ curl -X DELETE \
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
 
-## Retrieve an account {#method-get-getaccount}
+## Retrieve an account
 
 Retrieves all data from an account, selected by the account_id you supplied.
 
@@ -768,7 +770,7 @@ Example:
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
 
-## List all accounts {#method-get-getaccounts}
+## List all accounts
 
 Returns a list containing up to 20 accounts. You can paginate through account by supplying nextstartingindex in your subsequents calls. nextstartingindex contains the accountid of the last accountid of the current page.
 
@@ -852,7 +854,7 @@ Example:
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
 
-## Update an account {#method-put-updateaccount}
+## Update an account
 
 Updates an account with all the fields supplied.
 

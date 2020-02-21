@@ -11,7 +11,7 @@ import "google/api/annotations.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   swagger: "2.0";
-  base_path:"/v1";
+  base_path:"/path";
   host: "brank.as";
 	info: {
 		title: "this is a title";
@@ -174,7 +174,7 @@ service Service {
 //                 Version: "1.0",
 //         },
 //         Host:     "brank.as",
-//         BasePath: "/v1",
+//         BasePath: "/path",
 //         Schemes: []openapiv2.SwaggerScheme{
 //                 openapiv2.HTTP,
 //                 openapiv2.HTTPS,

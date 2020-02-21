@@ -12,7 +12,7 @@ import (
 
 // jsonV1 generates mapping between service full method names and its OAuth2 scope in JSON format.
 func jsonV1(w io.Writer, f *parser.File) error {
-	var result = make(map[string][]string, len(f.Methods))
+	result := make(map[string][]string, len(f.Methods))
 	for _, method := range f.Methods {
 		result[method.Name] = method.Scopes
 	}

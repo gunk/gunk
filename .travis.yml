@@ -17,3 +17,6 @@ install: true
 script:
   - go run main.go download all
   - go test -coverprofile=cover.out -v ./...
+  - go install mvdan.cc/gofumpt
+  - OUT=$(git ls-files '*.go' | grep -v testdata | xargs gofumpt -d -s)
+  - test -z "$OUT" || (echo "$OUT"; exit 1)

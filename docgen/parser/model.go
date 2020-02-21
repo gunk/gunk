@@ -2,7 +2,7 @@ package parser
 
 import (
 	"strings"
-	
+
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 )

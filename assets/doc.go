@@ -8,3 +8,4 @@ package assets
 //go:generate cp ../docgen/templates/api.md generated/api.md
 //go:generate cp ../docgen/templates/annex.md generated/annex.md
 //go:generate vfsgendev -source="github.com/gunk/gunk/assets".Assets
+//go:generate gofumpt -w -s assets_vfsdata.go

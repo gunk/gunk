@@ -161,7 +161,7 @@ func extractMapFields(message *google_protobuf.DescriptorProto, path string, com
 	fields := make([]*Field, len(message.NestedType))
 	for i, n := range message.GetNestedType() {
 		// a nested type of map will always have two fields for key and value
-		if !n.GetOptions().GetMapEntry(){
+		if !n.GetOptions().GetMapEntry() {
 			continue
 		}
 		if len(n.GetField()) != 2 {
@@ -198,8 +198,8 @@ func extractMapFields(message *google_protobuf.DescriptorProto, path string, com
 			Name:    nestedTypeName,
 			Comment: nonNilComment(comments[fmt.Sprintf("%s.%d.%d", path, fieldFlag, pos)]),
 			Type: &Type{
-				Name:          fmt.Sprintf("map[%s]%s", keyType, getType(n.GetField()[1]).Name),
-				IsArray:       true,
+				Name:    fmt.Sprintf("map[%s]%s", keyType, getType(n.GetField()[1]).Name),
+				IsArray: true,
 			},
 		}
 		fields[i] = &field

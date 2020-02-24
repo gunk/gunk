@@ -298,6 +298,9 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.G
 		pkgPath = filepath.Clean(pkgPath) // to remove trailing slashes
 		gpkg := g.gunkPkgs[pkgPath]
 		data := []byte(*rf.Content)
+		if data, err = postProcess(data, gen); err != nil {
+			return fmt.Errorf("failed to execute post processing: %s", err.Error())
+		}
 		dir := gen.OutPath(gpkg.Dir)
 		outPath := filepath.Join(dir, basename)
 		if err := ioutil.WriteFile(outPath, data, 0644); err != nil {

@@ -36,7 +36,7 @@ curl -X {{$m.Request.Verb}} \
 
 Name | Type | Description
 ---- | ---- | -----------
-{{range $p := $m.Request.Query}}{{$p.Name}} | {{$p.Type.Name}} |{{GetText $p.Comment.Leading}}
+{{range $p := $m.Request.Query}}{{$p.JSONName}} | {{$p.Type.Name}} |{{GetText $p.Comment.Leading}}
 {{end}}{{/* end request query range */}}
 {{end}}{{/* end request query if*/}}
 
@@ -86,7 +86,7 @@ Value | Description
 
 Name | Type | Description
 ---- | ---- | -----------
-{{range $f := .Fields}}{{$f.Name}} | {{$f.Type.Name}} | {{GetText $f.Comment.Leading}}
+{{range $f := .Fields}}{{$f.JSONName}} | {{$f.Type.Name}} | {{GetText $f.Comment.Leading}}
 {{end}}{{/* end field range */}}
 
 {{if .NestedMessages}}
@@ -97,7 +97,7 @@ Name | Type | Description
 
 Name | Type | Description
 ---- | ---- | -----------
-{{range $nf := $nm.Fields}}{{$nf.Name}} | {{$nf.Type.Name}} | {{GetText $nf.Comment.Leading}}
+{{range $nf := $nm.Fields}}{{$nf.JSONName}} | {{$nf.Type.Name}} | {{GetText $nf.Comment.Leading}}
 {{end}}{{/* end nested message field range */}}
 {{end}}{{/* end nested message range*/}}
 {{end}}{{/* end nested message if*/}}

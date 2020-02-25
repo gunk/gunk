@@ -330,20 +330,20 @@ curl -X GET \
 
 ### Query Parameters
 
-| Name      | Type   | Description |
-|-----------|--------|-------------|
-| AccountID | string |             |
+| Name       | Type   | Description |
+|------------|--------|-------------|
+| account_id | string |             |
 
 ### Responses
 
 #### Response body
 
-| Name       | Type   | Description                                                                    |
-|------------|--------|--------------------------------------------------------------------------------|
-| AccountID  | string | AccountID is the unique identifier of an account.Should not be returned as is. |
-| Branch     | string | TODO: add comment.                                                             |
-| BranchName | string | TODO: add comment.                                                             |
-| Status     | string | Status is the status of the account.                                           |
+| Name        | Type   | Description                                                                    |
+|-------------|--------|--------------------------------------------------------------------------------|
+| account_id  | string | AccountID is the unique identifier of an account.Should not be returned as is. |
+| branch      | string | TODO: add comment.                                                             |
+| branch_name | string | TODO: add comment.                                                             |
+| status      | string | Status is the status of the account.                                           |
 
 Example:
 

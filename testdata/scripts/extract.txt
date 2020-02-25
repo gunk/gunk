@@ -597,47 +597,47 @@ curl -X POST \
 
 ### Body Parameters
 
-| Name             | Type             | Description                                 |
-|------------------|------------------|---------------------------------------------|
-| AccountID        | string           | AccountID is the identifier of the account. |
-| Description      | string           | TODO: add comment.                          |
-| AccountRoles     | []AccountRole    | TODO: add comment.                          |
-| Branch           | string           | TODO: add comment.                          |
-| Customer         | string           | TODO: add comment.                          |
-| DebitTransaction | DebitTransaction | TODO: add comment.                          |
-| InterestRate     | string           | TODO: add comment.                          |
-| MaturityDate     | string           | TODO: add comment.                          |
-| Minor            | string           | TODO: add comment.                          |
+| Name              | Type             | Description                                 |
+|-------------------|------------------|---------------------------------------------|
+| account_id        | string           | AccountID is the identifier of the account. |
+| description       | string           | TODO: add comment.                          |
+| account_roles     | []AccountRole    | TODO: add comment.                          |
+| branch            | string           | TODO: add comment.                          |
+| customer          | string           | TODO: add comment.                          |
+| debit_transaction | DebitTransaction | TODO: add comment.                          |
+| interest_rate     | string           | TODO: add comment.                          |
+| maturity_date     | string           | TODO: add comment.                          |
+| minor             | string           | TODO: add comment.                          |
 
 ##### Objects
 
 ###### AccountRole
 
-| Name         | Type       | Description        |
-|--------------|------------|--------------------|
-| EntityNumber | string     | TODO: add comment. |
-| EntityType   | EntityType | TODO: add comment. |
-| Role         | string     | TODO: add comment. |
+| Name          | Type       | Description        |
+|---------------|------------|--------------------|
+| entity_number | string     | TODO: add comment. |
+| entity_type   | EntityType | TODO: add comment. |
+| role          | string     | TODO: add comment. |
 
 ###### DebitTransaction
 
-| Name         | Type   | Description        |
-|--------------|--------|--------------------|
-| Amount       | string | TODO: add comment. |
-| DebitAccount | string | TODO: add comment. |
-| ExchangeRate | string | TODO: add comment. |
-| IsFx         | bool   | TODO: add comment. |
+| Name          | Type   | Description        |
+|---------------|--------|--------------------|
+| amount        | string | TODO: add comment. |
+| debit_account | string | TODO: add comment. |
+| exchange_rate | string | TODO: add comment. |
+| is_fx         | bool   | TODO: add comment. |
 
 ### Responses
 
 #### Response body
 
-| Name                    | Type   | Description                                                                |
-|-------------------------|--------|----------------------------------------------------------------------------|
-| AccountID               | string | AccountID is the unique identifier of the newly created account.           |
-| CreditTransactionNumber | string | CreditTransactionNumber is the transaction number of the credited account. |
-| DebitTransactionNumber  | string | DebitTransactionNumber is the transaction number of the debited account.   |
-| Minor                   | string | TODO: add comment.                                                         |
+| Name       | Type   | Description                                                                |
+|------------|--------|----------------------------------------------------------------------------|
+| account_id | string | AccountID is the unique identifier of the newly created account.           |
+| number     | string | CreditTransactionNumber is the transaction number of the credited account. |
+| number     | string | DebitTransactionNumber is the transaction number of the debited account.   |
+| minor      | string | TODO: add comment.                                                         |
 
 Example:
 
@@ -674,9 +674,9 @@ curl -X DELETE \
 
 ### Query Parameters
 
-| Name      | Type   | Description                                                  |
-|-----------|--------|--------------------------------------------------------------|
-| AccountID | string | AccountID is the unique identifier of the account to delete. |
+| Name       | Type   | Description                                                  |
+|------------|--------|--------------------------------------------------------------|
+| account_id | string | AccountID is the unique identifier of the account to delete. |
 
 ### Responses
 
@@ -705,33 +705,33 @@ curl -X GET \
 
 ### Query Parameters
 
-| Name      | Type   | Description |
-|-----------|--------|-------------|
-| AccountID | string |             |
+| Name       | Type   | Description |
+|------------|--------|-------------|
+| account_id | string |             |
 
 ### Responses
 
 #### Response body
 
-| Name                          | Type   | Description                                                                    |
-|-------------------------------|--------|--------------------------------------------------------------------------------|
-| AccountID                     | string | AccountID is the unique identifier of an account.Should not be returned as is. |
-| Branch                        | string | TODO: add comment.                                                             |
-| BranchName                    | string | TODO: add comment.                                                             |
-| Status                        | string | Status is the status of the account.                                           |
-| AccruedInterestAtMaturityDate | string | TODO: add comment.                                                             |
-| AvailableCreditLimit          | string | TODO: add comment.                                                             |
-| CheckingInterestRate          | string | TODO: add comment.                                                             |
-| ContractDate                  | string | ContractDate is the date of the contract initialization.                       |
-| CreditLimit                   | string | CreditLimit is the allowed credit limit.                                       |
-| CurrentAccruedInterest        | string | TODO: add comment.                                                             |
-| CurrentTerm                   | string | CurrentTerm is the account validity period.                                    |
-| DueDate                       | string | DueDate is the loan maturity date.                                             |
-| InterestRate                  | string | TODO: add comment.                                                             |
-| MaturityDate                  | string | MaturityDate is the maturity date, format is ISO 8601                          |
-| NextPaymentDueDate            | string | TODO: add comment.                                                             |
-| OwnerName                     | string | OwnerName is the name of the account's owner.                                  |
-| StartDate                     | string | TODO: add comment.                                                             |
+| Name          | Type   | Description                                                                    |
+|---------------|--------|--------------------------------------------------------------------------------|
+| account_id    | string | AccountID is the unique identifier of an account.Should not be returned as is. |
+| branch        | string | TODO: add comment.                                                             |
+| branch_name   | string | TODO: add comment.                                                             |
+| status        | string | Status is the status of the account.                                           |
+| date          | string | TODO: add comment.                                                             |
+| limit         | string | TODO: add comment.                                                             |
+| rate          | string | TODO: add comment.                                                             |
+| contract_date | string | ContractDate is the date of the contract initialization.                       |
+| credit_limit  | string | CreditLimit is the allowed credit limit.                                       |
+| interest      | string | TODO: add comment.                                                             |
+| current_term  | string | CurrentTerm is the account validity period.                                    |
+| due_date      | string | DueDate is the loan maturity date.                                             |
+| interest_rate | string | TODO: add comment.                                                             |
+| maturity_date | string | MaturityDate is the maturity date, format is ISO 8601                          |
+| due_date      | string | TODO: add comment.                                                             |
+| owner_name    | string | OwnerName is the name of the account's owner.                                  |
+| start_date    | string | TODO: add comment.                                                             |
 
 Example:
 
@@ -784,34 +784,34 @@ curl -X GET \
 
 #### Response body
 
-| Name    | Type      | Description                                             |
-|---------|-----------|---------------------------------------------------------|
-| Result  | []Account | Result is a list containing up to 20 Accounts.          |
-| HasMore | bool      | HasMore indicates if there are more accounts available. |
+| Name     | Type      | Description                                             |
+|----------|-----------|---------------------------------------------------------|
+| result   | []Account | Result is a list containing up to 20 Accounts.          |
+| has_more | bool      | HasMore indicates if there are more accounts available. |
 
 ##### Objects
 
 ###### Account
 
-| Name                          | Type   | Description                                                                    |
-|-------------------------------|--------|--------------------------------------------------------------------------------|
-| AccountID                     | string | AccountID is the unique identifier of an account.Should not be returned as is. |
-| Branch                        | string | TODO: add comment.                                                             |
-| BranchName                    | string | TODO: add comment.                                                             |
-| Status                        | string | Status is the status of the account.                                           |
-| AccruedInterestAtMaturityDate | string | TODO: add comment.                                                             |
-| AvailableCreditLimit          | string | TODO: add comment.                                                             |
-| CheckingInterestRate          | string | TODO: add comment.                                                             |
-| ContractDate                  | string | ContractDate is the date of the contract initialization.                       |
-| CreditLimit                   | string | CreditLimit is the allowed credit limit.                                       |
-| CurrentAccruedInterest        | string | TODO: add comment.                                                             |
-| CurrentTerm                   | string | CurrentTerm is the account validity period.                                    |
-| DueDate                       | string | DueDate is the loan maturity date.                                             |
-| InterestRate                  | string | TODO: add comment.                                                             |
-| MaturityDate                  | string | MaturityDate is the maturity date, format is ISO 8601                          |
-| NextPaymentDueDate            | string | TODO: add comment.                                                             |
-| OwnerName                     | string | OwnerName is the name of the account's owner.                                  |
-| StartDate                     | string | TODO: add comment.                                                             |
+| Name          | Type   | Description                                                                    |
+|---------------|--------|--------------------------------------------------------------------------------|
+| account_id    | string | AccountID is the unique identifier of an account.Should not be returned as is. |
+| branch        | string | TODO: add comment.                                                             |
+| branch_name   | string | TODO: add comment.                                                             |
+| status        | string | Status is the status of the account.                                           |
+| date          | string | TODO: add comment.                                                             |
+| limit         | string | TODO: add comment.                                                             |
+| rate          | string | TODO: add comment.                                                             |
+| contract_date | string | ContractDate is the date of the contract initialization.                       |
+| credit_limit  | string | CreditLimit is the allowed credit limit.                                       |
+| interest      | string | TODO: add comment.                                                             |
+| current_term  | string | CurrentTerm is the account validity period.                                    |
+| due_date      | string | DueDate is the loan maturity date.                                             |
+| interest_rate | string | TODO: add comment.                                                             |
+| maturity_date | string | MaturityDate is the maturity date, format is ISO 8601                          |
+| due_date      | string | TODO: add comment.                                                             |
+| owner_name    | string | OwnerName is the name of the account's owner.                                  |
+| start_date    | string | TODO: add comment.                                                             |
 
 Example:
 
@@ -870,16 +870,16 @@ curl -X PUT \
 
 ### Query Parameters
 
-| Name      | Type   | Description                                                  |
-|-----------|--------|--------------------------------------------------------------|
-| AccountID | string | AccountID is the unique identifier of the account to update. |
+| Name       | Type   | Description                                                  |
+|------------|--------|--------------------------------------------------------------|
+| account_id | string | AccountID is the unique identifier of the account to update. |
 
 ### Body Parameters
 
 | Name        | Type   | Description                                                  |
 |-------------|--------|--------------------------------------------------------------|
-| AccountID   | string | AccountID is the unique identifier of the account to update. |
-| Description | string | TODO: add comment.                                           |
+| account_id  | string | AccountID is the unique identifier of the account to update. |
+| description | string | TODO: add comment.                                           |
 
 ### Responses
 

@@ -1,5 +1,9 @@
-gunk generate echo.gunk
-cmp all.swagger.json all.swagger.json.golden
+cp echo.gunk json_names_for_fields_disabled/echo.gunk
+cp echo.gunk json_names_for_fields_enabled/echo.gunk
+rm echo.gunk
+gunk generate -v ./...
+cmp json_names_for_fields_disabled/all.swagger.json json_names_for_fields_disabled/all.swagger.json.golden
+cmp json_names_for_fields_enabled/all.swagger.json json_names_for_fields_enabled/all.swagger.json.golden
 
 -- go.mod --
 module testdata.tld/util
@@ -7,10 +11,11 @@ module testdata.tld/util
 require (
 	github.com/gunk/opt v0.0.0-20190514110406-385321f21939
 )
--- .gunkconfig --
+
+-- json_names_for_fields_disabled/.gunkconfig --
 [generate swagger]
 
--- all.swagger.json.golden --
+-- json_names_for_fields_disabled/all.swagger.json.golden --
 {
   "swagger": "2.0",
   "info": {
@@ -100,6 +105,12 @@ require (
             "in": "path",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "AnotherField",
+            "in": "query",
+            "required": false,
+            "type": "string"
           }
         ],
         "tags": [
@@ -113,6 +124,165 @@ require (
       "type": "object",
       "properties": {
         "Name": {
+          "type": "string"
+        },
+        "AnotherField": {
+          "type": "string"
+        }
+      },
+      "title": "Message comment"
+    }
+  },
+  "securityDefinitions": {
+    "ApiKeyAuth": {
+      "type": "apiKey",
+      "name": "X-API-Key",
+      "in": "header"
+    },
+    "BasicAuth": {
+      "type": "basic"
+    },
+    "OAuth2": {
+      "type": "oauth2",
+      "description": "this is a security scheme description",
+      "flow": "accessCode",
+      "authorizationUrl": "https://example.com/oauth/authorize",
+      "tokenUrl": "https://example.com/oauth/token",
+      "scopes": {
+        "admin": "Grants read and write access to administrative information",
+        "read": "Grants read access",
+        "write": "Grants write access"
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": [
+        "update"
+      ]
+    }
+  ],
+  "externalDocs": {
+    "description": "More about gunk",
+    "url": "https://github.com/gunk/gunk"
+  }
+}
+-- json_names_for_fields_enabled/.gunkconfig --
+[generate swagger]
+json_names_for_fields=true
+
+-- json_names_for_fields_enabled/all.swagger.json.golden --
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "this is a title",
+    "description": "this is a description",
+    "version": "1.0",
+    "contact": {
+      "name": "gunk",
+      "url": "https://github.com/gunk/gunk",
+      "email": "none@example.com"
+    },
+    "license": {
+      "name": "MIT License",
+      "url": "https://github.com/gunk/gunk/blob/master/LICENSE"
+    }
+  },
+  "host": "brank.as",
+  "basePath": "/v1",
+  "schemes": [
+    "http",
+    "https",
+    "wss"
+  ],
+  "consumes": [
+    "application/json",
+    "application/x-foo-mime"
+  ],
+  "produces": [
+    "application/json",
+    "application/x-foo-mime"
+  ],
+  "paths": {
+    "/v1/message/{Name}": {
+      "get": {
+        "summary": "Retrieves message",
+        "description": "Get message",
+        "operationId": "GetMessage",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/testMessage"
+            }
+          },
+          "403": {
+            "description": "Returned when the user does not have permission to access the resource.",
+            "schema": {}
+          },
+          "404": {
+            "description": "Returned when the resource does not exist.",
+            "schema": {
+              "format": "string"
+            }
+          },
+          "418": {
+            "description": "I'm a teapot.",
+            "schema": {
+              "$ref": ".grpc.gateway.examples.examplepb.NumericEnum",
+              "title": "my title",
+              "externalDocs": {
+                "description": "More about gunk 418",
+                "url": "https://github.com/gunk/gunk"
+              },
+              "multipleOf": 2,
+              "maximum": 10,
+              "exclusiveMaximum": true,
+              "minimum": 1.3,
+              "exclusiveMinimum": true,
+              "maxLength": 10,
+              "minLength": 5,
+              "pattern": "test pattern",
+              "maxItems": 10,
+              "minItems": 2,
+              "uniqueItems": true,
+              "maxProperties": 100,
+              "minProperties": 50,
+              "required": [
+                "name",
+                "date"
+              ]
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "another_field",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "Message"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "testMessage": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "another_field": {
           "type": "string"
         }
       },
@@ -291,6 +461,7 @@ import (
 // Message comment
 type Message struct {
 	Name string `pb:"1" json:"name"`
+	AnotherField string `pb:"2" json:"another_field"`
 }
 
 type Service interface {

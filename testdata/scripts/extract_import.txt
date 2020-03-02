@@ -55,9 +55,11 @@ type GetProfileResponse struct {
 	Accounts []accounts.Account `pb:"2" json:"accounts"`
 }
 -- accounts/all.md.golden --
-# Annex
+Annex
+=====
 
-##  Account
+Account
+-------
 
 Account holds all details about a bank account.
 
@@ -65,7 +67,8 @@ Account holds all details about a bank account.
 |-----------|--------|---------------------------------------------------------------|
 | AmountDue | Amount | AmountDue is here to make sure docgen works for import files. |
 
-##  Amount
+Amount
+------
 
 Amount defines a transaction amount.
 
@@ -110,9 +113,11 @@ msgstr ""
 msgid "Num is the value of the amount."
 msgstr ""
 -- types/all.md.golden --
-# Annex
+Annex
+=====
 
-##  Amount
+Amount
+------
 
 Amount defines a transaction amount.
 

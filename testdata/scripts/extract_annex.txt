@@ -136,9 +136,11 @@ msgstr ""
 msgid "Num is the value of the amount."
 msgstr ""
 -- all.md.golden --
-# Annex
+Annex
+=====
 
-##  Amount
+Amount
+------
 
 Amount defines a transaction amount.
 
@@ -147,7 +149,8 @@ Amount defines a transaction amount.
 | Cur  | string | Cur is the currency of the amount. |
 | Num  | string | Num is the value of the amount.    |
 
-##  BankCode
+BankCode
+--------
 
 BankCode indicates which bank to use; these should be a list of banksthat we are currently integrated withThis is the updated list of banks per January 2018
 
@@ -161,7 +164,8 @@ BankCode indicates which bank to use; these should be a list of banksthat we are
 | Bdo       |             |
 | Aceh      | Bpi         |
 
-##  MajorCategory
+MajorCategory
+-------------
 
 MajorCategory describes the category of the account.
 
@@ -170,7 +174,8 @@ MajorCategory describes the category of the account.
 | Dep   | MajorCategory_Dep for deposit category. |
 | Loan  | MajorCategory_Loan for loan category.   |
 
-##  MajorType
+MajorType
+---------
 
 MajorType describes the type of the account.
 

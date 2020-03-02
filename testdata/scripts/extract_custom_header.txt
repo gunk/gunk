@@ -553,7 +553,8 @@ msgstr ""
 msgid "Updates an account with all the fields supplied."
 msgstr ""
 -- all.md.golden --
-# Accounts API v1.0.0
+Accounts API v1.0.0
+===================
 
 Provides CRUD operations on the accounts resource.
 
@@ -561,7 +562,8 @@ Provides CRUD operations on the accounts resource.
 
 * Base Path `/path`
 
-## Create an account {#method-post-createaccount}
+Create an account {#method-post-createaccount}
+----------------------------------------------
 
 Creates a new account
 
@@ -592,6 +594,7 @@ curl -X POST \
 		"minor": "string"
 	}'
 ```
+
 ### HTTP Request
 
 `POST https://openbank.com/path/v1/accounts`
@@ -602,7 +605,7 @@ curl -X POST \
 |-------------------|------------------|---------------------------------------------|
 | account_id        | string           | AccountID is the identifier of the account. |
 | description       | string           | TODO: add comment.                          |
-| account_roles     | []AccountRole    | TODO: add comment.                          |
+| account_roles     | \[]AccountRole   | TODO: add comment.                          |
 | branch            | string           | TODO: add comment.                          |
 | customer          | string           | TODO: add comment.                          |
 | debit_transaction | DebitTransaction | TODO: add comment.                          |
@@ -633,12 +636,12 @@ curl -X POST \
 
 #### Response body
 
-| Name       | Type   | Description                                                                |
-|------------|--------|----------------------------------------------------------------------------|
-| account_id | string | AccountID is the unique identifier of the newly created account.           |
-| number     | string | CreditTransactionNumber is the transaction number of the credited account. |
-| number     | string | DebitTransactionNumber is the transaction number of the debited account.   |
-| minor      | string | TODO: add comment.                                                         |
+| Name                      | Type   | Description                                                                |
+|---------------------------|--------|----------------------------------------------------------------------------|
+| account_id                | string | AccountID is the unique identifier of the newly created account.           |
+| credit_transaction_number | string | CreditTransactionNumber is the transaction number of the credited account. |
+| debit_transaction_number  | string | DebitTransactionNumber is the transaction number of the debited account.   |
+| minor                     | string | TODO: add comment.                                                         |
 
 Example:
 
@@ -650,6 +653,7 @@ Example:
   "minor": "string"
 }
 ```
+
 #### Response codes
 
 | Status | Description                                                                            |
@@ -660,7 +664,8 @@ Example:
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
 
-## Delete an account {#method-delete-deleteaccount}
+Delete an account {#method-delete-deleteaccount}
+------------------------------------------------
 
 Permanently delete an account.
 
@@ -669,6 +674,7 @@ curl -X DELETE \
 	https://openbank.com/path/v1/accounts/{AccountID} \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN'
 ```
+
 ### HTTP Request
 
 `DELETE https://openbank.com/path/v1/accounts/{AccountID}`
@@ -691,7 +697,8 @@ curl -X DELETE \
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
 
-## Retrieve an account {#method-get-getaccount}
+Retrieve an account {#method-get-getaccount}
+--------------------------------------------
 
 Retrieves all data from an account, selected by the account_id you supplied.
 
@@ -700,6 +707,7 @@ curl -X GET \
 	https://openbank.com/path/v1/accounts/{AccountID} \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN'
 ```
+
 ### HTTP Request
 
 `GET https://openbank.com/path/v1/accounts/{AccountID}`
@@ -714,25 +722,25 @@ curl -X GET \
 
 #### Response body
 
-| Name          | Type   | Description                                                                    |
-|---------------|--------|--------------------------------------------------------------------------------|
-| account_id    | string | AccountID is the unique identifier of an account.Should not be returned as is. |
-| branch        | string | TODO: add comment.                                                             |
-| branch_name   | string | TODO: add comment.                                                             |
-| status        | string | Status is the status of the account.                                           |
-| date          | string | TODO: add comment.                                                             |
-| limit         | string | TODO: add comment.                                                             |
-| rate          | string | TODO: add comment.                                                             |
-| contract_date | string | ContractDate is the date of the contract initialization.                       |
-| credit_limit  | string | CreditLimit is the allowed credit limit.                                       |
-| interest      | string | TODO: add comment.                                                             |
-| current_term  | string | CurrentTerm is the account validity period.                                    |
-| due_date      | string | DueDate is the loan maturity date.                                             |
-| interest_rate | string | TODO: add comment.                                                             |
-| maturity_date | string | MaturityDate is the maturity date, format is ISO 8601                          |
-| due_date      | string | TODO: add comment.                                                             |
-| owner_name    | string | OwnerName is the name of the account's owner.                                  |
-| start_date    | string | TODO: add comment.                                                             |
+| Name                              | Type   | Description                                                                    |
+|-----------------------------------|--------|--------------------------------------------------------------------------------|
+| account_id                        | string | AccountID is the unique identifier of an account.Should not be returned as is. |
+| branch                            | string | TODO: add comment.                                                             |
+| branch_name                       | string | TODO: add comment.                                                             |
+| status                            | string | Status is the status of the account.                                           |
+| accrued_interest_at_maturity_date | string | TODO: add comment.                                                             |
+| available_credit_limit            | string | TODO: add comment.                                                             |
+| checking_interest_rate            | string | TODO: add comment.                                                             |
+| contract_date                     | string | ContractDate is the date of the contract initialization.                       |
+| credit_limit                      | string | CreditLimit is the allowed credit limit.                                       |
+| current_accrued_interest          | string | TODO: add comment.                                                             |
+| current_term                      | string | CurrentTerm is the account validity period.                                    |
+| due_date                          | string | DueDate is the loan maturity date.                                             |
+| interest_rate                     | string | TODO: add comment.                                                             |
+| maturity_date                     | string | MaturityDate is the maturity date, format is ISO 8601                          |
+| next_payment_due_date             | string | TODO: add comment.                                                             |
+| owner_name                        | string | OwnerName is the name of the account's owner.                                  |
+| start_date                        | string | TODO: add comment.                                                             |
 
 Example:
 
@@ -757,6 +765,7 @@ Example:
   "start_date": "string"
 }
 ```
+
 #### Response codes
 
 | Status | Description                                                                            |
@@ -768,15 +777,17 @@ Example:
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
 
-## List all accounts {#method-get-getaccounts}
+List all accounts {#method-get-getaccounts}
+-------------------------------------------
 
-Returns a list containing up to 20 accounts. You can paginate through account by supplying nextstartingindex in your subsequents calls. nextstartingindex contains the accountid of the last accountid of the current page.
+Returns a list containing up to 20 accounts. You can paginate through account by supplying next_starting_index in your subsequents calls. next_starting_index contains the account_id of the last account_id of the current page.
 
 ```sh
 curl -X GET \
 	https://openbank.com/path/v1/accounts \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN'
 ```
+
 ### HTTP Request
 
 `GET https://openbank.com/path/v1/accounts`
@@ -785,34 +796,34 @@ curl -X GET \
 
 #### Response body
 
-| Name     | Type      | Description                                             |
-|----------|-----------|---------------------------------------------------------|
-| result   | []Account | Result is a list containing up to 20 Accounts.          |
-| has_more | bool      | HasMore indicates if there are more accounts available. |
+| Name     | Type       | Description                                             |
+|----------|------------|---------------------------------------------------------|
+| result   | \[]Account | Result is a list containing up to 20 Accounts.          |
+| has_more | bool       | HasMore indicates if there are more accounts available. |
 
 ##### Objects
 
 ###### Account
 
-| Name          | Type   | Description                                                                    |
-|---------------|--------|--------------------------------------------------------------------------------|
-| account_id    | string | AccountID is the unique identifier of an account.Should not be returned as is. |
-| branch        | string | TODO: add comment.                                                             |
-| branch_name   | string | TODO: add comment.                                                             |
-| status        | string | Status is the status of the account.                                           |
-| date          | string | TODO: add comment.                                                             |
-| limit         | string | TODO: add comment.                                                             |
-| rate          | string | TODO: add comment.                                                             |
-| contract_date | string | ContractDate is the date of the contract initialization.                       |
-| credit_limit  | string | CreditLimit is the allowed credit limit.                                       |
-| interest      | string | TODO: add comment.                                                             |
-| current_term  | string | CurrentTerm is the account validity period.                                    |
-| due_date      | string | DueDate is the loan maturity date.                                             |
-| interest_rate | string | TODO: add comment.                                                             |
-| maturity_date | string | MaturityDate is the maturity date, format is ISO 8601                          |
-| due_date      | string | TODO: add comment.                                                             |
-| owner_name    | string | OwnerName is the name of the account's owner.                                  |
-| start_date    | string | TODO: add comment.                                                             |
+| Name                              | Type   | Description                                                                    |
+|-----------------------------------|--------|--------------------------------------------------------------------------------|
+| account_id                        | string | AccountID is the unique identifier of an account.Should not be returned as is. |
+| branch                            | string | TODO: add comment.                                                             |
+| branch_name                       | string | TODO: add comment.                                                             |
+| status                            | string | Status is the status of the account.                                           |
+| accrued_interest_at_maturity_date | string | TODO: add comment.                                                             |
+| available_credit_limit            | string | TODO: add comment.                                                             |
+| checking_interest_rate            | string | TODO: add comment.                                                             |
+| contract_date                     | string | ContractDate is the date of the contract initialization.                       |
+| credit_limit                      | string | CreditLimit is the allowed credit limit.                                       |
+| current_accrued_interest          | string | TODO: add comment.                                                             |
+| current_term                      | string | CurrentTerm is the account validity period.                                    |
+| due_date                          | string | DueDate is the loan maturity date.                                             |
+| interest_rate                     | string | TODO: add comment.                                                             |
+| maturity_date                     | string | MaturityDate is the maturity date, format is ISO 8601                          |
+| next_payment_due_date             | string | TODO: add comment.                                                             |
+| owner_name                        | string | OwnerName is the name of the account's owner.                                  |
+| start_date                        | string | TODO: add comment.                                                             |
 
 Example:
 
@@ -842,6 +853,7 @@ Example:
   "has_more": "bool"
 }
 ```
+
 #### Response codes
 
 | Status | Description                                                                            |
@@ -852,7 +864,8 @@ Example:
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
 
-## Update an account {#method-put-updateaccount}
+Update an account {#method-put-updateaccount}
+---------------------------------------------
 
 Updates an account with all the fields supplied.
 
@@ -865,6 +878,7 @@ curl -X PUT \
 		"description": "string"
 	}'
 ```
+
 ### HTTP Request
 
 `PUT https://openbank.com/path/v1/accounts/{AccountID}`
@@ -894,9 +908,10 @@ curl -X PUT \
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
 
-## Annex
+Annex
+-----
 
-####  EntityType
+#### EntityType
 
 EntityType describes the type of the entity.
 

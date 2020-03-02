@@ -310,7 +310,8 @@ msgstr ""
 msgid "USE_YOUR_TOKEN"
 msgstr ""
 -- all.md.golden --
-# Accounts API v1.0.0
+Accounts API v1.0.0
+===================
 
 Provides CRUD operations on the accounts resource.
 
@@ -318,7 +319,8 @@ Provides CRUD operations on the accounts resource.
 
 * Base Path `/path`
 
-## Retrieve an account
+Retrieve an account
+-------------------
 
 Retrieves all data from an account, selected by the account_id you supplied.
 
@@ -327,6 +329,7 @@ curl -X GET \
 	https://openbank.com/path/v1/accounts/{AccountID} \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN'
 ```
+
 ### HTTP Request
 
 `GET https://openbank.com/path/v1/accounts/{AccountID}`
@@ -358,6 +361,7 @@ Example:
   "status": "string"
 }
 ```
+
 #### Response codes
 
 | Status | Description                              |
@@ -365,9 +369,10 @@ Example:
 | 200    | Request executed successfully.           |
 | 404    | Returned when the resource is not found. |
 
-## Annex
+Annex
+-----
 
-####  EntityType
+#### EntityType
 
 EntityType describes the type of the entity.
 
@@ -376,9 +381,11 @@ EntityType describes the type of the entity.
 | Pers  | EntityType_Pers is an individual customer.  |
 | Org   | EntityType_Org is an organisation customer. |
 
-# Annex
+Annex
+=====
 
-##  Amount
+Amount
+------
 
 Amount defines a transaction amount.
 
@@ -387,7 +394,8 @@ Amount defines a transaction amount.
 | Cur  | string | Cur is the currency of the amount. |
 | Num  | string | Num is the value of the amount.    |
 
-##  BankCode
+BankCode
+--------
 
 BankCode indicates which bank to use; these should be a list of banksthat we are currently integrated withThis is the updated list of banks per January 2018
 
@@ -401,7 +409,8 @@ BankCode indicates which bank to use; these should be a list of banksthat we are
 | Bdo       |             |
 | Aceh      | Bpi         |
 
-##  MajorCategory
+MajorCategory
+-------------
 
 MajorCategory describes the category of the account.
 
@@ -410,7 +419,8 @@ MajorCategory describes the category of the account.
 | Dep   | MajorCategory_Dep for deposit category. |
 | Loan  | MajorCategory_Loan for loan category.   |
 
-##  MajorType
+MajorType
+---------
 
 MajorType describes the type of the account.
 

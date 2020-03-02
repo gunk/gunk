@@ -71,7 +71,7 @@ Status | Description
 ## {{GetText "Annex"}}
 
 {{range $e := .Enums}}
-#### {{$e.Name}}
+#### {{$e.Name}}
 
 {{GetText $e.Comment.Leading}}
 

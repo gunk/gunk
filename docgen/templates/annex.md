@@ -2,7 +2,7 @@
 
 {{range $m := .Messages}}
 
-## {{$m.Name}}
+## {{$m.Name}}
 
 {{GetText $m.Comment.Leading}}
 
@@ -13,7 +13,7 @@ Name | Type | Description
 
 {{range $e := .Enums}}
 
-## {{$e.Name}}
+## {{$e.Name}}
 
 {{GetText $e.Comment.Leading}}
 

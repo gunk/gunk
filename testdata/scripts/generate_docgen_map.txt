@@ -29,16 +29,19 @@ type Price struct {
 	Currency string `pb:"2" json:"currency"`
 }
 -- all.md.golden --
-# Annex
+Annex
+=====
 
-##  Price
+Price
+-----
 
 | Name     | Type   | Description |
 |----------|--------|-------------|
 | Amount   | int32  |             |
 | Currency | string |             |
 
-##  Sample
+Sample
+------
 
 Account holds all details about a bank account.
 

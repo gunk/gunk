@@ -135,7 +135,8 @@ type TransactionService interface {
 	CreateTransaction(Transaction) CreateTransactionResponse
 }
 -- all.md.golden --
-# Transactions API v1.0.0
+Transactions API v1.0.0
+=======================
 
 Provides create and read operations on the transaction resource.
 
@@ -143,7 +144,8 @@ Provides create and read operations on the transaction resource.
 
 * Base Path `/path`
 
-## Create a transaction
+Create a transaction
+--------------------
 
 Creates a new transaction record
 
@@ -170,6 +172,7 @@ curl -X POST \
 		}
 	}'
 ```
+
 ### HTTP Request
 
 `POST https://openbank.com/path/v1/transactions`
@@ -221,13 +224,15 @@ Example:
   "transaction_id": "string"
 }
 ```
+
 #### Response codes
 
 | Status | Description                       |
 |--------|-----------------------------------|
 | 201    | Transaction created successfully. |
 
-## Retrieve a transaction
+Retrieve a transaction
+----------------------
 
 Retrieves all data from a transaction, selected by the `transaction_id` you supplied.
 
@@ -236,6 +241,7 @@ curl -X GET \
 	https://openbank.com/path/v1/transactions/{TransactionID} \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN'
 ```
+
 ### HTTP Request
 
 `GET https://openbank.com/path/v1/transactions/{TransactionID}`
@@ -302,6 +308,7 @@ Example:
   }
 }
 ```
+
 #### Response codes
 
 | Status | Description                              |

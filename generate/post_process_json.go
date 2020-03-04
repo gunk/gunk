@@ -61,6 +61,9 @@ func jsonTagPostProcessor(input []byte) ([]byte, error) {
 		}
 
 		for i, field := range structDecl.Fields.List {
+			if field.Tag == nil {
+				continue
+			}
 			tagValue := field.Tag.Value
 			tagValue = strings.Trim(tagValue, "`")
 			tag := reflect.StructTag(tagValue)

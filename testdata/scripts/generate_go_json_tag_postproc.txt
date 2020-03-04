@@ -7,6 +7,7 @@ module testdata.tld/util
 
 -- enabled/.gunkconfig --
 [generate go]
+plugins=grpc
 json_tag_postproc=true
 
 -- disabled/.gunkconfig --
@@ -19,6 +20,11 @@ package test
 type Person struct {
 	FirstName string `pb:"1" json:"first_name"`
 	LastName string `pb:"2" json:"last_name"`
+}
+
+// AnExampleService is just an example.
+type AnExampleService interface {
+    Example(Person) Person
 }
 
 -- disabled/echo.gunk --

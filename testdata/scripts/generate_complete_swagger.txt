@@ -189,7 +189,7 @@ json_names_for_fields=true
     }
   },
   "host": "brank.as",
-  "basePath": "/v1",
+  "basePath": "/path",
   "schemes": [
     "http",
     "https",

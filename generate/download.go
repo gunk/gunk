@@ -24,6 +24,9 @@ const defaultProtocVersion = "v3.9.1"
 // If the version is not specified, the latest version is fetched from GitHub.
 // If both version and path are specified and a file already exists at the path,
 // it checks whether the output of `protoc --version` is an exact match.
+//
+// Note that this code is safe for concurrent use between multiple goroutines or
+// processes, since it uses a lock file on disk.
 func CheckOrDownloadProtoc(path, version string) (string, error) {
 	if version == "" {
 		version = defaultProtocVersion
@@ -45,10 +48,21 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 		dstPath = filepath.Join(cacheDir, fmt.Sprintf("protoc-%s", version))
 	}
 
-	// Check the cache path to see if it has been previously
-	// downloaded by gunk.
+	// First, grab a lock separate from the destination file. The
+	// destination file is a binary we'll want to execute, so using it
+	// directly as the lock can lead to "text file busy" errors.
+	unlock, err := lockedfile.MutexAt(dstPath + ".lock").Lock()
+	if err != nil {
+		panic(err)
+	}
+	defer unlock()
+	// We are the only goroutine with access to dstPath. Check if it already
+	// exists. Using lockedfile.OpenFile allows us to do an atomic write
+	// when it doesn't exist yet.
 	dstFile, err := lockedfile.OpenFile(dstPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0775)
 	if os.IsExist(err) {
+		// It exists. Because of O_EXCL, we haven't actually opened the
+		// file. Just verify that protoc works and return.
 		if err := verifyProtocBinary(dstPath, version); err != nil {
 			return "", err
 		}
@@ -59,6 +73,7 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 	}
 	defer dstFile.Close()
 
+	// The file does not exist. Download it, using dstFile.
 	url, err := protocDownloadURL(runtime.GOOS, runtime.GOARCH, version)
 	if err != nil {
 		return "", fmt.Errorf("downloading protoc: %v", err)

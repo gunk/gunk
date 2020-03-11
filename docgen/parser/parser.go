@@ -28,10 +28,8 @@ const (
 
 // ParseFile parses a proto file.
 func ParseFile(file *FileDescWrapper) (*File, error) {
-	comments := parseComments(file.GetSourceCodeInfo())
-
 	pkgName := file.GetPackage()
-	messages, err := nestedDescriptorMessages(*file.FileDescriptorProto, file.DependencyMap)
+	messages, enums, err := nestedDescriptorMessages(*file.FileDescriptorProto, file.DependencyMap)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +41,7 @@ func ParseFile(file *FileDescWrapper) (*File, error) {
 	f := &File{
 		Messages: messages,
 		Services: services,
-		Enums:    parseEnums(pkgName, comments, file.GetEnumType()),
+		Enums:    enums,
 	}
 
 	if proto.HasExtension(file.GetOptions(), options.E_Openapiv2Swagger) {
@@ -80,9 +78,18 @@ func GenerateDependencyMap(source *google_protobuf.FileDescriptorProto, protos [
 // it loops through the file's dependency list and checks if it is needed
 // if it is need it recursively runs with the new file to
 // it merges the messages generate on each recursion
-func nestedDescriptorMessages(file google_protobuf.FileDescriptorProto, genFiles map[string]*google_protobuf.FileDescriptorProto) (map[string]*Message, error) {
+func nestedDescriptorMessages(
+	file google_protobuf.FileDescriptorProto,
+	genFiles map[string]*google_protobuf.FileDescriptorProto,
+) (
+	map[string]*Message,
+	map[string]*Enum,
+	error,
+) {
 	// (TODO kofo) this could be improved
 	messages := make(map[string]*Message)
+	enums := make(map[string]*Enum)
+
 	dependencies := file.GetDependency()
 	pkgName := file.GetPackage()
 	comments := parseComments(file.GetSourceCodeInfo())
@@ -92,20 +99,27 @@ func nestedDescriptorMessages(file google_protobuf.FileDescriptorProto, genFiles
 		}
 
 		// get all the messages in this dependency
-		dependencyMessages, err := nestedDescriptorMessages(*genFiles[dep], genFiles)
+		dependencyMessages, dependencyEnums, err := nestedDescriptorMessages(*genFiles[dep], genFiles)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		for name, msg := range dependencyMessages {
 			messages[name] = msg
 		}
 
+		for name, enum := range dependencyEnums {
+			enums[name] = enum
+		}
+
 	}
 	for name, msg := range parseMessages(pkgName, comments, file.GetMessageType(), messages) {
 		messages[name] = msg
 	}
-	return messages, nil
+	for name, enum := range parseEnums(pkgName, comments, file.GetEnumType()) {
+		enums[name] = enum
+	}
+	return messages, enums, nil
 }
 
 // isDepNeeded checks if the dependency is truly needed for message types (annotation)
@@ -113,7 +127,8 @@ func nestedDescriptorMessages(file google_protobuf.FileDescriptorProto, genFiles
 func isDepNeeded(file google_protobuf.FileDescriptorProto, dep *google_protobuf.FileDescriptorProto) bool {
 	for _, message := range file.GetMessageType() {
 		for _, field := range message.GetField() {
-			if field.GetType() == google_protobuf.FieldDescriptorProto_TYPE_MESSAGE {
+			if field.GetType() == google_protobuf.FieldDescriptorProto_TYPE_MESSAGE ||
+				field.GetType() == google_protobuf.FieldDescriptorProto_TYPE_ENUM {
 				if fieldPackage(field.GetTypeName()) == *dep.Package {
 					return true
 				}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 	"text/template"
 
 	"github.com/knq/snaker"
@@ -29,8 +30,6 @@ func Run(w io.Writer, f *parser.FileDescWrapper, lang []string, customHeaderIds 
 		tplName = "api.md"
 	}
 
-	api.CustomHeaderIds = customHeaderIds
-
 	b, err := loadTemplate(tplName)
 	if err != nil {
 		return nil, err
@@ -38,6 +37,12 @@ func Run(w io.Writer, f *parser.FileDescWrapper, lang []string, customHeaderIds 
 
 	tmpl := template.Must(template.New("doc").
 		Funcs(template.FuncMap{
+			"CustomHeaderId": func(txt ...string) string {
+				if !customHeaderIds {
+					return ""
+				}
+				return fmt.Sprintf("{#%s}", strings.Join(txt, ""))
+			},
 			"GetText": func(txt string) string {
 				if txt != "" {
 					pb.AddTranslation(txt)

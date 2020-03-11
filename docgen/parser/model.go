@@ -19,8 +19,6 @@ type File struct {
 	Messages map[string]*Message
 	Services map[string]*Service
 	Enums    map[string]*Enum
-
-	CustomHeaderIds bool
 }
 
 // SwaggerScheme gets scheme that you most probably want.

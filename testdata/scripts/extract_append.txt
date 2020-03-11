@@ -223,16 +223,22 @@ msgstr ""
 msgid "Bpi"
 msgstr ""
 
+msgid "Checking account."
+msgstr ""
+
+msgid "CommercialLoan for a business loan account."
+msgstr ""
+
+msgid "ConsumerLoan for a consumer loan account."
+msgstr ""
+
 msgid "Cur is the currency of the amount."
 msgstr ""
 
+msgid "Dep for deposit category."
+msgstr ""
+
 msgid "EntityType describes the type of the entity."
-msgstr ""
-
-msgid "EntityType_Org is an organisation customer."
-msgstr ""
-
-msgid "EntityType_Pers is an individual customer."
 msgstr ""
 
 msgid "HTTP Request"
@@ -241,37 +247,25 @@ msgstr ""
 msgid "Host"
 msgstr ""
 
+msgid "Loan for loan category."
+msgstr ""
+
 msgid "MajorCategory describes the category of the account."
-msgstr ""
-
-msgid "MajorCategory_Dep for deposit category."
-msgstr ""
-
-msgid "MajorCategory_Loan for loan category."
 msgstr ""
 
 msgid "MajorType describes the type of the account."
 msgstr ""
 
-msgid "MajorType_Checking account."
-msgstr ""
-
-msgid "MajorType_CommercialLoan for a business loan account."
-msgstr ""
-
-msgid "MajorType_ConsumerLoan for a consumer loan account."
-msgstr ""
-
-msgid "MajorType_MortgageLoan for a home loan account."
-msgstr ""
-
-msgid "MajorType_Saving account."
-msgstr ""
-
-msgid "MajorType_TimeDeposit for a time deposit account."
+msgid "MortgageLoan for a home loan account."
 msgstr ""
 
 msgid "Num is the value of the amount."
+msgstr ""
+
+msgid "Org is an organisation customer."
+msgstr ""
+
+msgid "Pers is an individual customer."
 msgstr ""
 
 msgid "Provides CRUD operations on the accounts resource."
@@ -301,10 +295,16 @@ msgstr ""
 msgid "Returned when the resource is not found."
 msgstr ""
 
+msgid "Saving account."
+msgstr ""
+
 msgid "Status is the status of the account."
 msgstr ""
 
 msgid "TODO: add comment."
+msgstr ""
+
+msgid "TimeDeposit for a time deposit account."
 msgstr ""
 
 msgid "USE_YOUR_TOKEN"
@@ -376,10 +376,10 @@ Annex
 
 EntityType describes the type of the entity.
 
-| Value | Description                                 |
-|-------|---------------------------------------------|
-| Pers  | EntityType_Pers is an individual customer.  |
-| Org   | EntityType_Org is an organisation customer. |
+| Value | Description                      |
+|-------|----------------------------------|
+| Pers  | Pers is an individual customer.  |
+| Org   | Org is an organisation customer. |
 
 Annex
 =====
@@ -414,21 +414,21 @@ MajorCategory
 
 MajorCategory describes the category of the account.
 
-| Value | Description                             |
-|-------|-----------------------------------------|
-| Dep   | MajorCategory_Dep for deposit category. |
-| Loan  | MajorCategory_Loan for loan category.   |
+| Value | Description               |
+|-------|---------------------------|
+| Dep   | Dep for deposit category. |
+| Loan  | Loan for loan category.   |
 
 MajorType
 ---------
 
 MajorType describes the type of the account.
 
-| Value          | Description                                           |
-|----------------|-------------------------------------------------------|
-| Checking       | MajorType_Checking account.                           |
-| Saving         | MajorType_Saving account.                             |
-| TimeDeposit    | MajorType_TimeDeposit for a time deposit account.     |
-| CommercialLoan | MajorType_CommercialLoan for a business loan account. |
-| MortgageLoan   | MajorType_MortgageLoan for a home loan account.       |
-| ConsumerLoan   | MajorType_ConsumerLoan for a consumer loan account.   |
+| Value          | Description                                 |
+|----------------|---------------------------------------------|
+| Checking       | Checking account.                           |
+| Saving         | Saving account.                             |
+| TimeDeposit    | TimeDeposit for a time deposit account.     |
+| CommercialLoan | CommercialLoan for a business loan account. |
+| MortgageLoan   | MortgageLoan for a home loan account.       |
+| ConsumerLoan   | ConsumerLoan for a consumer loan account.   |

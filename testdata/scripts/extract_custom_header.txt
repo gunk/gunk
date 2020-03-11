@@ -595,11 +595,11 @@ curl -X POST \
 	}'
 ```
 
-### HTTP Request
+### HTTP Request {#http-request-method-post-createaccount}
 
 `POST https://openbank.com/path/v1/accounts`
 
-### Body Parameters
+### Body Parameters {#body-parameters-method-post-createaccount}
 
 | Name              | Type             | Description                                 |
 |-------------------|------------------|---------------------------------------------|
@@ -613,7 +613,7 @@ curl -X POST \
 | maturity_date     | string           | TODO: add comment.                          |
 | minor             | string           | TODO: add comment.                          |
 
-##### Objects
+##### Objects {#objects-CreateAccountRequest}
 
 ###### AccountRole
 
@@ -632,9 +632,9 @@ curl -X POST \
 | exchange_rate | string | TODO: add comment. |
 | is_fx         | bool   | TODO: add comment. |
 
-### Responses
+### Responses {#responses-method-post-createaccount}
 
-#### Response body
+#### Response body {#response-body-method-post-createaccount}
 
 | Name                      | Type   | Description                                                                |
 |---------------------------|--------|----------------------------------------------------------------------------|
@@ -654,7 +654,7 @@ Example:
 }
 ```
 
-#### Response codes
+#### Response codes {#response-codes-method-post-createaccount}
 
 | Status | Description                                                                            |
 |--------|----------------------------------------------------------------------------------------|
@@ -675,19 +675,19 @@ curl -X DELETE \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN'
 ```
 
-### HTTP Request
+### HTTP Request {#http-request-method-delete-deleteaccount}
 
 `DELETE https://openbank.com/path/v1/accounts/{AccountID}`
 
-### Query Parameters
+### Query Parameters {#query-parameters-method-delete-deleteaccount}
 
 | Name       | Type   | Description                                                  |
 |------------|--------|--------------------------------------------------------------|
 | account_id | string | AccountID is the unique identifier of the account to delete. |
 
-### Responses
+### Responses {#responses-method-delete-deleteaccount}
 
-#### Response codes
+#### Response codes {#response-codes-method-delete-deleteaccount}
 
 | Status | Description                                                                            |
 |--------|----------------------------------------------------------------------------------------|
@@ -708,19 +708,19 @@ curl -X GET \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN'
 ```
 
-### HTTP Request
+### HTTP Request {#http-request-method-get-getaccount}
 
 `GET https://openbank.com/path/v1/accounts/{AccountID}`
 
-### Query Parameters
+### Query Parameters {#query-parameters-method-get-getaccount}
 
 | Name       | Type   | Description |
 |------------|--------|-------------|
 | account_id | string |             |
 
-### Responses
+### Responses {#responses-method-get-getaccount}
 
-#### Response body
+#### Response body {#response-body-method-get-getaccount}
 
 | Name                              | Type   | Description                                                                    |
 |-----------------------------------|--------|--------------------------------------------------------------------------------|
@@ -766,7 +766,7 @@ Example:
 }
 ```
 
-#### Response codes
+#### Response codes {#response-codes-method-get-getaccount}
 
 | Status | Description                                                                            |
 |--------|----------------------------------------------------------------------------------------|
@@ -788,20 +788,20 @@ curl -X GET \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN'
 ```
 
-### HTTP Request
+### HTTP Request {#http-request-method-get-getaccounts}
 
 `GET https://openbank.com/path/v1/accounts`
 
-### Responses
+### Responses {#responses-method-get-getaccounts}
 
-#### Response body
+#### Response body {#response-body-method-get-getaccounts}
 
 | Name     | Type       | Description                                             |
 |----------|------------|---------------------------------------------------------|
 | result   | \[]Account | Result is a list containing up to 20 Accounts.          |
 | has_more | bool       | HasMore indicates if there are more accounts available. |
 
-##### Objects
+##### Objects {#objects-GetAccountsResponse}
 
 ###### Account
 
@@ -854,7 +854,7 @@ Example:
 }
 ```
 
-#### Response codes
+#### Response codes {#response-codes-method-get-getaccounts}
 
 | Status | Description                                                                            |
 |--------|----------------------------------------------------------------------------------------|
@@ -879,26 +879,26 @@ curl -X PUT \
 	}'
 ```
 
-### HTTP Request
+### HTTP Request {#http-request-method-put-updateaccount}
 
 `PUT https://openbank.com/path/v1/accounts/{AccountID}`
 
-### Query Parameters
+### Query Parameters {#query-parameters-method-put-updateaccount}
 
 | Name       | Type   | Description                                                  |
 |------------|--------|--------------------------------------------------------------|
 | account_id | string | AccountID is the unique identifier of the account to update. |
 
-### Body Parameters
+### Body Parameters {#body-parameters-method-put-updateaccount}
 
 | Name        | Type   | Description                                                  |
 |-------------|--------|--------------------------------------------------------------|
 | account_id  | string | AccountID is the unique identifier of the account to update. |
 | description | string | TODO: add comment.                                           |
 
-### Responses
+### Responses {#responses-method-put-updateaccount}
 
-#### Response codes
+#### Response codes {#response-codes-method-put-updateaccount}
 
 | Status | Description                                                                            |
 |--------|----------------------------------------------------------------------------------------|
@@ -908,8 +908,8 @@ curl -X PUT \
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
 
-Annex
------
+Annex {#annex}
+--------------
 
 #### EntityType
 

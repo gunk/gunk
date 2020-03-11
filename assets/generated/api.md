@@ -8,11 +8,7 @@
 {{- range $s := .Services}}
 {{- range $m := $s.Methods}}
 
-{{if $.CustomHeaderIds}}
-## {{GetText $m.Operation.Summary}} {#{{$m.HeaderID}}}
-{{else}}
-## {{GetText $m.Operation.Summary}}
-{{end}}
+## {{GetText $m.Operation.Summary}} {{CustomHeaderId $m.HeaderID}}
 
 {{GetText $m.Operation.Description}}
 
@@ -26,13 +22,13 @@ curl -X {{$m.Request.Verb}} \
 
 {{AddSnippet $m.Name}}
 
-### {{GetText "HTTP Request"}}
+### {{GetText "HTTP Request"}} {{CustomHeaderId "http-request-" $m.HeaderID}}
 
 `{{$m.Request.Verb}} {{$.SwaggerScheme}}{{$.Swagger.Host}}{{$.Swagger.BasePath}}{{$m.Request.URI}}`
 
 {{if $m.Request.Query}}
 
-### {{GetText "Query Parameters"}}
+### {{GetText "Query Parameters"}} {{CustomHeaderId "query-parameters-" $m.HeaderID}}
 
 Name | Type | Description
 ---- | ---- | -----------
@@ -41,14 +37,15 @@ Name | Type | Description
 {{end}}{{/* end request query if*/}}
 
 {{if $m.Request.Body}}
-### {{GetText "Body Parameters"}}
+### {{GetText "Body Parameters"}} {{CustomHeaderId "body-parameters-" $m.HeaderID}}
 {{template "message" $m.Request.Body}}
 {{end}}{{/* end request body if*/}}
 
-### {{GetText "Responses"}}
+### {{GetText "Responses"}} {{CustomHeaderId "responses-" $m.HeaderID}}
 
 {{if $m.Response}}
-#### {{GetText "Response body"}}
+
+#### {{GetText "Response body"}} {{CustomHeaderId "response-body-" $m.HeaderID}}
 {{template "message" $m.Response}}
 
 Example:
@@ -58,7 +55,8 @@ Example:
 ```
 {{end}}{{/* end response if */}}
 
-#### {{GetText "Response codes"}}
+#### {{GetText "Response codes"}} {{CustomHeaderId "response-codes-" $m.HeaderID}}
+
 Status | Description
 ------ | -----------
 {{range $k, $v := $m.Operation.Responses}}{{$k}} | {{GetText $v.Description}}
@@ -68,7 +66,7 @@ Status | Description
 {{end}}{{/* end services range */}}
 
 {{if .Enums}}
-## {{GetText "Annex"}}
+## {{GetText "Annex"}} {{CustomHeaderId "annex"}}
 
 {{range $e := .Enums}}
 #### {{$e.Name}}
@@ -90,7 +88,7 @@ Name | Type | Description
 {{end}}{{/* end field range */}}
 
 {{if .NestedMessages}}
-##### {{GetText "Objects"}}
+##### {{GetText "Objects"}} {{CustomHeaderId "objects-" .Name}}
 
 {{range $nm := .NestedMessages}}
 ###### {{$nm.Name}}

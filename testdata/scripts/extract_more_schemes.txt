@@ -465,12 +465,6 @@ msgstr ""
 msgid "EntityType describes the type of the entity."
 msgstr ""
 
-msgid "EntityType_Org is an organisation customer."
-msgstr ""
-
-msgid "EntityType_Pers is an individual customer."
-msgstr ""
-
 msgid "HTTP Request"
 msgstr ""
 
@@ -489,10 +483,16 @@ msgstr ""
 msgid "Objects"
 msgstr ""
 
+msgid "Org is an organisation customer."
+msgstr ""
+
 msgid "OwnerName is the name of the account's owner."
 msgstr ""
 
 msgid "Permanently delete an account."
+msgstr ""
+
+msgid "Pers is an individual customer."
 msgstr ""
 
 msgid "Provides CRUD operations on the accounts resource."
@@ -917,7 +917,7 @@ Annex
 
 EntityType describes the type of the entity.
 
-| Value | Description                                 |
-|-------|---------------------------------------------|
-| Pers  | EntityType_Pers is an individual customer.  |
-| Org   | EntityType_Org is an organisation customer. |
+| Value | Description                      |
+|-------|----------------------------------|
+| Pers  | Pers is an individual customer.  |
+| Org   | Org is an organisation customer. |

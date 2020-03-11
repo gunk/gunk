@@ -136,19 +136,30 @@ func parseEnums(pkgName string, comments map[string]*Comment, enums []*google_pr
 		res[getQualifiedName(pkgName, e.GetName())] = &Enum{
 			Name:    e.GetName(),
 			Comment: nonNilComment(comments[p]),
-			Values:  parseValues(p, comments, e.GetValue()),
+			Values:  parseValues(p, comments, e.GetValue(), e.GetName()),
 		}
 	}
 	return res
 }
 
-func parseValues(path string, comments map[string]*Comment, values []*google_protobuf.EnumValueDescriptorProto) []*Value {
+func parseValues(
+	path string,
+	comments map[string]*Comment,
+	values []*google_protobuf.EnumValueDescriptorProto,
+	typeName string,
+) []*Value {
 	res := make([]*Value, 0, len(values))
 	for i, v := range values {
 		if v.GetName() != "_" {
+
+			p := fmt.Sprintf("%s.%d.%d", path, fieldFlag, i)
+			comment := comments[p]
+			comment = nonNilComment(comment)
+			comment.Leading = strings.TrimPrefix(comment.Leading, typeName+"_")
+
 			res = append(res, &Value{
 				Name:    v.GetName(),
-				Comment: nonNilComment(comments[fmt.Sprintf("%s.%d.%d", path, fieldFlag, i)]),
+				Comment: comment,
 			})
 		}
 	}

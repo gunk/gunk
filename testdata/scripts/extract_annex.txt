@@ -100,40 +100,40 @@ msgstr ""
 msgid "Bpi"
 msgstr ""
 
+msgid "Checking account."
+msgstr ""
+
+msgid "CommercialLoan for a business loan account."
+msgstr ""
+
+msgid "ConsumerLoan for a consumer loan account."
+msgstr ""
+
 msgid "Cur is the currency of the amount."
+msgstr ""
+
+msgid "Dep for deposit category."
+msgstr ""
+
+msgid "Loan for loan category."
 msgstr ""
 
 msgid "MajorCategory describes the category of the account."
 msgstr ""
 
-msgid "MajorCategory_Dep for deposit category."
-msgstr ""
-
-msgid "MajorCategory_Loan for loan category."
-msgstr ""
-
 msgid "MajorType describes the type of the account."
 msgstr ""
 
-msgid "MajorType_Checking account."
-msgstr ""
-
-msgid "MajorType_CommercialLoan for a business loan account."
-msgstr ""
-
-msgid "MajorType_ConsumerLoan for a consumer loan account."
-msgstr ""
-
-msgid "MajorType_MortgageLoan for a home loan account."
-msgstr ""
-
-msgid "MajorType_Saving account."
-msgstr ""
-
-msgid "MajorType_TimeDeposit for a time deposit account."
+msgid "MortgageLoan for a home loan account."
 msgstr ""
 
 msgid "Num is the value of the amount."
+msgstr ""
+
+msgid "Saving account."
+msgstr ""
+
+msgid "TimeDeposit for a time deposit account."
 msgstr ""
 -- all.md.golden --
 Annex
@@ -169,21 +169,21 @@ MajorCategory
 
 MajorCategory describes the category of the account.
 
-| Value | Description                             |
-|-------|-----------------------------------------|
-| Dep   | MajorCategory_Dep for deposit category. |
-| Loan  | MajorCategory_Loan for loan category.   |
+| Value | Description               |
+|-------|---------------------------|
+| Dep   | Dep for deposit category. |
+| Loan  | Loan for loan category.   |
 
 MajorType
 ---------
 
 MajorType describes the type of the account.
 
-| Value          | Description                                           |
-|----------------|-------------------------------------------------------|
-| Checking       | MajorType_Checking account.                           |
-| Saving         | MajorType_Saving account.                             |
-| TimeDeposit    | MajorType_TimeDeposit for a time deposit account.     |
-| CommercialLoan | MajorType_CommercialLoan for a business loan account. |
-| MortgageLoan   | MajorType_MortgageLoan for a home loan account.       |
-| ConsumerLoan   | MajorType_ConsumerLoan for a consumer loan account.   |
+| Value          | Description                                 |
+|----------------|---------------------------------------------|
+| Checking       | Checking account.                           |
+| Saving         | Saving account.                             |
+| TimeDeposit    | TimeDeposit for a time deposit account.     |
+| CommercialLoan | CommercialLoan for a business loan account. |
+| MortgageLoan   | MortgageLoan for a home loan account.       |
+| ConsumerLoan   | ConsumerLoan for a consumer loan account.   |

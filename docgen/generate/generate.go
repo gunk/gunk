@@ -14,6 +14,8 @@ import (
 	"github.com/gunk/gunk/docgen/pot"
 )
 
+var ErrNoServices = fmt.Errorf("file has no services")
+
 // Run generates a markdown file describing the API
 // and a messages.pot containing all sentences that need to be
 // translated.
@@ -25,10 +27,20 @@ func Run(w io.Writer, f *parser.FileDescWrapper, lang []string, customHeaderIds 
 		return nil, err
 	}
 
-	tplName := "annex.md"
-	if api.HasServices() {
-		tplName = "api.md"
+	if !api.HasServices() {
+		return nil, ErrNoServices
 	}
+
+	if err := api.CheckSwagger(); err != nil {
+		name := ""
+		if f.Name != nil {
+			name = *f.Name
+		}
+		return nil, fmt.Errorf("swagger error in file %s: %s", name, err.Error())
+		// TODO(karel) - use following after switch to go 1.13
+		// return nil, fmt.Errorf("swagger error in file %s: %w", name, err)
+	}
+	tplName := "api.md"
 
 	b, err := loadTemplate(tplName)
 	if err != nil {

@@ -1,5 +1,5 @@
-gunk generate accounts.gunk
-gunk generate types.gunk
+gunk generate first.gunk
+gunk generate second.gunk
 cmp messages.pot messages.pot.golden
 cmp all.md all.md.golden
 
@@ -13,12 +13,11 @@ require (
 [generate]
 command=docgen
 mode=append
--- accounts.gunk --
+-- first.gunk --
 // +gunk openapiv2.Swagger{
 //         Swagger: "2.0",
 //         Info: openapiv2.Info{
-//                 Title:       "Accounts API",
-//                 Description: "Provides CRUD operations on the accounts resource.",
+//                 Title:       "First API",
 //                 Version:     "1.0.0",
 //         },
 //         Host: "openbank.com",
@@ -27,162 +26,79 @@ mode=append
 //                 openapiv2.HTTPS,
 //         },
 // }
-package accounts
+package docgentest
 
 import (
 	"github.com/gunk/opt/http"
 	"github.com/gunk/opt/openapiv2"
 )
 
-// Account holds all details about a bank account.
-type Account struct {
-	// AccountID is the unique identifier of an account.
-	// Should not be returned as is.
-	AccountID string `pb:"1" json:"account_id"`
-	// TODO: add comment.
-	Branch string `pb:"2" json:"branch"`
-	// TODO: add comment.
-	BranchName string `pb:"3" json:"branch_name"`
-	// Status is the status of the account.
-	Status string `pb:"4" json:"status"`
+type Foo struct {
+	// Bar is a string
+	Bar string `pb:"1" json:"bar"`
 }
 
-// GetAccountRequest is the request envelope to get an account by its identifier.
-type GetAccountRequest struct {
-	AccountID string `pb:"1" json:"account_id"`
-}
-
-// EntityType describes the type of the entity.
-type EntityType int
-
-const (
-	_ EntityType = iota
-	// Pers is an individual customer.
-	Pers
-	// Org is an organisation customer.
-	Org
-)
-
-// TODO: add comment.
-type AccountRole struct {
-	// TODO: add comment.
-	EntityNumber string `pb:"1" json:"entity_number"`
-	// TODO: add comment.
-	EntityType EntityType `pb:"2" json:"entity_type"`
-	// TODO: add comment.
-	Role string `pb:"3" json:"role"`
-}
-
-// TODO: add comment.
-type DebitTransaction struct {
-	// TODO: add comment.
-	Amount string `pb:"1" json:"amount"`
-	// TODO: add comment.
-	DebitAccount string `pb:"2" json:"debit_account"`
-	// TODO: add comment.
-	ExchangeRate string `pb:"3" json:"exchange_rate"`
-	// TODO: add comment.
-	IsFx bool `pb:"4" json:"is_fx"`
-}
-
-// AccountService provides Account operations.
-type AccountService interface {
-	// GetAccount retrieves the detail of an account, selected by its id.
+// FooService provides foo operations.
+type FooService interface {
+	// GetFoo gets foo
 	//
 	// +gunk http.Match{
 	//         Method: "GET",
-	//         Path:   "/v1/accounts/{AccountID}",
+	//         Path:   "/v1/foo",
 	// }
 	// +gunk openapiv2.Operation{
-	//         Tags:        []string{"Account"},
-	//         Description: "Retrieves all data from an account, selected by the account_id you supplied.",
-	//         Summary:     "Retrieve an account",
+	//         Tags:        []string{"Foo"},
+	//         Summary: "Gets foo",
 	//         Responses: map[string]openapiv2.Response{
 	//                 "200": openapiv2.Response{
-	//                         Description: "Request executed successfully.",
-	//                         Schema: openapiv2.Schema{
-	//                                 JSONSchema: openapiv2.JSONSchema{
-	//                                         Ref: "#/definitions/accountsAccount",
-	//                                 },
-	//                         },
-	//                 },
-	//                 "404": openapiv2.Response{
-	//                         Description: "Returned when the resource is not found.",
-	//                 },
-	//         },
-	//         Security: []openapiv2.SecurityRequirement{
-	//                 {
-	//                         SecurityRequirement: map[string]openapiv2.SecurityRequirement_SecurityRequirementValue{
-	//                                 "OAuth2": openapiv2.SecurityRequirement_SecurityRequirementValue{
-	//                                         Scope: []string{
-	//                                                 "read",
-	//                                         },
-	//                                 },
-	//                         },
 	//                 },
 	//         },
 	// }
-	GetAccount(GetAccountRequest) Account
+	GetFoo() Foo
+}
+-- second.gunk --
+// +gunk openapiv2.Swagger{
+//         Swagger: "2.0",
+//         Info: openapiv2.Info{
+//                 Title:       "Second API",
+//                 Version:     "1.0.0",
+//         },
+//         Host: "openbank.com",
+//         BasePath: "/path",
+//         Schemes: []openapiv2.SwaggerScheme{
+//                 openapiv2.HTTPS,
+//         },
+// }
+package docgentest
+
+import (
+	"github.com/gunk/opt/http"
+	"github.com/gunk/opt/openapiv2"
+)
+
+type Baz struct {
+	// Qux is an int
+	Qux int `pb:"1" json:"qux"`
 }
 
--- types.gunk --
-package types
-
-// Amount defines a transaction amount.
-type Amount struct {
-	// Cur is the currency of the amount.
-	Cur string `pb:"1" json:"cur"`
-	// Num is the value of the amount.
-	Num string `pb:"2" json:"num"`
+// BazService provides baz operations.
+type SecondService interface {
+	// GetBaz gets baz
+	//
+	// +gunk http.Match{
+	//         Method: "GET",
+	//         Path:   "/v1/baz",
+	// }
+	// +gunk openapiv2.Operation{
+	//         Tags:        []string{"Baz"},
+	//         Summary: "Gets baz",
+	//         Responses: map[string]openapiv2.Response{
+	//                 "200": openapiv2.Response{
+	//                 },
+	//         },
+	// }
+	GetBaz() Baz
 }
-
-// MajorType describes the type of the account.
-type MajorType int
-
-const (
-	_ MajorType = iota
-	// Checking account.
-	Checking
-	// Saving account.
-	Saving
-	// TimeDeposit for a time deposit account.
-	TimeDeposit
-	// CommercialLoan for a business loan account.
-	CommercialLoan
-	// MortgageLoan for a home loan account.
-	MortgageLoan
-	// ConsumerLoan for a consumer loan account.
-	ConsumerLoan
-)
-
-// MajorCategory describes the category of the account.
-type MajorCategory int
-
-const (
-	_ MajorCategory = iota
-	// Dep for deposit category.
-	Dep
-	// Loan for loan category.
-	Loan
-)
-
-// BankCode indicates which bank to use; these should be a list of banks
-// that we are currently integrated with
-// This is the updated list of banks per January 2018
-type BankCode int
-
-const (
-	_ BankCode = iota
-	Mandiri
-	Bca
-	Bni
-	Bri
-	DummyBank
-	Bdo
-	//Bpi
-	Aceh
-)
-
 -- messages.pot.golden --
 # Messages.pot - Contains all msgid extracted from swagger definitions.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
@@ -202,40 +118,19 @@ msgstr  "Project-Id-Version: %s\n"
 		"Content-Type: text/plain; charset=CHARSET\n"
 		"Content-Transfer-Encoding: 8bit\n"
 
-msgid "AccountID is the unique identifier of an account.Should not be returned as is."
-msgstr ""
-
-msgid "Accounts API"
-msgstr ""
-
-msgid "Amount defines a transaction amount."
-msgstr ""
-
-msgid "Annex"
-msgstr ""
-
-msgid "BankCode indicates which bank to use; these should be a list of banksthat we are currently integrated withThis is the updated list of banks per January 2018"
+msgid "Bar is a string"
 msgstr ""
 
 msgid "Base Path"
 msgstr ""
 
-msgid "Bpi"
+msgid "First API"
 msgstr ""
 
-msgid "Checking account."
+msgid "Gets baz"
 msgstr ""
 
-msgid "CommercialLoan for a business loan account."
-msgstr ""
-
-msgid "ConsumerLoan for a consumer loan account."
-msgstr ""
-
-msgid "Cur is the currency of the amount."
-msgstr ""
-
-msgid "Dep for deposit category."
+msgid "Gets foo"
 msgstr ""
 
 msgid "HTTP Request"
@@ -244,28 +139,7 @@ msgstr ""
 msgid "Host"
 msgstr ""
 
-msgid "Loan for loan category."
-msgstr ""
-
-msgid "MajorCategory describes the category of the account."
-msgstr ""
-
-msgid "MajorType describes the type of the account."
-msgstr ""
-
-msgid "MortgageLoan for a home loan account."
-msgstr ""
-
-msgid "Num is the value of the amount."
-msgstr ""
-
-msgid "Provides CRUD operations on the accounts resource."
-msgstr ""
-
-msgid "Query Parameters"
-msgstr ""
-
-msgid "Request executed successfully."
+msgid "Qux is an int"
 msgstr ""
 
 msgid "Response body"
@@ -277,137 +151,92 @@ msgstr ""
 msgid "Responses"
 msgstr ""
 
-msgid "Retrieve an account"
-msgstr ""
-
-msgid "Retrieves all data from an account, selected by the account_id you supplied."
-msgstr ""
-
-msgid "Returned when the resource is not found."
-msgstr ""
-
-msgid "Saving account."
-msgstr ""
-
-msgid "Status is the status of the account."
-msgstr ""
-
-msgid "TODO: add comment."
-msgstr ""
-
-msgid "TimeDeposit for a time deposit account."
+msgid "Second API"
 msgstr ""
 
 msgid "USE_YOUR_TOKEN"
 msgstr ""
 -- all.md.golden --
-Accounts API v1.0.0
-===================
-
-Provides CRUD operations on the accounts resource.
+First API v1.0.0
+================
 
 * Host `https://openbank.com`
 
 * Base Path `/path`
 
-Retrieve an account
--------------------
-
-Retrieves all data from an account, selected by the account_id you supplied.
+Gets foo
+--------
 
 ```sh
 curl -X GET \
-	https://openbank.com/path/v1/accounts/{AccountID} \
+	https://openbank.com/path/v1/foo \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN'
 ```
 
 ### HTTP Request
 
-`GET https://openbank.com/path/v1/accounts/{AccountID}`
-
-### Query Parameters
-
-| Name       | Type   | Description |
-|------------|--------|-------------|
-| account_id | string |             |
+`GET https://openbank.com/path/v1/foo`
 
 ### Responses
 
 #### Response body
 
-| Name        | Type   | Description                                                                    |
-|-------------|--------|--------------------------------------------------------------------------------|
-| account_id  | string | AccountID is the unique identifier of an account.Should not be returned as is. |
-| branch      | string | TODO: add comment.                                                             |
-| branch_name | string | TODO: add comment.                                                             |
-| status      | string | Status is the status of the account.                                           |
+| Name | Type   | Description     |
+|------|--------|-----------------|
+| bar  | string | Bar is a string |
 
 Example:
 
 ```json
 {
-  "account_id": "string",
-  "branch": "string",
-  "branch_name": "string",
-  "status": "string"
+  "bar": "string"
 }
 ```
 
 #### Response codes
 
-| Status | Description                              |
-|--------|------------------------------------------|
-| 200    | Request executed successfully.           |
-| 404    | Returned when the resource is not found. |
+| Status | Description |
+|--------|-------------|
+| 200    |             |
 
-Annex
-=====
+Second API v1.0.0
+=================
 
-Amount
-------
+* Host `https://openbank.com`
 
-Amount defines a transaction amount.
+* Base Path `/path`
 
-| Name | Type   | Description                        |
-|------|--------|------------------------------------|
-| Cur  | string | Cur is the currency of the amount. |
-| Num  | string | Num is the value of the amount.    |
-
-BankCode
+Gets baz
 --------
 
-BankCode indicates which bank to use; these should be a list of banksthat we are currently integrated withThis is the updated list of banks per January 2018
+```sh
+curl -X GET \
+	https://openbank.com/path/v1/baz \
+	-H 'Authorization: Bearer USE_YOUR_TOKEN'
+```
 
-| Value     | Description |
-|-----------|-------------|
-| Mandiri   |             |
-| Bca       |             |
-| Bni       |             |
-| Bri       |             |
-| DummyBank |             |
-| Bdo       |             |
-| Aceh      | Bpi         |
+### HTTP Request
 
-MajorCategory
--------------
+`GET https://openbank.com/path/v1/baz`
 
-MajorCategory describes the category of the account.
+### Responses
 
-| Value | Description               |
-|-------|---------------------------|
-| Dep   | Dep for deposit category. |
-| Loan  | Loan for loan category.   |
+#### Response body
 
-MajorType
----------
+| Name | Type  | Description   |
+|------|-------|---------------|
+| qux  | int32 | Qux is an int |
 
-MajorType describes the type of the account.
+Example:
 
-| Value          | Description                                 |
-|----------------|---------------------------------------------|
-| Checking       | Checking account.                           |
-| Saving         | Saving account.                             |
-| TimeDeposit    | TimeDeposit for a time deposit account.     |
-| CommercialLoan | CommercialLoan for a business loan account. |
-| MortgageLoan   | MortgageLoan for a home loan account.       |
-| ConsumerLoan   | ConsumerLoan for a consumer loan account.   |
+```json
+{
+  "qux": "int32"
+}
+```
+
+#### Response codes
+
+| Status | Description |
+|--------|-------------|
+| 200    |             |

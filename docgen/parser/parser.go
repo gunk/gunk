@@ -39,7 +39,6 @@ func ParseFile(file *FileDescWrapper) (*File, error) {
 	}
 
 	f := &File{
-		Messages: messages,
 		Services: services,
 		Enums:    enums,
 	}

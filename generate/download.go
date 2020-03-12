@@ -34,10 +34,15 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 
 	dstPath := path
 	if dstPath == "" {
-		// Get the os specific cache directory.
+		// Get the OS-specific cache directory.
 		cachePath, err := os.UserCacheDir()
 		if err != nil {
 			return "", err
+		}
+		if dir := os.Getenv("GUNK_CACHE_DIR"); dir != "" {
+			// Allow overriding the cache dir entirely. Mainly for
+			// the tests.
+			cachePath = dir
 		}
 		cacheDir := filepath.Join(cachePath, "gunk")
 		if err := os.MkdirAll(cacheDir, 0755); err != nil {

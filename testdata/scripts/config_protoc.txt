@@ -1,14 +1,10 @@
 # TODO: use [!net] once it does something useful.
 # See https://github.com/rogpeppe/go-internal/issues/75.
-[short] skip 'requires network access' 
+[short] skip 'requires network access'
 
-# Use a separate $HOME, to not reuse a cached protoc.
-env VHOME=$WORK/protoc_home
-env HOME=$VHOME
-env LocalAppData=$VHOME
-env home=$VHOME
-env CACHEDIR=$VHOME$CACHEPATH
-env XDG_CACHE_HOME=$CACHEDIR
+# Use a separate cache directory, to not reuse a cached protoc.
+env GUNK_CACHE_DIR=$WORK/cache
+! exists $GUNK_CACHE_DIR/gunk
 
 # Specify a valid protoc version.
 #
@@ -16,7 +12,7 @@ env XDG_CACHE_HOME=$CACHEDIR
 # version but since it's overriden by any existing child config
 # (i.e. here and in the succeeding tests) nothing blows up
 gunk generate ./version
-exists $CACHEDIR/gunk/protoc-v3.8.0
+exists $GUNK_CACHE_DIR/gunk/protoc-v3.8.0
 exists version/all.pb.go
 
 # Specify an invalid version
@@ -26,14 +22,14 @@ stderr 'error: downloading protoc: invalid version: invalid'
 
 # Don't specify a path or version
 gunk generate ./noversion
-exists $CACHEDIR/gunk/protoc-v3.9.1 # default version
+exists $GUNK_CACHE_DIR/gunk/protoc-v3.9.1 # default version
 exists noversion/all.pb.go
 
 # Specify the path where the first test's binary was downloaded to,
 # but specify a different version
 # copy the downloaded protoc-v3.8.0 to current directory to make
 # pathversion/.gunkconfig work correctly across OSes
-cp $CACHEDIR/gunk/protoc-v3.8.0 protoc-v3.8.0
+cp $GUNK_CACHE_DIR/gunk/protoc-v3.8.0 protoc-v3.8.0
 ! gunk generate ./pathversion
 stderr 'error: want protoc version "v3.7.0" got "3.8.0"'
 ! exists pathversion/all.pb.go

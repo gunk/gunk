@@ -8,10 +8,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"testing"
 
 	"github.com/rogpeppe/go-internal/goproxytest"
+	"github.com/rogpeppe/go-internal/gotooltest"
 	"github.com/rogpeppe/go-internal/testscript"
 
 	"github.com/gunk/gunk/generate"
@@ -137,39 +137,22 @@ func generatedFiles(dir string) (map[string]string, error) {
 
 func TestScripts(t *testing.T) {
 	t.Parallel()
-	home, err := filepath.Abs(filepath.Join(".cache", "home"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	cachePath, err := userCachePath()
+	cacheDir, err := os.UserCacheDir()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	testscript.Run(t, testscript.Params{
+	p := testscript.Params{
 		Dir: filepath.Join("testdata", "scripts"),
 		Setup: func(e *testscript.Env) error {
 			e.Vars = append(e.Vars, "GOPROXY="+proxyURL)
 			e.Vars = append(e.Vars, "GONOSUMDB=*")
-			e.Vars = append(e.Vars, "HOME="+home)
-			e.Vars = append(e.Vars, "CACHEPATH="+cachePath)
+			e.Vars = append(e.Vars, "GUNK_CACHE_DIR="+cacheDir)
 			return nil
 		},
-	})
-}
-
-// userCacheDir returns relative path of user cached data directory from home directory.
-// We need to use relative path, because the absolute user cache directory will be different
-// for each OS and in some tests we use a isolated $HOME to avoid caching.
-func userCachePath() (string, error) {
-	realUserCacheDir, err := os.UserCacheDir()
-	if err != nil {
-		return "", err
 	}
-	realHomeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
+	if err := gotooltest.Setup(&p); err != nil {
+		t.Fatal(err)
 	}
-
-	return strings.TrimPrefix(realUserCacheDir, realHomeDir), nil
+	testscript.Run(t, p)
 }

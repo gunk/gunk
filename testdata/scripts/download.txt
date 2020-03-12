@@ -2,8 +2,9 @@
 # See https://github.com/rogpeppe/go-internal/issues/75.
 [short] skip 'requires network access'
 
-# Use a separate $HOME, to not reuse a cached protoc.
-env HOME=$WORK/home
+# Use a separate cache directory, to not reuse a cached protoc.
+env GUNK_CACHE_DIR=$WORK/cache
+! exists $GUNK_CACHE_DIR/gunk
 
 # Download protoc.
 gunk download protoc -v

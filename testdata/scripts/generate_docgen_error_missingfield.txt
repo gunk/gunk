@@ -1,0 +1,65 @@
+# this does fail, but we don't want ugly panic but nice error
+! gunk generate transactions.gunk
+stderr 'the URL /v1/foo/{Unexpected} field Unexpected cannot be matched in FooRequest'
+
+-- go.mod --
+module testdata.tld/util
+
+require (
+	github.com/gunk/opt v0.0.0-20190514110406-385321f21939
+)
+-- .gunkconfig --
+[generate]
+command=docgen
+-- transactions.gunk --
+// +gunk openapiv2.Swagger{
+//         Swagger: "2.0",
+//         Info: openapiv2.Info{
+//                 Title:       "Foo API",
+//                 Description: "Provides foo.",
+//                 Version:     "1.0.0",
+//         },
+//         Host:     "openbank.com",
+//         BasePath: "/path",
+//         Schemes: []openapiv2.SwaggerScheme{
+//                 openapiv2.HTTPS,
+//         },
+// }
+package foo
+
+import (
+	"github.com/gunk/opt/http"
+	"github.com/gunk/opt/openapiv2"
+)
+
+type FooResponse struct {
+    FooName string `pb:"1" json:"fooName"`
+}
+
+type FooRequest struct {
+    SomethingElse string `pb:"1" json:"somethingElse"`
+}
+
+// FooService provides foo.
+type FooService interface {
+	// GetFoo retrieves foo.
+	//
+	// +gunk http.Match{
+	//         Method: "GET",
+	//         Path:   "/v1/foo/{Unexpected}",
+	// }
+	// +gunk openapiv2.Operation{
+	//         Tags:        []string{"Foo"},
+	//         Description: "Retrieves foo.",
+	//         Summary:     "Retrieves foo",
+	//         Responses: map[string]openapiv2.Response{
+	//                 "200": openapiv2.Response{
+	//                         Description: "Request executed successfully.",
+	//                 },
+	//                 "404": openapiv2.Response{
+	//                         Description: "Returned when the resource is not found.",
+	//                 },
+	//         },
+	// }
+	GetFoo(FooRequest) FooResponse
+}

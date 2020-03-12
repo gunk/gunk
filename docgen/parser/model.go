@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
@@ -16,7 +17,6 @@ type FileDescWrapper struct {
 // File is a proto parsed file.
 type File struct {
 	Swagger  *options.Swagger
-	Messages map[string]*Message
 	Services map[string]*Service
 	Enums    map[string]*Enum
 }
@@ -51,6 +51,35 @@ func (f *File) SwaggerScheme() string {
 // HasServices returns true when file contains service definitions.
 func (f *File) HasServices() bool {
 	return len(f.Services) > 0
+}
+
+// CheckSwagger checks existence of Swagger annotations, that are needed
+// for proper generation of the markdown documentation.
+func (f *File) CheckSwagger() error {
+	if f.Swagger == nil {
+		return fmt.Errorf("needs an openapiv2.Swagger annotation")
+	}
+	if f.Swagger.Info == nil {
+		return fmt.Errorf("needs a swagger.info")
+	}
+	if f.Swagger.Info.Title == "" {
+		return fmt.Errorf("needs a swagger.info.title")
+	}
+	if f.Swagger.Info.Version == "" {
+		return fmt.Errorf("needs a swagger.info.version")
+	}
+
+	for _, s := range f.Services {
+		for _, m := range s.Methods {
+			if m.Operation == nil {
+				return fmt.Errorf("method %s needs a swagger operation", m.Name)
+			}
+			if m.Operation.Summary == "" {
+				return fmt.Errorf("method %s needs a swagger operation summary", m.Name)
+			}
+		}
+	}
+	return nil
 }
 
 // Message describes a proto message.

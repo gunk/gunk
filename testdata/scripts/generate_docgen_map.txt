@@ -12,9 +12,26 @@ require (
 [generate]
 command=docgen
 -- docgentest.gunk --
+// +gunk openapiv2.Swagger{
+//         Swagger: "2.0",
+//         Info: openapiv2.Info{
+//                 Title:       "Sample API",
+//                 Version:     "1.0.0",
+//         },
+//         Host: "openbank.com",
+//         BasePath: "/path",
+//         Schemes: []openapiv2.SwaggerScheme{
+//                 openapiv2.HTTPS,
+//         },
+// }
 package docgentest
 
-// Account holds all details about a bank account.
+import (
+	"github.com/gunk/opt/http"
+	"github.com/gunk/opt/openapiv2"
+)
+
+// Sample holds all details about a bank account.
 type Sample struct {
 	// MapStringInt is a simple map of a <string,int>.
 	MapStringInt   map[string]int   `pb:"1" json:"map_string_int"`
@@ -28,28 +45,71 @@ type Price struct {
 	Amount   int    `pb:"1" json:"amount"`
 	Currency string `pb:"2" json:"currency"`
 }
+
+// SampleService provides Sample operations.
+type SampleService interface {
+	// GetSample gets sample
+	//
+	// +gunk http.Match{
+	//         Method: "GET",
+	//         Path:   "/v1/sample",
+	// }
+	// +gunk openapiv2.Operation{
+	//         Tags:        []string{"Sample"},
+	//         Summary: "Gets sample",
+	//         Responses: map[string]openapiv2.Response{
+	//                 "200": openapiv2.Response{
+	//                 },
+	//         },
+	// }
+	GetSample() Sample
+}
 -- all.md.golden --
-Annex
-=====
+Sample API v1.0.0
+=================
 
-Price
------
+* Host `https://openbank.com`
 
-| Name     | Type   | Description |
-|----------|--------|-------------|
-| Amount   | int32  |             |
-| Currency | string |             |
+* Base Path `/path`
 
-Sample
-------
+Gets sample
+-----------
 
-Account holds all details about a bank account.
+```sh
+curl -X GET \
+	https://openbank.com/path/v1/sample \
+	-H 'Authorization: Bearer USE_YOUR_TOKEN'
+```
 
-| Name           | Type             | Description                                       |
-|----------------|------------------|---------------------------------------------------|
-| MapStringInt   | map[string]int32 | MapStringInt is a simple map of a <string,int>.   |
-| MapIntString   | map[int]string   | MapStringInt is a simple map of a <int,string>.   |
-| MapStringPrice | map[string]Price | MapStringPrice is a sample map of <string,price>. |
+### HTTP Request
+
+`GET https://openbank.com/path/v1/sample`
+
+### Responses
+
+#### Response body
+
+| Name             | Type                                              | Description |
+|------------------|---------------------------------------------------|-------------|
+| map[string]int32 | MapStringInt is a simple map of a <string,int>.   |             |
+| map[int]string   | MapStringInt is a simple map of a <int,string>.   |             |
+| map[string]Price | MapStringPrice is a sample map of <string,price>. |             |
+
+Example:
+
+```json
+{
+  "": "map[string]int32",
+  "": "map[int]string",
+  "": "map[string]Price"
+}
+```
+
+#### Response codes
+
+| Status | Description |
+|--------|-------------|
+| 200    |             |
 -- messages.pot.golden --
 # Messages.pot - Contains all msgid extracted from swagger definitions.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
@@ -69,10 +129,16 @@ msgstr  "Project-Id-Version: %s\n"
 		"Content-Type: text/plain; charset=CHARSET\n"
 		"Content-Transfer-Encoding: 8bit\n"
 
-msgid "Account holds all details about a bank account."
+msgid "Base Path"
 msgstr ""
 
-msgid "Annex"
+msgid "Gets sample"
+msgstr ""
+
+msgid "HTTP Request"
+msgstr ""
+
+msgid "Host"
 msgstr ""
 
 msgid "MapStringInt is a simple map of a <int,string>."
@@ -82,4 +148,19 @@ msgid "MapStringInt is a simple map of a <string,int>."
 msgstr ""
 
 msgid "MapStringPrice is a sample map of <string,price>."
+msgstr ""
+
+msgid "Response body"
+msgstr ""
+
+msgid "Response codes"
+msgstr ""
+
+msgid "Responses"
+msgstr ""
+
+msgid "Sample API"
+msgstr ""
+
+msgid "USE_YOUR_TOKEN"
 msgstr ""

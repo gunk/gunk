@@ -83,6 +83,12 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 	var buf bytes.Buffer
 	pb, err := generate.Run(&buf, source, lang, customHeaderIds)
 	if err != nil {
+		// file does not include a service -> just don't do anything
+		if err == generate.ErrNoServices {
+			return &plugin_go.CodeGeneratorResponse{
+				File: []*plugin_go.CodeGeneratorResponse_File{},
+			}, nil
+		}
 		return nil, fmt.Errorf("failed markdown generation: %v", err)
 	}
 

@@ -155,6 +155,22 @@ curl -X GET \
 | number     | string    | Number is the account number.     |
 | major_type | MajorType | MajorType is the type of account. |
 
+##### Enums
+
+###### MajorType
+
+MajorType describes the type of the account.
+
+| Value            | Description                                 |
+|------------------|---------------------------------------------|
+| UnknownMajorType |                                             |
+| Checking         | Checking account.                           |
+| Saving           | Saving account.                             |
+| TimeDeposit      | TimeDeposit for a time deposit account.     |
+| CommercialLoan   | CommercialLoan for a business loan account. |
+| MortgageLoan     | MortgageLoan for a home loan account.       |
+| ConsumerLoan     | ConsumerLoan for a consumer loan account.   |
+
 Example:
 
 ```json
@@ -176,23 +192,6 @@ Example:
 |--------|------------------------------------------|
 | 200    | Request executed successfully.           |
 | 404    | Returned when the resource is not found. |
-
-Annex
------
-
-#### MajorType
-
-MajorType describes the type of the account.
-
-| Value            | Description                                 |
-|------------------|---------------------------------------------|
-| UnknownMajorType |                                             |
-| Checking         | Checking account.                           |
-| Saving           | Saving account.                             |
-| TimeDeposit      | TimeDeposit for a time deposit account.     |
-| CommercialLoan   | CommercialLoan for a business loan account. |
-| MortgageLoan     | MortgageLoan for a home loan account.       |
-| ConsumerLoan     | ConsumerLoan for a consumer loan account.   |
 -- transactions/messages.pot.golden --
 # Messages.pot - Contains all msgid extracted from swagger definitions.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
@@ -212,9 +211,6 @@ msgstr  "Project-Id-Version: %s\n"
 		"Content-Type: text/plain; charset=CHARSET\n"
 		"Content-Transfer-Encoding: 8bit\n"
 
-msgid "Annex"
-msgstr ""
-
 msgid "Base Path"
 msgstr ""
 
@@ -225,6 +221,9 @@ msgid "CommercialLoan for a business loan account."
 msgstr ""
 
 msgid "ConsumerLoan for a consumer loan account."
+msgstr ""
+
+msgid "Enums"
 msgstr ""
 
 msgid "From is the account to debit."

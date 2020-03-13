@@ -211,9 +211,6 @@ msgstr ""
 msgid "Accounts API"
 msgstr ""
 
-msgid "Annex"
-msgstr ""
-
 msgid "Base Path"
 msgstr ""
 
@@ -229,9 +226,6 @@ msgstr ""
 msgid "DueDate is the loan maturity date."
 msgstr ""
 
-msgid "EntityType describes the type of the entity."
-msgstr ""
-
 msgid "HTTP Request"
 msgstr ""
 
@@ -241,13 +235,7 @@ msgstr ""
 msgid "MaturityDate is the maturity date, format is ISO 8601"
 msgstr ""
 
-msgid "Org is an organisation customer."
-msgstr ""
-
 msgid "OwnerName is the name of the account's owner."
-msgstr ""
-
-msgid "Pers is an individual customer."
 msgstr ""
 
 msgid "Provides CRUD operations on the accounts resource."
@@ -393,15 +381,3 @@ Example:
 |--------|------------------------------------------|
 | 200    | Request executed successfully.           |
 | 404    | Returned when the resource is not found. |
-
-Annex
------
-
-#### EntityType
-
-EntityType describes the type of the entity.
-
-| Value | Description                      |
-|-------|----------------------------------|
-| Pers  | Pers is an individual customer.  |
-| Org   | Org is an organisation customer. |

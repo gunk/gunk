@@ -238,9 +238,6 @@ msgstr ""
 msgid "Dep for deposit category."
 msgstr ""
 
-msgid "EntityType describes the type of the entity."
-msgstr ""
-
 msgid "HTTP Request"
 msgstr ""
 
@@ -260,12 +257,6 @@ msgid "MortgageLoan for a home loan account."
 msgstr ""
 
 msgid "Num is the value of the amount."
-msgstr ""
-
-msgid "Org is an organisation customer."
-msgstr ""
-
-msgid "Pers is an individual customer."
 msgstr ""
 
 msgid "Provides CRUD operations on the accounts resource."
@@ -368,18 +359,6 @@ Example:
 |--------|------------------------------------------|
 | 200    | Request executed successfully.           |
 | 404    | Returned when the resource is not found. |
-
-Annex
------
-
-#### EntityType
-
-EntityType describes the type of the entity.
-
-| Value | Description                      |
-|-------|----------------------------------|
-| Pers  | Pers is an individual customer.  |
-| Org   | Org is an organisation customer. |
 
 Annex
 =====

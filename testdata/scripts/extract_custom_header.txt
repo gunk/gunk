@@ -424,9 +424,6 @@ msgstr ""
 msgid "Accounts API"
 msgstr ""
 
-msgid "Annex"
-msgstr ""
-
 msgid "Base Path"
 msgstr ""
 
@@ -461,6 +458,9 @@ msgid "DueDate is the loan maturity date."
 msgstr ""
 
 msgid "EntityType describes the type of the entity."
+msgstr ""
+
+msgid "Enums"
 msgstr ""
 
 msgid "HTTP Request"
@@ -631,6 +631,17 @@ curl -X POST \
 | debit_account | string | TODO: add comment. |
 | exchange_rate | string | TODO: add comment. |
 | is_fx         | bool   | TODO: add comment. |
+
+##### Enums {#enums-CreateAccountRequest}
+
+###### EntityType
+
+EntityType describes the type of the entity.
+
+| Value | Description                      |
+|-------|----------------------------------|
+| Pers  | Pers is an individual customer.  |
+| Org   | Org is an organisation customer. |
 
 ### Responses {#responses-method-post-createaccount}
 
@@ -907,15 +918,3 @@ curl -X PUT \
 | 401    | Returned when the request does not contains the user's credentials.                    |
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
-
-Annex {#annex}
---------------
-
-#### EntityType
-
-EntityType describes the type of the entity.
-
-| Value | Description                      |
-|-------|----------------------------------|
-| Pers  | Pers is an individual customer.  |
-| Org   | Org is an organisation customer. |

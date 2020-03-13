@@ -104,21 +104,23 @@ func nestedDescriptorMessages(
 			return nil, nil, err
 		}
 
-		for name, msg := range dependencyMessages {
-			messages[name] = msg
-		}
-
 		for name, enum := range dependencyEnums {
 			enums[name] = enum
 		}
 
-	}
-	for name, msg := range parseMessages(pkgName, comments, file.GetMessageType(), messages) {
-		messages[name] = msg
+		for name, msg := range dependencyMessages {
+			messages[name] = msg
+		}
+
 	}
 	for name, enum := range parseEnums(pkgName, comments, file.GetEnumType()) {
 		enums[name] = enum
 	}
+
+	for name, msg := range parseMessages(pkgName, comments, file.GetMessageType(), messages, enums) {
+		messages[name] = msg
+	}
+
 	return messages, enums, nil
 }
 
@@ -233,7 +235,13 @@ func extractMapFields(message *google_protobuf.DescriptorProto, path string, com
 	return fields
 }
 
-func parseMessages(pkgName string, comments map[string]*Comment, messages []*google_protobuf.DescriptorProto, merge map[string]*Message) map[string]*Message {
+func parseMessages(
+	pkgName string,
+	comments map[string]*Comment,
+	messages []*google_protobuf.DescriptorProto,
+	merge map[string]*Message,
+	allEnums map[string]*Enum,
+) map[string]*Message {
 	// convert each proto message to our Message representation
 	for i, m := range messages {
 		p := fmt.Sprintf("%d.%d", messageFlag, i)
@@ -250,7 +258,7 @@ func parseMessages(pkgName string, comments map[string]*Comment, messages []*goo
 	// once we've defined all Messages, populate the NestedMessages
 	// member of each Message
 	for _, m := range merge {
-		populateNestedMessages(m, merge)
+		populateNestedMessages(m, merge, allEnums)
 	}
 	return merge
 }
@@ -263,8 +271,13 @@ func parseMessages(pkgName string, comments map[string]*Comment, messages []*goo
 //
 // the definitions of the Messages are taken from the second argument,
 // which is a map that is expected to contain all Messages parsed from the package.
-func populateNestedMessages(message *Message, messages map[string]*Message) {
+func populateNestedMessages(
+	message *Message,
+	messages map[string]*Message,
+	allEnums map[string]*Enum,
+) {
 	var nestedMessages []*Message
+	var enums []*Enum
 
 	stack := []*Message{message}
 	seen := make(map[string]bool)
@@ -280,23 +293,31 @@ func populateNestedMessages(message *Message, messages map[string]*Message) {
 		for _, f := range m.Fields {
 			typ := f.Type
 			name := typ.QualifiedName
-			if !typ.IsMessage || seen[name] {
+			if !(typ.IsMessage || typ.IsEnum) || seen[name] {
 				continue
 			}
 
 			seen[name] = true
+			if typ.IsMessage {
+				nm, ok := messages[name]
+				if !ok { // shouldn't happen
+					panic(fmt.Sprintf("message %q not found", name))
+				}
 
-			nm, ok := messages[name]
-			if !ok { // shouldn't happen
-				panic(fmt.Sprintf("message %q not found", name))
+				stack = append(stack, nm)
+				nestedMessages = append(nestedMessages, nm)
+			} else {
+				en, ok := allEnums[name]
+				if !ok { // shouldn't happen
+					panic(fmt.Sprintf("enum %q not found", name))
+				}
+				enums = append(enums, en)
 			}
-
-			stack = append(stack, nm)
-			nestedMessages = append(nestedMessages, nm)
 		}
 	}
 
 	message.NestedMessages = nestedMessages
+	message.Enums = enums
 }
 
 func parseFields(path string, comments map[string]*Comment, fields []*google_protobuf.FieldDescriptorProto) []*Field {

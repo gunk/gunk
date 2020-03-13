@@ -65,21 +65,6 @@ Status | Description
 {{end}}{{/* end methods range */}}
 {{end}}{{/* end services range */}}
 
-{{if .Enums}}
-## {{GetText "Annex"}} {{CustomHeaderId "annex"}}
-
-{{range $e := .Enums}}
-#### {{$e.Name}}
-
-{{GetText $e.Comment.Leading}}
-
-Value | Description
------ | -----------
-{{range $v := $e.Values}}{{$v.Name}} | {{GetText $v.Comment.Leading}}
-{{end}}{{/* end enum values range */}}
-{{end}}{{/* end enum range */}}
-{{end}}{{/* end enum if */}}
-
 {{- define "message"}}
 
 Name | Type | Description
@@ -99,4 +84,21 @@ Name | Type | Description
 {{end}}{{/* end nested message field range */}}
 {{end}}{{/* end nested message range*/}}
 {{end}}{{/* end nested message if*/}}
+
+
+{{if .Enums}}
+##### {{GetText "Enums"}} {{CustomHeaderId "enums-" .Name}}
+
+{{range $e := .Enums}}
+###### {{$e.Name}}
+
+{{GetText $e.Comment.Leading}}
+
+Value | Description
+----- | -----------
+{{range $v := $e.Values}}{{$v.Name}} | {{GetText $v.Comment.Leading}}
+{{end}}{{/* end enum values range */}}
+{{end}}{{/* end enum range*/}}
+{{end}}{{/* end enum if*/}}
+
 {{end}}{{/* end message template*/}}

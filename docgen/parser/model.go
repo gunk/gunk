@@ -59,6 +59,7 @@ type Message struct {
 	Comment        *Comment
 	Fields         []*Field
 	NestedMessages []*Message
+	Enums          []*Enum
 }
 
 // Response describes a response of a service.

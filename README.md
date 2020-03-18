@@ -1,9 +1,7 @@
-# Gunk [![GoDoc][godoc]][godoc-link] [![Build Status][travis-ci]][travis-ci-link]
+# Gunk [![GoDoc][godoc]][godoc-link]
 
 [godoc]: https://godoc.org/github.com/gunk/gunk?status.svg (GoDoc)
-[travis-ci]: https://travis-ci.org/gunk/gunk.svg?branch=master (Travis CI)
 [godoc-link]: https://godoc.org/github.com/gunk/gunk
-[travis-ci-link]: https://travis-ci.org/gunk/gunk
 
 Gunk is a modern frontend and syntax for [Protocol Buffers][protobuf].
 

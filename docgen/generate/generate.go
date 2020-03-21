@@ -36,9 +36,7 @@ func Run(w io.Writer, f *parser.FileDescWrapper, lang []string, customHeaderIds 
 		if f.Name != nil {
 			name = *f.Name
 		}
-		return nil, fmt.Errorf("swagger error in file %s: %s", name, err.Error())
-		// TODO(karel) - use following after switch to go 1.13
-		// return nil, fmt.Errorf("swagger error in file %s: %w", name, err)
+		return nil, fmt.Errorf("swagger error in file %s: %w", name, err)
 	}
 	tplName := "api.md"
 

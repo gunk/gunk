@@ -1,0 +1,22 @@
+gunk generate -v ./...
+grep '\/\/ with a space' all.pb.go
+grep '\/\/ without a space' all.pb.go
+
+-- go.mod --
+module testdata.tld/util
+
+-- .gunkconfig --
+[generate go]
+
+-- echo.gunk --
+package test
+
+type Person struct {
+	// Comment
+	// with a space
+	Name string `pb:"1"`
+
+	//Comment
+	//without a space
+	Surname string `pb:"2"`
+}

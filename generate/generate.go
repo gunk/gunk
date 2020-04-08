@@ -575,13 +575,22 @@ func (g *Generator) addDoc(text string, path ...int32) {
 	if text == "" {
 		return
 	}
+
+	// go's ast.TypeSpec.Doc.Text() trims left-trailing spaces on each line of multi-line comment,
+	// while proto's LeadingComments needs them
+	//
+	// block comments still look bad, but that's not a priority now
+	lines := strings.Split(text, "\n")
+	newText := " " + strings.Join(lines, "\n ")
+	newText = strings.TrimRight(newText, " \n")
+
 	if g.pfile.SourceCodeInfo == nil {
 		g.pfile.SourceCodeInfo = &desc.SourceCodeInfo{}
 	}
 	g.pfile.SourceCodeInfo.Location = append(g.pfile.SourceCodeInfo.Location,
 		&desc.SourceCodeInfo_Location{
 			Path:            path,
-			LeadingComments: proto.String(" " + text),
+			LeadingComments: &newText,
 		},
 	)
 }

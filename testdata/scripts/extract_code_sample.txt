@@ -205,7 +205,7 @@ msgstr  "Project-Id-Version: %s\n"
 		"Content-Type: text/plain; charset=CHARSET\n"
 		"Content-Transfer-Encoding: 8bit\n"
 
-msgid "AccountID is the unique identifier of an account.Should not be returned as is."
+msgid "AccountID is the unique identifier of an account. Should not be returned as is."
 msgstr ""
 
 msgid "Accounts API"
@@ -331,25 +331,25 @@ acc, err := c.GetAccount(
 
 #### Response body
 
-| Name                              | Type   | Description                                                                    |
-|-----------------------------------|--------|--------------------------------------------------------------------------------|
-| account_id                        | string | AccountID is the unique identifier of an account.Should not be returned as is. |
-| branch                            | string | TODO: add comment.                                                             |
-| branch_name                       | string | TODO: add comment.                                                             |
-| status                            | string | Status is the status of the account.                                           |
-| accrued_interest_at_maturity_date | string | TODO: add comment.                                                             |
-| available_credit_limit            | string | TODO: add comment.                                                             |
-| checking_interest_rate            | string | TODO: add comment.                                                             |
-| contract_date                     | string | ContractDate is the date of the contract initialization.                       |
-| credit_limit                      | string | CreditLimit is the allowed credit limit.                                       |
-| current_accrued_interest          | string | TODO: add comment.                                                             |
-| current_term                      | string | CurrentTerm is the account validity period.                                    |
-| due_date                          | string | DueDate is the loan maturity date.                                             |
-| interest_rate                     | string | TODO: add comment.                                                             |
-| maturity_date                     | string | MaturityDate is the maturity date, format is ISO 8601                          |
-| next_payment_due_date             | string | TODO: add comment.                                                             |
-| owner_name                        | string | OwnerName is the name of the account's owner.                                  |
-| start_date                        | string | TODO: add comment.                                                             |
+| Name                              | Type   | Description                                                                     |
+|-----------------------------------|--------|---------------------------------------------------------------------------------|
+| account_id                        | string | AccountID is the unique identifier of an account. Should not be returned as is. |
+| branch                            | string | TODO: add comment.                                                              |
+| branch_name                       | string | TODO: add comment.                                                              |
+| status                            | string | Status is the status of the account.                                            |
+| accrued_interest_at_maturity_date | string | TODO: add comment.                                                              |
+| available_credit_limit            | string | TODO: add comment.                                                              |
+| checking_interest_rate            | string | TODO: add comment.                                                              |
+| contract_date                     | string | ContractDate is the date of the contract initialization.                        |
+| credit_limit                      | string | CreditLimit is the allowed credit limit.                                        |
+| current_accrued_interest          | string | TODO: add comment.                                                              |
+| current_term                      | string | CurrentTerm is the account validity period.                                     |
+| due_date                          | string | DueDate is the loan maturity date.                                              |
+| interest_rate                     | string | TODO: add comment.                                                              |
+| maturity_date                     | string | MaturityDate is the maturity date, format is ISO 8601                           |
+| next_payment_due_date             | string | TODO: add comment.                                                              |
+| owner_name                        | string | OwnerName is the name of the account's owner.                                   |
+| start_date                        | string | TODO: add comment.                                                              |
 
 Example:
 

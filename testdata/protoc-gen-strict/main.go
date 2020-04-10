@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/gunk/gunk/protoutil"
+
 	"github.com/golang/protobuf/proto"
 	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
@@ -26,7 +28,7 @@ func main() {
 		panic(err)
 	}
 	var resp plugin.CodeGeneratorResponse
-	output, err := proto.Marshal(&resp)
+	output, err := protoutil.MarshalDeterministic(&resp)
 	if err != nil {
 		panic(err)
 	}

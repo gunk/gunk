@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/gunk/gunk/generate"
+	"github.com/gunk/gunk/protoutil"
 )
 
 // Run will generate the FileDescriptorSet for a Gunk package, and
@@ -29,7 +29,7 @@ func Run(format, dir string, patterns ...string) error {
 		}
 	case "", "proto":
 		// The default format.
-		bs, err = proto.Marshal(fds)
+		bs, err = protoutil.MarshalDeterministic(fds)
 		if err != nil {
 			return err
 		}

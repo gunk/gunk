@@ -8,6 +8,8 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
+
+	"github.com/gunk/gunk/protoutil"
 )
 
 // Plugin provides plugin method.
@@ -53,7 +55,7 @@ func readRequest(r io.Reader) (*plugin_go.CodeGeneratorRequest, error) {
 }
 
 func writeResponse(w io.Writer, resp *plugin_go.CodeGeneratorResponse) error {
-	data, err := proto.Marshal(resp)
+	data, err := protoutil.MarshalDeterministic(resp)
 	if err != nil {
 		return err
 	}

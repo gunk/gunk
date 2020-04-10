@@ -22,6 +22,7 @@ import (
 	"github.com/gunk/gunk/config"
 	"github.com/gunk/gunk/loader"
 	"github.com/gunk/gunk/log"
+	"github.com/gunk/gunk/protoutil"
 	"github.com/gunk/gunk/reflectutil"
 )
 
@@ -238,7 +239,7 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 		protocOutputPath = gpkg.Dir
 	}
 
-	bs, err := proto.Marshal(fds)
+	bs, err := protoutil.MarshalDeterministic(fds)
 	if err != nil {
 		return err
 	}
@@ -274,7 +275,7 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.G
 		}
 		req.Parameter = proto.String(ps)
 	}
-	bs, err := proto.Marshal(&req)
+	bs, err := protoutil.MarshalDeterministic(&req)
 	if err != nil {
 		return err
 	}

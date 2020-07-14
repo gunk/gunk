@@ -27,9 +27,12 @@ func main() {
 type docPlugin struct{}
 
 func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.CodeGeneratorResponse, error) {
-	var lang []string
-	var mode, dir string
-	var customHeaderIds bool
+	var (
+		lang            []string
+		mode, dir       string
+		customHeaderIds generate.CustomHeaderIdsOpt
+		onlyExternal    parser.OnlyExternalOpt
+	)
 	if param := req.GetParameter(); param != "" {
 		ps := strings.Split(param, ",")
 		for _, p := range ps {
@@ -54,7 +57,15 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 					return nil, err
 				}
 				if boolVal {
-					customHeaderIds = boolVal
+					customHeaderIds = generate.CustomHeaderIdsOptEnabled
+				}
+			case "only_external":
+				boolVal, err := strconv.ParseBool(v)
+				if err != nil {
+					return nil, err
+				}
+				if boolVal {
+					onlyExternal = parser.OnlyExternalEnabled
 				}
 			default:
 				return nil, fmt.Errorf("unknown parameter: %s", k)
@@ -81,7 +92,7 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 	source.DependencyMap = parser.GenerateDependencyMap(source.FileDescriptorProto, req.GetProtoFile())
 
 	var buf bytes.Buffer
-	pb, err := generate.Run(&buf, source, lang, customHeaderIds)
+	pb, err := generate.Run(&buf, source, lang, customHeaderIds, onlyExternal)
 	if err != nil {
 		// file does not include a service -> just don't do anything
 		if err == generate.ErrNoServices {

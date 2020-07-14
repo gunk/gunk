@@ -16,13 +16,21 @@ import (
 
 var ErrNoServices = fmt.Errorf("file has no services")
 
+type CustomHeaderIdsOpt int
+
+const (
+	CustomHeaderIdsOptDisabled CustomHeaderIdsOpt = iota
+	CustomHeaderIdsOptEnabled
+)
+
 // Run generates a markdown file describing the API
 // and a messages.pot containing all sentences that need to be
 // translated.
-func Run(w io.Writer, f *parser.FileDescWrapper, lang []string, customHeaderIds bool) (pot.Builder, error) {
+func Run(w io.Writer, f *parser.FileDescWrapper, lang []string,
+	customHeaderIds CustomHeaderIdsOpt, onlyExternal parser.OnlyExternalOpt) (pot.Builder, error) {
 	pb := pot.NewBuilder()
 
-	api, err := parser.ParseFile(f)
+	api, err := parser.ParseFile(f, onlyExternal)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +56,7 @@ func Run(w io.Writer, f *parser.FileDescWrapper, lang []string, customHeaderIds 
 	tmpl := template.Must(template.New("doc").
 		Funcs(template.FuncMap{
 			"CustomHeaderId": func(txt ...string) string {
-				if !customHeaderIds {
+				if customHeaderIds != CustomHeaderIdsOptEnabled {
 					return ""
 				}
 				return fmt.Sprintf("{#%s}", strings.Join(txt, ""))

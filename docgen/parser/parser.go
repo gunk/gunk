@@ -26,14 +26,21 @@ const (
 	enumFlag    = 5
 )
 
+type OnlyExternalOpt int
+
+const (
+	OnlyExternalDisabled OnlyExternalOpt = iota
+	OnlyExternalEnabled
+)
+
 // ParseFile parses a proto file.
-func ParseFile(file *FileDescWrapper) (*File, error) {
+func ParseFile(file *FileDescWrapper, onlyExternal OnlyExternalOpt) (*File, error) {
 	pkgName := file.GetPackage()
 	messages, enums, err := nestedDescriptorMessages(*file.FileDescriptorProto, file.DependencyMap)
 	if err != nil {
 		return nil, err
 	}
-	services, err := parseServices(pkgName, messages, file.GetService())
+	services, err := parseServices(pkgName, messages, file.GetService(), onlyExternal)
 	if err != nil {
 		return nil, err
 	}
@@ -360,10 +367,10 @@ func getType(f *google_protobuf.FieldDescriptorProto) *Type {
 	return t
 }
 
-func parseServices(pkgName string, messages map[string]*Message, services []*google_protobuf.ServiceDescriptorProto) (map[string]*Service, error) {
+func parseServices(pkgName string, messages map[string]*Message, services []*google_protobuf.ServiceDescriptorProto, onlyExternal OnlyExternalOpt) (map[string]*Service, error) {
 	res := map[string]*Service{}
 	for _, s := range services {
-		methods, err := parseMethods(pkgName, messages, s.GetMethod())
+		methods, err := parseMethods(pkgName, messages, s.GetMethod(), onlyExternal)
 		if err != nil {
 			return nil, err
 		}
@@ -375,7 +382,17 @@ func parseServices(pkgName string, messages map[string]*Message, services []*goo
 	return res, nil
 }
 
-func parseMethods(pkgName string, messages map[string]*Message, methods []*google_protobuf.MethodDescriptorProto) (map[string]*Method, error) {
+func hasExternalTag(tags []string) bool {
+	const externalTag = "external"
+	for _, tag := range tags {
+		if tag == externalTag {
+			return true
+		}
+	}
+	return false
+}
+
+func parseMethods(pkgName string, messages map[string]*Message, methods []*google_protobuf.MethodDescriptorProto, onlyExternal OnlyExternalOpt) (map[string]*Method, error) {
 	res := map[string]*Method{}
 	for _, m := range methods {
 		extOp, err := proto.GetExtension(m.GetOptions(), options.E_Openapiv2Operation)
@@ -384,6 +401,10 @@ func parseMethods(pkgName string, messages map[string]*Message, methods []*googl
 				continue
 			}
 			return nil, err
+		}
+		operation := extOp.(*options.Operation)
+		if onlyExternal == OnlyExternalEnabled && !hasExternalTag(operation.Tags) {
+			continue
 		}
 
 		extHTTP, err := proto.GetExtension(m.GetOptions(), method.E_Http)
@@ -416,7 +437,7 @@ func parseMethods(pkgName string, messages map[string]*Message, methods []*googl
 			Name:      m.GetName(),
 			Request:   req,
 			Response:  rsp,
-			Operation: extOp.(*options.Operation),
+			Operation: operation,
 		}
 	}
 	return res, nil

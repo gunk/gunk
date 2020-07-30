@@ -47,6 +47,17 @@ type Price struct {
 	Currency string `pb:"2" json:"currency"`
 }
 
+// ExampleRequest is just an example.
+type ExampleRequest struct {
+    // FooName is just an example.
+    FooName string `pb:"1" json:"fooName"`
+    // BarName is just an example (docgen: hide).
+    BarName string `pb:"2" json:"barName"`
+    // FooFooName is also should be hiding.
+    // second line: (docgen: hide).
+    FooFooName string `pb:"3" json:"barName"`
+}
+
 // SampleService provides Sample operations.
 type SampleService interface {
 	// InternalSample gets sample
@@ -80,6 +91,25 @@ type SampleService interface {
 	//         },
 	// }
 	ExternalSample() Sample
+
+	// ExternalSample2 POST
+	//
+	// +gunk http.Match{
+	//         Method: "POST",
+	//         Path:   "/v1/external-sample-2",
+    //         Body:   "*",
+	// }
+	//
+	// +gunk openapiv2.Operation{
+	//         Tags:        []string{"external"},
+	//         Description: "something",
+	//         Summary: "POST sample",
+	//         Responses: map[string]openapiv2.Response{
+	//                 "200": openapiv2.Response{
+	//                 },
+	//         },
+	// }
+	ExternalSample2(ExampleRequest) Sample
 }
 -- all.md.golden --
 Sample API v1.0.0
@@ -101,6 +131,56 @@ curl -X GET \
 ### HTTP Request
 
 `GET https://openbank.com/path/v1/external-sample`
+
+### Responses
+
+#### Response body
+
+| Name             | Type                                              | Description |
+|------------------|---------------------------------------------------|-------------|
+| map[string]int32 | MapStringInt is a simple map of a <string,int>.   |             |
+| map[int]string   | MapStringInt is a simple map of a <int,string>.   |             |
+| map[string]Price | MapStringPrice is a sample map of <string,price>. |             |
+
+Example:
+
+```json
+{
+  "": "map[string]int32",
+  "": "map[int]string",
+  "": "map[string]Price"
+}
+```
+
+#### Response codes
+
+| Status | Description |
+|--------|-------------|
+| 200    |             |
+
+POST sample
+-----------
+
+something
+
+```sh
+curl -X POST \
+	https://openbank.com/path/v1/external-sample-2 \
+	-H 'Authorization: Bearer USE_YOUR_TOKEN' \
+	-d '{
+		"fooName": "string"
+	}'
+```
+
+### HTTP Request
+
+`POST https://openbank.com/path/v1/external-sample-2`
+
+### Body Parameters
+
+| Name    | Type   | Description                 |
+|---------|--------|-----------------------------|
+| fooName | string | FooName is just an example. |
 
 ### Responses
 
@@ -149,6 +229,12 @@ msgstr  "Project-Id-Version: %s\n"
 msgid "Base Path"
 msgstr ""
 
+msgid "Body Parameters"
+msgstr ""
+
+msgid "FooName is just an example."
+msgstr ""
+
 msgid "Gets sample"
 msgstr ""
 
@@ -167,6 +253,9 @@ msgstr ""
 msgid "MapStringPrice is a sample map of <string,price>."
 msgstr ""
 
+msgid "POST sample"
+msgstr ""
+
 msgid "Response body"
 msgstr ""
 
@@ -180,4 +269,7 @@ msgid "Sample API"
 msgstr ""
 
 msgid "USE_YOUR_TOKEN"
+msgstr ""
+
+msgid "something"
 msgstr ""

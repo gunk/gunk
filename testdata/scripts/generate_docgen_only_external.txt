@@ -54,8 +54,30 @@ type ExampleRequest struct {
     // BarName is just an example (docgen: hide).
     BarName string `pb:"2" json:"barName"`
     // FooFooName is also should be hiding.
-    // second line: (docgen: hide).
-    FooFooName string `pb:"3" json:"barName"`
+	// second line: (docgen: hide).
+    FooFooName string `pb:"3" json:"fooFooName"`
+    // FooStructInstance has a hidden field.
+	FooStructInstance FooStruct `pb:"4" json:"fooStructInstance"`
+}
+
+// FooStruct with hidden fields and hidden structs
+type FooStruct struct {
+	// FooStructHidden is a hidden field (docgen: hide).
+	FooStructHidden int `pb:"1" json:"fooStructHidden"`
+	// FooStructShown should show up
+	FooStructShown int `pb:"2" json:"fooStructShown"`
+	// DumpStructInstance should show up
+	DumpStructInstance DumpStruct `pb:"3" json:"dumpStructInstance"`
+	// DumpStructInstance2 should show up (docgen: hide).
+	DumpStructInstance2 DumpStruct `pb:"4" json:"dumpStructInstance2"`
+}
+
+// DumpStruct has a hidden field
+type DumpStruct struct {
+	// DumpStructHidden is a hidden field (docgen: hide).
+	DumpStructHidden int `pb:"1" json:"dumpStructHidden"`
+	// DumpStructShown should show up
+	DumpStructShown int `pb:"2" json:"dumpStructShown"`
 }
 
 // SampleService provides Sample operations.
@@ -168,7 +190,13 @@ curl -X POST \
 	https://openbank.com/path/v1/external-sample-2 \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN' \
 	-d '{
-		"fooName": "string"
+		"fooName": "string",
+		"fooStructInstance": {
+			"fooStructShown": "int32",
+			"dumpStructInstance": {
+				"dumpStructShown": "int32"
+			}
+		}
 	}'
 ```
 
@@ -178,9 +206,25 @@ curl -X POST \
 
 ### Body Parameters
 
-| Name    | Type   | Description                 |
-|---------|--------|-----------------------------|
-| fooName | string | FooName is just an example. |
+| Name              | Type      | Description                           |
+|-------------------|-----------|---------------------------------------|
+| fooName           | string    | FooName is just an example.           |
+| fooStructInstance | FooStruct | FooStructInstance has a hidden field. |
+
+##### Objects
+
+###### FooStruct
+
+| Name               | Type       | Description                       |
+|--------------------|------------|-----------------------------------|
+| fooStructShown     | int32      | FooStructShown should show up     |
+| dumpStructInstance | DumpStruct | DumpStructInstance should show up |
+
+###### DumpStruct
+
+| Name            | Type  | Description                    |
+|-----------------|-------|--------------------------------|
+| dumpStructShown | int32 | DumpStructShown should show up |
 
 ### Responses
 
@@ -232,7 +276,19 @@ msgstr ""
 msgid "Body Parameters"
 msgstr ""
 
+msgid "DumpStructInstance should show up"
+msgstr ""
+
+msgid "DumpStructShown should show up"
+msgstr ""
+
 msgid "FooName is just an example."
+msgstr ""
+
+msgid "FooStructInstance has a hidden field."
+msgstr ""
+
+msgid "FooStructShown should show up"
 msgstr ""
 
 msgid "Gets sample"
@@ -251,6 +307,9 @@ msgid "MapStringInt is a simple map of a <string,int>."
 msgstr ""
 
 msgid "MapStringPrice is a sample map of <string,price>."
+msgstr ""
+
+msgid "Objects"
 msgstr ""
 
 msgid "POST sample"

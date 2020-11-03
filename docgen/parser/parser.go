@@ -461,16 +461,17 @@ func generateResponseExample(messages map[string]*Message, name string) (string,
 }
 
 // normalizeRequestFields is used to filter out all fields marked with an predefined indicator of a request message.
-func normalizeRequestFields(messages map[string]*Message, name string) {
+func normalizeRequestFields(messages map[string]*Message) {
 	const hidingIndicator = "docgen: hide"
-	var filtered []*Field
-	for _, f := range messages[name].Fields {
-		if strings.Contains(f.Comment.Leading, hidingIndicator) {
-			continue
+	for _, message := range messages {
+		var filtered []*Field
+		for _, f := range message.Fields {
+			if !strings.Contains(f.Comment.Leading, hidingIndicator) {
+				filtered = append(filtered, f)
+			}
 		}
-		filtered = append(filtered, f)
+		message.Fields = filtered
 	}
-	messages[name].Fields = filtered
 }
 
 func parseRequest(rule *method.HttpRule, messages map[string]*Message, name string) (*Request, error) {
@@ -499,7 +500,7 @@ func parseRequest(rule *method.HttpRule, messages map[string]*Message, name stri
 		// Body is defined in the gunk annotation with "*",
 		// meaning that the operation uses the request
 		// message has the request body.
-		normalizeRequestFields(messages, name)
+		normalizeRequestFields(messages)
 		body = messages[name]
 
 		p := genJSONExample(messages, name)

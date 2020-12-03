@@ -12,7 +12,7 @@ import (
 	"unicode"
 
 	"github.com/emicklei/proto"
-	"github.com/knq/snaker"
+	"github.com/kenshaw/snaker"
 
 	"github.com/gunk/gunk/reflectutil"
 	"github.com/gunk/opt/openapiv2"

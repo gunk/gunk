@@ -7,7 +7,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/knq/snaker"
+	"github.com/kenshaw/snaker"
 
 	"github.com/gunk/gunk/assets"
 	"github.com/gunk/gunk/docgen/parser"

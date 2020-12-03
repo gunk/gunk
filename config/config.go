@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/knq/ini"
-	"github.com/knq/ini/parser"
+	"github.com/kenshaw/ini"
+	"github.com/kenshaw/ini/parser"
 )
 
 const (

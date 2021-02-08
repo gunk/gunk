@@ -425,7 +425,7 @@ func (g *Generator) translatePkg(pkgPath string) error {
 			if _, ok := g.allProto[pfile]; !ok {
 				leftToTranslate = append(leftToTranslate, opath)
 			}
-			g.pfile.Dependency = append(g.pfile.Dependency, pfile)
+			g.addProtoDep(pfile)
 		}
 	}
 

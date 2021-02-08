@@ -1,0 +1,45 @@
+cd package1
+gunk generate .
+cd ..
+cd package2
+gunk generate .
+
+cmp all.pb.go all.pb.go.golden
+
+-- go.mod --
+module testdata.tld/util
+
+-- package1/types.gunk --
+package package1
+
+type MyType int
+
+const (
+  FIRST MyType = 0
+  SECOND MyType = 1
+)
+
+-- package2/struct.gunk --
+package package2
+
+import "testdata.tld/util/package1"
+
+type MyStruct struct {
+  SomeField package1.MyType `pb:"1" json:"number`
+}
+
+-- package2/struct2.gunk --
+package package2
+
+import "testdata.tld/util/package1"
+
+type MyStructTwo struct {
+  SomeField package1.MyType `pb:"1" json:"number`
+}
+
+-- package2/all.pb.go.golden --
+nope
+
+-- .gunkconfig --
+[generate go]
+plugins=grpc

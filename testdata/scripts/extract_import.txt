@@ -72,15 +72,13 @@ type Amount struct {
 	Num string `pb:"2" json:"num"`
 }
 -- accounts/all.md.golden --
-Accounts API v1.0.0
-===================
+# Accounts API v1.0.0
 
 * Host `https://openbank.com`
 
 * Base Path `/path`
 
-Retrieve an account
--------------------
+## Retrieve an account
 
 ```sh
 curl -X GET \

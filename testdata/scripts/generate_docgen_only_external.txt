@@ -134,15 +134,13 @@ type SampleService interface {
 	ExternalSample2(ExampleRequest) Sample
 }
 -- all.md.golden --
-Sample API v1.0.0
-=================
+# Sample API v1.0.0
 
 * Host `https://openbank.com`
 
 * Base Path `/path`
 
-Gets sample
------------
+## Gets sample
 
 ```sh
 curl -X GET \
@@ -180,8 +178,7 @@ Example:
 |--------|-------------|
 | 200    |             |
 
-POST sample
------------
+## POST sample
 
 something
 

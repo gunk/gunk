@@ -7,17 +7,13 @@ env GUNK_CACHE_DIR=$WORK/cache
 ! exists $GUNK_CACHE_DIR/gunk
 
 # Specify a valid protoc version.
-#
-# Note that the parent gunkconfig uses an invalid
-# version but since it's overriden by any existing child config
-# (i.e. here and in the succeeding tests) nothing blows up
 gunk generate ./version
 exists $GUNK_CACHE_DIR/gunk/protoc-v3.8.0
 exists version/all.pb.go
 
 # Specify an invalid version
 ! gunk generate ./badversion
-stderr 'error: downloading protoc: invalid version: invalid'
+stderr 'downloading protoc: invalid version: invalid'
 ! exists badversion/all.pb.go
 
 # Don't specify a path or version
@@ -31,7 +27,7 @@ exists noversion/all.pb.go
 # pathversion/.gunkconfig work correctly across OSes
 cp $GUNK_CACHE_DIR/gunk/protoc-v3.8.0 protoc-v3.8.0
 ! gunk generate ./pathversion
-stderr 'error: want protoc version "v3.7.0" got "3.8.0"'
+stderr 'want protoc version "v3.7.0" got "3.8.0"'
 ! exists pathversion/all.pb.go
 
 -- go.mod --
@@ -39,7 +35,6 @@ module testdata.tld/util
 
 -- .gunkconfig --
 [generate]
-version=ignored
 command=protoc-gen-go
 plugins=grpc
 

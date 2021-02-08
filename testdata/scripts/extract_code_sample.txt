@@ -274,8 +274,7 @@ msgstr ""
 msgid "USE_YOUR_TOKEN"
 msgstr ""
 -- all.md.golden --
-Accounts API v1.0.0
-===================
+# Accounts API v1.0.0
 
 Provides CRUD operations on the accounts resource.
 
@@ -283,8 +282,7 @@ Provides CRUD operations on the accounts resource.
 
 * Base Path `/path`
 
-Retrieve an account
--------------------
+## Retrieve an account
 
 Retrieves all data from an account, selected by the account_id you supplied.
 

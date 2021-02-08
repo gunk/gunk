@@ -6,9 +6,9 @@ import (
 	"github.com/gunk/gunk/config"
 )
 
-// parseBoolParam returns true if the given parameter name exists and is a truthful value.
-func parseBoolParam(paramName string, gen config.Generator) (bool, error) {
-	for _, param := range gen.Params {
+// parsePostProcBoolParam returns true if the given parameter name exists and is a truthful value.
+func parsePostProcBoolParam(paramName string, gen config.Generator) (bool, error) {
+	for _, param := range gen.PostProcParams {
 		if param.Key == paramName {
 			result, err := strconv.ParseBool(param.Value)
 			if err != nil {
@@ -29,7 +29,7 @@ func postProcess(input []byte, gen config.Generator) ([]byte, error) {
 
 	switch gen.Command {
 	case protocGenGoCmd:
-		jsonTagPostprocEnabled, err := parseBoolParam(jsonTagPostprocParamName, gen)
+		jsonTagPostprocEnabled, err := parsePostProcBoolParam(jsonTagPostprocParamName, gen)
 		if err != nil {
 			return nil, err
 		}

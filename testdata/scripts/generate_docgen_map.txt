@@ -65,15 +65,13 @@ type SampleService interface {
 	GetSample() Sample
 }
 -- all.md.golden --
-Sample API v1.0.0
-=================
+# Sample API v1.0.0
 
 * Host `https://openbank.com`
 
 * Base Path `/path`
 
-Gets sample
------------
+## Gets sample
 
 ```sh
 curl -X GET \

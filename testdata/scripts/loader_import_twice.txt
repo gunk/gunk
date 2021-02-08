@@ -4,7 +4,7 @@ cd ..
 cd package2
 gunk generate .
 
-cmp all.pb.go all.pb.go.golden
+grep 'SomeField package1.MyType' all.pb.go
 
 -- go.mod --
 module testdata.tld/util

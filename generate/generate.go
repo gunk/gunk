@@ -998,11 +998,6 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*desc.EnumDescriptorProto,
 			if err != nil {
 				return nil, fmt.Errorf("error getting enum value options: %v", err)
 			}
-			// To avoid duplicate prefix (protoc-gen-go),
-			// we remove the enum type name if present
-			// TODO: not covered by any test?
-			prefix := *enum.Name + "_"
-			name.Name = strings.Replace(name.Name, prefix, "", 1)
 
 			enum.Value = append(enum.Value, &desc.EnumValueDescriptorProto{
 				Name:    proto.String(name.Name),

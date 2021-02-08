@@ -45,7 +45,7 @@ func Run(dir string, args ...string) error {
 	// Check that protoc exists, if not download it.
 	pkgs, err := g.Load(args...)
 	if err != nil {
-		return err
+		return fmt.Errorf("error loading packages: %w", err)
 	}
 	if len(pkgs) == 0 {
 		return fmt.Errorf("no Gunk packages to generate")
@@ -64,17 +64,17 @@ func Run(dir string, args ...string) error {
 	for _, pkg := range pkgs {
 		cfg, err := config.Load(pkg.Dir)
 		if err != nil {
-			return fmt.Errorf("unable to load gunkconfig: %v", err)
+			return fmt.Errorf("unable to load gunkconfig: %w", err)
 		}
 		pkgConfigs[pkg.Dir] = cfg
 		if err := g.translatePkg(pkg.PkgPath); err != nil {
-			return err
+			return fmt.Errorf("unable to translate pkg: %w", err)
 		}
 	}
 
 	// Load any non-Gunk proto dependencies.
 	if err := g.loadProtoDeps(); err != nil {
-		return err
+		return fmt.Errorf("unable to load protodeps: %w", err)
 	}
 
 	// Finally, run the code generators.
@@ -82,11 +82,11 @@ func Run(dir string, args ...string) error {
 		cfg := pkgConfigs[pkg.Dir]
 		protocPath, err := CheckOrDownloadProtoc(cfg.ProtocPath, cfg.ProtocVersion)
 		if err != nil {
-			return err
+			return fmt.Errorf("unable to check or download protoc: %w", err)
 		}
 
 		if err := g.GeneratePkg(pkg.PkgPath, cfg.Generators, protocPath); err != nil {
-			return err
+			return fmt.Errorf("unable to generate pkg %s: %w", pkg.PkgPath, err)
 		}
 		log.Verbosef("%s", pkg.PkgPath)
 	}
@@ -189,11 +189,11 @@ func (g *Generator) GeneratePkg(path string, gens []config.Generator, protocPath
 	for _, gen := range gens {
 		if gen.IsProtoc() {
 			if err := g.generateProtoc(*req, gen, protocPath); err != nil {
-				return err
+				return fmt.Errorf("unable to generate protoc: %w", err)
 			}
 		} else {
 			if err := g.generatePlugin(*req, gen); err != nil {
-				return err
+				return fmt.Errorf("unable to generate plugin: %w", err)
 			}
 		}
 	}
@@ -241,7 +241,7 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 
 	bs, err := protoutil.MarshalDeterministic(fds)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot marshal deterministically: %w", err)
 	}
 
 	// Build up the protoc command line arguments.
@@ -277,7 +277,7 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.G
 	}
 	bs, err := protoutil.MarshalDeterministic(&req)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot marshal deterministically: %w", err)
 	}
 	cmd := log.ExecCommand(gen.Command)
 	cmd.Stdin = bytes.NewReader(bs)
@@ -385,7 +385,7 @@ func (g *Generator) translatePkg(pkgPath string) error {
 	}
 
 	// Set the GoPackage file option to be the gunk package name.
-	fo.GoPackage = proto.String(gpkg.Name)
+	fo.GoPackage = proto.String(gpkg.PkgPath)
 
 	g.pfile = &desc.FileDescriptorProto{
 		Syntax:  proto.String("proto3"),
@@ -592,6 +592,8 @@ func (g *Generator) addDoc(text string, path ...int32) {
 		&desc.SourceCodeInfo_Location{
 			Path:            path,
 			LeadingComments: &newText,
+			// just add some nonsense to satisfy protoc-gen-go
+			Span: []int32{1, 2, 3},
 		},
 	)
 }

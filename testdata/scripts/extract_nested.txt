@@ -135,8 +135,7 @@ type TransactionService interface {
 	CreateTransaction(Transaction) CreateTransactionResponse
 }
 -- all.md.golden --
-Transactions API v1.0.0
-=======================
+# Transactions API v1.0.0
 
 Provides create and read operations on the transaction resource.
 
@@ -144,8 +143,7 @@ Provides create and read operations on the transaction resource.
 
 * Base Path `/path`
 
-Create a transaction
---------------------
+## Create a transaction
 
 Creates a new transaction record
 
@@ -231,8 +229,7 @@ Example:
 |--------|-----------------------------------|
 | 201    | Transaction created successfully. |
 
-Retrieve a transaction
-----------------------
+## Retrieve a transaction
 
 Retrieves all data from a transaction, selected by the `transaction_id` you supplied.
 

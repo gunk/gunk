@@ -52,7 +52,7 @@ require (
       "get": {
         "summary": "Retrieves message",
         "description": "Get message",
-        "operationId": "GetMessage",
+        "operationId": "Service_GetMessage",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -67,12 +67,14 @@ require (
           "404": {
             "description": "Returned when the resource does not exist.",
             "schema": {
+              "type": "string",
               "format": "string"
             }
           },
           "418": {
             "description": "I'm a teapot.",
             "schema": {
+              "type": "string",
               "$ref": ".grpc.gateway.examples.examplepb.NumericEnum",
               "title": "my title",
               "externalDocs": {
@@ -97,6 +99,12 @@ require (
                 "date"
               ]
             }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -120,6 +128,39 @@ require (
     }
   },
   "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "runtimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
     "testMessage": {
       "type": "object",
       "properties": {
@@ -204,11 +245,11 @@ json_names_for_fields=true
     "application/x-foo-mime"
   ],
   "paths": {
-    "/v1/message/{Name}": {
+    "/v1/message/{name}": {
       "get": {
         "summary": "Retrieves message",
         "description": "Get message",
-        "operationId": "GetMessage",
+        "operationId": "Service_GetMessage",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -223,12 +264,14 @@ json_names_for_fields=true
           "404": {
             "description": "Returned when the resource does not exist.",
             "schema": {
+              "type": "string",
               "format": "string"
             }
           },
           "418": {
             "description": "I'm a teapot.",
             "schema": {
+              "type": "string",
               "$ref": ".grpc.gateway.examples.examplepb.NumericEnum",
               "title": "my title",
               "externalDocs": {
@@ -253,11 +296,17 @@ json_names_for_fields=true
                 "date"
               ]
             }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
           {
-            "name": "Name",
+            "name": "name",
             "in": "path",
             "required": true,
             "type": "string"
@@ -276,6 +325,39 @@ json_names_for_fields=true
     }
   },
   "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "typeUrl": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "runtimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
     "testMessage": {
       "type": "object",
       "properties": {

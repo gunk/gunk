@@ -555,8 +555,7 @@ msgstr ""
 msgid "Updates an account with all the fields supplied."
 msgstr ""
 -- all.md.golden --
-Accounts API v1.0.0
-===================
+# Accounts API v1.0.0
 
 Provides CRUD operations on the accounts resource.
 
@@ -564,8 +563,7 @@ Provides CRUD operations on the accounts resource.
 
 * Base Path `/path`
 
-Create an account
------------------
+## Create an account
 
 Creates a new account
 
@@ -677,8 +675,7 @@ Example:
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
 
-Delete an account
------------------
+## Delete an account
 
 Permanently delete an account.
 
@@ -710,8 +707,7 @@ curl -X DELETE \
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
 
-Retrieve an account
--------------------
+## Retrieve an account
 
 Retrieves all data from an account, selected by the account_id you supplied.
 
@@ -790,8 +786,7 @@ Example:
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
 
-List all accounts
------------------
+## List all accounts
 
 Returns a list containing up to 20 accounts. You can paginate through account by supplying next_starting_index in your subsequents calls. next_starting_index contains the account_id of the last account_id of the current page.
 
@@ -877,8 +872,7 @@ Example:
 | 403    | Returned when the user does not have permission to access the resource.                |
 | 500    | Returned when an unexpected error occured on the server side.                          |
 
-Update an account
------------------
+## Update an account
 
 Updates an account with all the fields supplied.
 

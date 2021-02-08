@@ -24,11 +24,12 @@ type KeyValue struct {
 }
 
 type Generator struct {
-	ProtocGen string // The type of protoc generator that should be run; js, python, etc.
-	Command   string
-	Params    []KeyValue
-	ConfigDir string
-	Out       string
+	ProtocGen      string // The type of protoc generator that should be run; js, python, etc.
+	Command        string
+	Params         []KeyValue
+	PostProcParams []KeyValue
+	ConfigDir      string
+	Out            string
 }
 
 func (g Generator) IsProtoc() bool {
@@ -272,7 +273,11 @@ func handleGenerate(section *parser.Section) (*Generator, error) {
 		case "out":
 			gen.Out = v
 		default:
-			gen.Params = append(gen.Params, KeyValue{k, v})
+			if strings.HasSuffix(k, "postproc") {
+				gen.PostProcParams = append(gen.Params, KeyValue{k, v})
+			} else {
+				gen.Params = append(gen.Params, KeyValue{k, v})
+			}
 		}
 	}
 	return gen, nil

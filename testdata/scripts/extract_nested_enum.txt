@@ -107,8 +107,7 @@ type TransactionService interface {
 	GetTransaction(GetTransactionRequest) Transaction
 }
 -- transactions/all.md.golden --
-Transactions API v1.0.0
-=======================
+# Transactions API v1.0.0
 
 Provides create and read operations on the transaction resource.
 
@@ -116,8 +115,7 @@ Provides create and read operations on the transaction resource.
 
 * Base Path `/path`
 
-Retrieve a transaction
-----------------------
+## Retrieve a transaction
 
 Retrieves all data from a transaction, selected by the `transaction_id` you supplied.
 

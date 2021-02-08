@@ -157,15 +157,13 @@ msgstr ""
 msgid "USE_YOUR_TOKEN"
 msgstr ""
 -- all.md.golden --
-First API v1.0.0
-================
+# First API v1.0.0
 
 * Host `https://openbank.com`
 
 * Base Path `/path`
 
-Gets foo
---------
+## Gets foo
 
 ```sh
 curl -X GET \
@@ -199,15 +197,13 @@ Example:
 |--------|-------------|
 | 200    |             |
 
-Second API v1.0.0
-=================
+# Second API v1.0.0
 
 * Host `https://openbank.com`
 
 * Base Path `/path`
 
-Gets baz
---------
+## Gets baz
 
 ```sh
 curl -X GET \

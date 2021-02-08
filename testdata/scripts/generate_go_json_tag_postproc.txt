@@ -31,7 +31,7 @@ type AnExampleService interface {
 package test
 
 // Person represents a homo sapien instance.
-type Person struct {
+type DPerson struct {
 	FirstName string `pb:"1" json:"first_name"`
 	LastName string `pb:"2" json:"last_name"`
 }

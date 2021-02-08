@@ -89,10 +89,6 @@ type Service interface {
     "title": "this is a title",
     "version": "version not set"
   },
-  "schemes": [
-    "http",
-    "https"
-  ],
   "consumes": [
     "application/json"
   ],
@@ -104,7 +100,7 @@ type Service interface {
       "get": {
         "summary": "Retrieves message",
         "description": "Get message",
-        "operationId": "GetMessage",
+        "operationId": "operation_id",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -115,6 +111,12 @@ type Service interface {
           "404": {
             "description": "Returned when the resource does not exist.",
             "schema": {}
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
           }
         },
         "parameters": [
@@ -130,6 +132,9 @@ type Service interface {
           "tag 2"
         ],
         "deprecated": true,
+        "produces": [
+          "application/xml"
+        ],
         "security": [
           {
             "ApiKeyAuth": [
@@ -149,6 +154,39 @@ type Service interface {
     }
   },
   "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "runtimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
     "testMessage": {
       "type": "object",
       "properties": {

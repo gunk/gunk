@@ -8,7 +8,6 @@ require (
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/emicklei/proto v1.9.0
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
-	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
@@ -32,7 +31,7 @@ require (
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb // indirect
 	golang.org/x/sys v0.0.0-20201202213521-69691e467435 // indirect
 	golang.org/x/text v0.3.4 // indirect
-	golang.org/x/tools v0.0.0-20201203202102-a1a1cbeaa516
+	golang.org/x/tools v0.0.0-20210106214847-113979e3529a
 	google.golang.org/genproto v0.0.0-20201203001206-6486ece9c497
 	google.golang.org/grpc v1.34.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6

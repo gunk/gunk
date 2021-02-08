@@ -60,5 +60,5 @@ func ExecError(command string, err error) error {
 		// directly to os.Stderr, so it may not be here.
 		err = fmt.Errorf("%v: %s", xerr.ProcessState, xerr.Stderr)
 	}
-	return fmt.Errorf("error executing %q: %v", command, err)
+	return fmt.Errorf("error executing %q: %w", command, err)
 }

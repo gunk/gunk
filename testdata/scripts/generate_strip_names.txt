@@ -1,0 +1,27 @@
+gunk generate .
+
+grep '\tAvailable_FOO Available = 0' all.pb.go
+grep '\tAvailable_BAZ Available = 1' all.pb.go
+grep '\tAvailable_BAR Available = 2' all.pb.go
+
+
+-- .gunkconfig --
+strip_enum_type_names=true
+[generate go]
+
+[protoc]
+version=v3.6.0
+
+-- go.mod --
+module testdata.tld/util
+
+-- util.gunk --
+package util
+
+type Available int
+
+const (
+	Available_FOO Available = iota
+	Available_BAZ
+	Available_BAR
+)

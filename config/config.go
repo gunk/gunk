@@ -39,7 +39,7 @@ func (g Generator) IsProtoc() bool {
 }
 
 func (g Generator) IsGo() bool {
-	return g.ProtocGen == "go" || g.Command == "protoc-gen-go"
+	return g.ProtocGen == "go" || strings.Contains(g.Command, "protoc-gen-go")
 }
 
 func (g Generator) ParamString() string {

@@ -1,0 +1,38 @@
+gunk generate -v ./...
+grep 'json:"first_name' enabled/all.pb.go
+grep 'json:"FirstName' disabled/all.pb.go
+
+-- go.mod --
+module testdata.tld/util
+
+-- enabled/.gunkconfig --
+[generate go]
+plugins=grpc
+json_tag_postproc=true
+plugin_version=v1.3.4
+
+-- disabled/.gunkconfig --
+[generate go]
+
+-- enabled/echo.gunk --
+package test
+
+// Person represents a homo sapien instance.
+type Person struct {
+	FirstName string `pb:"1" json:"first_name"`
+	LastName string `pb:"2" json:"last_name"`
+}
+
+// AnExampleService is just an example.
+type AnExampleService interface {
+    Example(Person) Person
+}
+
+-- disabled/echo.gunk --
+package test
+
+// Person represents a homo sapien instance.
+type DPerson struct {
+	FirstName string `pb:"1" json:"first_name"`
+	LastName string `pb:"2" json:"last_name"`
+}

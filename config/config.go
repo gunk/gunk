@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/kenshaw/ini"
@@ -24,16 +25,21 @@ type KeyValue struct {
 }
 
 type Generator struct {
-	ProtocGen      string // The type of protoc generator that should be run; js, python, etc.
-	Command        string
-	Params         []KeyValue
-	PostProcParams []KeyValue
-	ConfigDir      string
-	Out            string
+	ProtocGen     string // The type of protoc generator that should be run; js, python, etc.
+	Command       string
+	PluginVersion string // we can pin a protoc-gen-XX version (just for go for now)
+	Params        []KeyValue
+	ConfigDir     string
+	Out           string
+	JSONPostProc  bool
 }
 
 func (g Generator) IsProtoc() bool {
 	return g.ProtocGen != ""
+}
+
+func (g Generator) IsGo() bool {
+	return g.ProtocGen == "go" || g.Command == "protoc-gen-go"
 }
 
 func (g Generator) ParamString() string {
@@ -74,12 +80,13 @@ func (g Generator) OutPath(packageDir string) string {
 }
 
 type Config struct {
-	Dir           string
-	Out           string
-	ImportPath    string
-	ProtocPath    string
-	ProtocVersion string
-	Generators    []Generator
+	Dir                string
+	Out                string
+	ImportPath         string
+	ProtocPath         string
+	ProtocVersion      string
+	Generators         []Generator
+	StripEnumTypeNames bool
 }
 
 // Load will attempt to find the .gunkconfig in the 'dir', working
@@ -270,14 +277,19 @@ func handleGenerate(section *parser.Section) (*Generator, error) {
 				return nil, fmt.Errorf("only one 'command' or 'protoc' allowed")
 			}
 			gen.ProtocGen = v
+		case "plugin_version":
+			gen.PluginVersion = v
 		case "out":
 			gen.Out = v
-		default:
-			if strings.HasSuffix(k, "postproc") {
-				gen.PostProcParams = append(gen.Params, KeyValue{k, v})
-			} else {
-				gen.Params = append(gen.Params, KeyValue{k, v})
+
+		case "json_tag_postproc":
+			p, err := strconv.ParseBool(v)
+			if err != nil {
+				return nil, fmt.Errorf("cannot parse json_tag_postproc: %w", err)
 			}
+			gen.JSONPostProc = p
+		default:
+			gen.Params = append(gen.Params, KeyValue{k, v})
 		}
 	}
 	return gen, nil
@@ -291,6 +303,12 @@ func handleGlobal(config *Config, section *parser.Section) error {
 			config.Out = v
 		case "import_path":
 			config.ImportPath = v
+		case "strip_enum_type_names":
+			p, err := strconv.ParseBool(v)
+			if err != nil {
+				return fmt.Errorf("cannot parse strip_enum_type_names: %w", err)
+			}
+			config.StripEnumTypeNames = p
 		default:
 			return fmt.Errorf("unexpected key %q in global section", k)
 		}

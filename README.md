@@ -376,6 +376,16 @@ out=v1/js
 protoc=js
 ```
 
+### Global section
+
+* `import_path` - see "Converting Existing Protobuf Files"
+  
+* `strip_enum_type_names` - with this option on, enums with their type prefixed
+  will be renamed to the version without prefix.
+  
+  Note that this might produce invalid protobuf that stops compiling in 1.4.*
+  protoc-gen-go, if the enum names clash.
+
 ### Section `[protoc]`
 
 The path where to check for (or where to download) the `protoc` binary can be configured.
@@ -415,6 +425,13 @@ generate` tool:
 
 * `out` - overrides the output path of `protoc`. If not defined, output will be
   the same directory as the location of the `.gunk` files.
+
+* `plugin_version` - specify version, currently working only for protoc-gen-go,
+  as other plugins are bundled with protoc. This will clone and go build
+  protoc-gen-go in gunk cache folder.
+
+* `json_tag_postproc` - uses `json` tags defined in gunk file also for go-generated
+  file
 
 All other `name[=value]` pairs specified within the `generate` section will be
 passed as plugin parameters to `protoc` and the `protoc-gen-<type>` generators.

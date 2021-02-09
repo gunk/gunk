@@ -1,0 +1,30 @@
+! gunk generate .
+
+stderr 'already declared'
+
+-- .gunkconfig --
+strip_enum_type_names=true
+[generate go]
+
+[protoc]
+version=v3.6.0
+
+-- go.mod --
+module testdata.tld/util
+
+-- util.gunk --
+package util
+
+type Status int
+
+const (
+	FOO Status = iota
+	BAR
+)
+
+type Available int
+
+const (
+	Available_FOO Available = iota
+	BAZ
+)

@@ -145,7 +145,7 @@ func TestScripts(t *testing.T) {
 	p := testscript.Params{
 		Dir: filepath.Join("testdata", "scripts"),
 		Setup: func(e *testscript.Env) error {
-			e.Vars = append(e.Vars, "GOPROXY="+proxyURL)
+			e.Vars = append(e.Vars, "GOPROXY="+proxyURL+",https://proxy.golang.org,direct")
 			e.Vars = append(e.Vars, "GONOSUMDB=*")
 			e.Vars = append(e.Vars, "GUNK_CACHE_DIR="+cacheDir)
 			return nil

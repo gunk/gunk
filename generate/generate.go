@@ -126,7 +126,6 @@ func FileDescriptorSet(dir string, args ...string) (*desc.FileDescriptorSet, err
 
 	// Translate the packages from Gunk to Proto.
 	for _, pkg := range pkgs {
-		// TODO should we strip the type names here? probably not needed, we don't output those?
 		if err := g.translatePkg(pkg.PkgPath, false); err != nil {
 			return nil, err
 		}
@@ -450,8 +449,8 @@ func (g *Generator) translatePkg(pkgPath string, stripEnumTypeNames bool) error 
 	// Do the recursive translatePkg calls at the end, since the generator
 	// holds the state for the current package.
 	for _, pkgPath := range leftToTranslate {
-		// TODO should we strip the type names here? probably not needed, we don't output those?
-		if err := g.translatePkg(pkgPath, false); err != nil {
+		// TODO: does this break anything?
+		if err := g.translatePkg(pkgPath, stripEnumTypeNames); err != nil {
 			return err
 		}
 	}

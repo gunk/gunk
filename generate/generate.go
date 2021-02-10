@@ -252,7 +252,10 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 		// we can use that package path on disk as the default location
 		// to output generated files.
 		pkgPath = filepath.Clean(pkgPath)
-		gpkg := g.gunkPkgs[pkgPath]
+		gpkg, ok := g.gunkPkgs[pkgPath]
+		if !ok {
+			return fmt.Errorf("failed to get package %s to protoc generate", pkgPath)
+		}
 		protocOutputPath = gpkg.Dir
 	}
 
@@ -311,7 +314,10 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen config.G
 		// on-disk file path.
 		pkgPath, basename := filepath.Split(*rf.Name)
 		pkgPath = filepath.Clean(pkgPath) // to remove trailing slashes
-		gpkg := g.gunkPkgs[pkgPath]
+		gpkg, ok := g.gunkPkgs[pkgPath]
+		if !ok {
+			return fmt.Errorf("failed to get gunk package %s from code generator response", pkgPath)
+		}
 		data := []byte(*rf.Content)
 		if data, err = postProcess(data, gen); err != nil {
 			return fmt.Errorf("failed to execute post processing: %s", err.Error())
@@ -382,7 +388,10 @@ _addLoop:
 // proto language. All the files within the package, including all the
 // files for its transitive dependencies, must already be loaded.
 func (g *Generator) translatePkg(pkgPath string, stripEnumTypeNames bool) error {
-	gpkg := g.gunkPkgs[pkgPath]
+	gpkg, ok := g.gunkPkgs[pkgPath]
+	if !ok {
+		return fmt.Errorf("failed to get package %s to translate", pkgPath)
+	}
 	pfilename := unifiedProtoFile(gpkg.PkgPath)
 	if _, ok := g.allProto[pfilename]; ok {
 		// Already translated, e.g. as a dependency.
@@ -698,10 +707,18 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*desc.DescriptorProto, 
 		if mtype, ok := ftype.(*types.Map); ok {
 			ptype = desc.FieldDescriptorProto_TYPE_MESSAGE
 			plabel = desc.FieldDescriptorProto_LABEL_REPEATED
-			tname, msgNestedType = g.convertMap(tspec.Name.Name, fieldName, mtype)
+			var err error
+			tname, msgNestedType, err = g.convertMap(tspec.Name.Name, fieldName, mtype)
+			if err != nil {
+				return nil, err
+			}
 			msg.NestedType = append(msg.NestedType, msgNestedType)
 		} else {
-			ptype, plabel, tname = g.convertType(ftype)
+			var err error
+			ptype, plabel, tname, err = g.convertType(ftype)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if ptype == 0 {
 			return nil, fmt.Errorf("unsupported field type: %v", ftype)
@@ -872,17 +889,27 @@ func (g *Generator) convertService(tspec *ast.TypeSpec) (*desc.ServiceDescriptor
 // the MapEntry option set to true.
 //
 // https://developers.google.com/protocol-buffers/docs/proto#maps
-func (g *Generator) convertMap(parentName, fieldName string, mapTyp *types.Map) (string, *desc.DescriptorProto) {
+func (g *Generator) convertMap(parentName, fieldName string, mapTyp *types.Map) (string, *desc.DescriptorProto, error) {
 	mapName := fieldName + "Entry"
-	typeName := g.qualifiedTypeName(parentName+"."+mapName, nil)
-
-	keyType, _, keyTypeName := g.convertType(mapTyp.Key())
-	if keyType == 0 {
-		return "", nil
+	typeName, err := g.qualifiedTypeName(parentName+"."+mapName, nil)
+	if err != nil {
+		return "", nil, err
 	}
-	elemType, _, elemTypeName := g.convertType(mapTyp.Elem())
+
+	keyType, _, keyTypeName, err := g.convertType(mapTyp.Key())
+	if err != nil {
+		return "", nil, err
+	}
+	if keyType == 0 {
+		return "", nil, nil
+	}
+
+	elemType, _, elemTypeName, err := g.convertType(mapTyp.Elem())
+	if err != nil {
+		return "", nil, err
+	}
 	if elemType == 0 {
-		return "", nil
+		return "", nil, nil
 	}
 
 	fieldLabel := desc.FieldDescriptorProto_LABEL_OPTIONAL
@@ -908,7 +935,7 @@ func (g *Generator) convertMap(parentName, fieldName string, mapTyp *types.Map) 
 			},
 		},
 	}
-	return typeName, nestedType
+	return typeName, nestedType, nil
 }
 
 func (g *Generator) convertParameter(tuple *types.Tuple) (*string, *bool, error) {
@@ -922,7 +949,10 @@ func (g *Generator) convertParameter(tuple *types.Tuple) (*string, *bool, error)
 		return nil, nil, fmt.Errorf("multiple parameters are not supported")
 	}
 	param := tuple.At(0).Type()
-	_, label, tname := g.convertType(param)
+	_, label, tname, err := g.convertType(param)
+	if err != nil {
+		return nil, nil, err
+	}
 	if tname == "" {
 		return nil, nil, fmt.Errorf("unsupported parameter type: %v", param)
 	}
@@ -1046,19 +1076,22 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec, stripTypeName bool) (*desc.
 // being processed.
 //
 // Currently we format the type as ".<pkg_name>.<type_name>"
-func (g *Generator) qualifiedTypeName(typeName string, pkg *types.Package) string {
+func (g *Generator) qualifiedTypeName(typeName string, pkg *types.Package) (string, error) {
 	// If pkg is nil, we should format the type for the current package.
 	if pkg == nil {
-		return "." + g.curPkg.ProtoName + "." + typeName
+		return "." + g.curPkg.ProtoName + "." + typeName, nil
 	}
-	gpkg := g.gunkPkgs[pkg.Path()]
-	return "." + gpkg.ProtoName + "." + typeName
+	gpkg, ok := g.gunkPkgs[pkg.Path()]
+	if !ok {
+		return "", fmt.Errorf("failed to get package %s to get qualified type name", pkg.Path())
+	}
+	return "." + gpkg.ProtoName + "." + typeName, nil
 }
 
 // convertType converts a Go field or parameter type to Protobuf, returning its
 // type descriptor, a label such as "repeated", and a name, if the final type is
 // an enum or a message.
-func (g *Generator) convertType(typ types.Type) (desc.FieldDescriptorProto_Type, desc.FieldDescriptorProto_Label, string) {
+func (g *Generator) convertType(typ types.Type) (desc.FieldDescriptorProto_Type, desc.FieldDescriptorProto_Label, string, error) {
 	switch typ := typ.(type) {
 	case *types.Chan:
 		return g.convertType(typ.Elem())
@@ -1067,55 +1100,61 @@ func (g *Generator) convertType(typ types.Type) (desc.FieldDescriptorProto_Type,
 		// https://developers.google.com/protocol-buffers/docs/proto3#scalar
 		switch typ.Kind() {
 		case types.String:
-			return desc.FieldDescriptorProto_TYPE_STRING, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
+			return desc.FieldDescriptorProto_TYPE_STRING, desc.FieldDescriptorProto_LABEL_OPTIONAL, "", nil
 		case types.Int, types.Int32:
-			return desc.FieldDescriptorProto_TYPE_INT32, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
+			return desc.FieldDescriptorProto_TYPE_INT32, desc.FieldDescriptorProto_LABEL_OPTIONAL, "", nil
 		case types.Uint, types.Uint32:
-			return desc.FieldDescriptorProto_TYPE_UINT32, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
+			return desc.FieldDescriptorProto_TYPE_UINT32, desc.FieldDescriptorProto_LABEL_OPTIONAL, "", nil
 		case types.Int64:
-			return desc.FieldDescriptorProto_TYPE_INT64, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
+			return desc.FieldDescriptorProto_TYPE_INT64, desc.FieldDescriptorProto_LABEL_OPTIONAL, "", nil
 		case types.Uint64:
-			return desc.FieldDescriptorProto_TYPE_UINT64, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
+			return desc.FieldDescriptorProto_TYPE_UINT64, desc.FieldDescriptorProto_LABEL_OPTIONAL, "", nil
 		case types.Float32:
-			return desc.FieldDescriptorProto_TYPE_FLOAT, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
+			return desc.FieldDescriptorProto_TYPE_FLOAT, desc.FieldDescriptorProto_LABEL_OPTIONAL, "", nil
 		case types.Float64:
-			return desc.FieldDescriptorProto_TYPE_DOUBLE, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
+			return desc.FieldDescriptorProto_TYPE_DOUBLE, desc.FieldDescriptorProto_LABEL_OPTIONAL, "", nil
 		case types.Bool:
-			return desc.FieldDescriptorProto_TYPE_BOOL, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
+			return desc.FieldDescriptorProto_TYPE_BOOL, desc.FieldDescriptorProto_LABEL_OPTIONAL, "", nil
 		}
 	case *types.Named:
 		switch typ.String() {
 		case "time.Time":
 			g.addProtoDep("google/protobuf/timestamp.proto")
-			return desc.FieldDescriptorProto_TYPE_MESSAGE, desc.FieldDescriptorProto_LABEL_OPTIONAL, ".google.protobuf.Timestamp"
+			return desc.FieldDescriptorProto_TYPE_MESSAGE, desc.FieldDescriptorProto_LABEL_OPTIONAL, ".google.protobuf.Timestamp", nil
 		case "time.Duration":
 			g.addProtoDep("google/protobuf/duration.proto")
-			return desc.FieldDescriptorProto_TYPE_MESSAGE, desc.FieldDescriptorProto_LABEL_OPTIONAL, ".google.protobuf.Duration"
+			return desc.FieldDescriptorProto_TYPE_MESSAGE, desc.FieldDescriptorProto_LABEL_OPTIONAL, ".google.protobuf.Duration", nil
 		}
-		fullName := g.qualifiedTypeName(typ.Obj().Name(), typ.Obj().Pkg())
+		fullName, err := g.qualifiedTypeName(typ.Obj().Name(), typ.Obj().Pkg())
+		if err != nil {
+			return 0, 0, "", err
+		}
 		g.usedImports[typ.Obj().Pkg().Path()] = true
 		switch u := typ.Underlying().(type) {
 		case *types.Basic:
 			switch u.Kind() {
 			case types.Int, types.Int32:
-				return desc.FieldDescriptorProto_TYPE_ENUM, desc.FieldDescriptorProto_LABEL_OPTIONAL, fullName
+				return desc.FieldDescriptorProto_TYPE_ENUM, desc.FieldDescriptorProto_LABEL_OPTIONAL, fullName, nil
 			}
 		case *types.Struct:
-			return desc.FieldDescriptorProto_TYPE_MESSAGE, desc.FieldDescriptorProto_LABEL_OPTIONAL, fullName
+			return desc.FieldDescriptorProto_TYPE_MESSAGE, desc.FieldDescriptorProto_LABEL_OPTIONAL, fullName, nil
 		}
 	case *types.Slice:
 		if eTyp, ok := typ.Elem().(*types.Basic); ok {
 			if eTyp.Kind() == types.Byte {
-				return desc.FieldDescriptorProto_TYPE_BYTES, desc.FieldDescriptorProto_LABEL_OPTIONAL, ""
+				return desc.FieldDescriptorProto_TYPE_BYTES, desc.FieldDescriptorProto_LABEL_OPTIONAL, "", nil
 			}
 		}
-		dtyp, _, name := g.convertType(typ.Elem())
-		if dtyp == 0 {
-			return 0, 0, ""
+		dtyp, _, name, err := g.convertType(typ.Elem())
+		if err != nil {
+			return 0, 0, "", err
 		}
-		return dtyp, desc.FieldDescriptorProto_LABEL_REPEATED, name
+		if dtyp == 0 {
+			return 0, 0, "", nil
+		}
+		return dtyp, desc.FieldDescriptorProto_LABEL_REPEATED, name, nil
 	}
-	return 0, 0, ""
+	return 0, 0, "", nil
 }
 
 // addProtoDep is called when a gunk file is known to require importing of a

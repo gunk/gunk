@@ -49,16 +49,32 @@ func main1() (code int) {
 	// Replace kingpin's use of os.Exit, as testscript requires that we
 	// return exit codes instead of exiting the entire program. Use a panic,
 	// as we need to completely halt kingpin when it calls our terminate.
-	type terminatedCode int
-	app.Terminate(func(c int) { panic(terminatedCode(c)) })
+	// But also make sure to not use `recover` and re-panic, as that does not print the correct
+	// stacktrace
+	var tCode int
+	var didTerminate bool
+	didPanic := true
+	app.Terminate(func(c int) {
+		didTerminate = true
+		tCode = c
+		panic("terminated")
+	})
+
 	defer func() {
-		r := recover()
-		if c, ok := r.(terminatedCode); ok {
-			code = int(c)
-		} else if r != nil {
-			panic(r)
+		if didPanic {
+			if didTerminate {
+				recover()
+				code = tCode
+			}
 		}
 	}()
+
+	c := main2()
+	didPanic = false
+	return c
+}
+
+func main2() (code int) {
 	app.HelpFlag.Short('h') // allow -h as well as --help
 
 	gen.Flag("print-commands", "print the commands").Short('x').BoolVar(&log.PrintCommands)

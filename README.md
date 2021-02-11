@@ -426,9 +426,20 @@ generate` tool:
 * `out` - overrides the output path of `protoc`. If not defined, output will be
   the same directory as the location of the `.gunk` files.
 
-* `plugin_version` - specify version, currently working only for protoc-gen-go,
-  as other plugins are bundled with protoc. This will clone and go build
-  protoc-gen-go in gunk cache folder.
+* `plugin_version` - specify version of plugin. The plugin is downloaded
+  from github/maven, built in cache and used. It is *not* installed in $PATH. 
+  This currently works with the following plugins:
+  
+  - protoc-gen-go
+  - protoc-gen-grpc-java
+  - protoc-gen-grpc-gateway
+  - protoc-gen-swagger
+  - protoc-gen-openapiv2
+  - protoc-gen-swift (installing swift itself first is necessary)
+  - protoc-gen-grpc-swift (installing swift itself first is necessary)
+
+  It is recommended to use this function everywhere, for reproducible builds,
+  together with `version` for protoc.
 
 * `json_tag_postproc` - uses `json` tags defined in gunk file also for go-generated
   file
@@ -457,6 +468,46 @@ command=protoc-gen-go
 out=v1/js
 protoc=js
 ```
+
+#### Different forms of invocation
+
+There are three different forms of gunkconfig sections that have three
+different semantics.
+
+```ini
+[generate]
+command=protoc-gen-go
+
+[generate]
+protoc=go
+
+[generate go]
+```
+
+The first one uses protoc-gen-go plugin directly, without using protoc.
+It also attempts to move files to the same directory as the gunk file.
+
+The second one uses protoc and does not attempt to move any files.
+Protoc attempts to load plugin from $PATH, if it is not one of the 
+built-in protoc plugins; this will *not* work together with pinned version
+and other gunk features and is not recommended outside of built-in
+protoc generators.
+
+The third version is reccomended. It will try to detect whether language 
+is one of built-in
+protoc generators, in that case behaves like the second way, otherwise 
+behaves like the first.
+
+The built-in protoc generators are:
+
+- cpp
+- java
+- python
+- php
+- ruby 
+- csharp
+- objc
+- js
 
 ## Third-Party Protobuf Options
 

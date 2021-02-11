@@ -10,6 +10,8 @@ require (
 )
 -- .gunkconfig --
 [generate swagger]
+plugin_version=v1.16.0
+
 -- echo.gunk --
 // +gunk openapiv2.Swagger{
 //         Swagger: "2.0",

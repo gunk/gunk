@@ -29,6 +29,7 @@ module root
 -- gitfolder/.gunkconfig --
 [generate]
 command=protoc-gen-go
+plugin_version=v1.4.3
 plugins=grpc
 -- gitfolder/util.gunk --
 package util
@@ -46,6 +47,7 @@ type Util interface {
 -- gitfile/.gunkconfig --
 [generate]
 command=protoc-gen-go
+plugin_version=v1.4.3
 plugins=grpc
 -- gitfile/util.gunk --
 package util
@@ -64,6 +66,7 @@ module testdata.tld/util
 -- gomod/.gunkconfig --
 [generate]
 command=protoc-gen-go
+plugin_version=v1.4.3
 plugins=grpc
 -- gomod/util.gunk --
 package util

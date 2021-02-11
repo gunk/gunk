@@ -10,6 +10,7 @@ import (
 	"github.com/gunk/gunk/dump"
 	"github.com/gunk/gunk/format"
 	"github.com/gunk/gunk/generate"
+	"github.com/gunk/gunk/generate/downloader"
 	"github.com/gunk/gunk/log"
 )
 
@@ -122,6 +123,6 @@ func main2() (code int) {
 }
 
 func downloadProtoc() error {
-	_, err := generate.CheckOrDownloadProtoc(*dlProtocPath, *dlProtocVer)
+	_, err := downloader.CheckOrDownloadProtoc(*dlProtocPath, *dlProtocVer)
 	return err
 }

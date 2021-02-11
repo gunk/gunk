@@ -18,6 +18,7 @@ require (
 -- .gunkconfig --
 [generate go]
 out=v1/go
+plugin_version=v1.4.3
 
 [generate python]
 out=v1/python

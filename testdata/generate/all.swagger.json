@@ -1,0 +1,134 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "testdata.tld/util/all.proto",
+    "description": "package util contains a simple Echo service.",
+    "version": "version not set"
+  },
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/echo": {
+      "get": {
+        "summary": "CheckStatus sends the server health status.",
+        "operationId": "Util_CheckStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/utilCheckStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "tags": [
+          "Util"
+        ]
+      },
+      "post": {
+        "summary": "Echo echoes a message.",
+        "operationId": "Util_Echo",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/importedMessage"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response",
+            "schema": {
+              "$ref": "#/definitions/runtimeError"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/importedMessage"
+            }
+          }
+        ],
+        "tags": [
+          "Util"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "importedMessage": {
+      "type": "object",
+      "properties": {
+        "Msg": {
+          "type": "string",
+          "description": "Msg holds a message."
+        }
+      },
+      "description": "Message is a Echo message."
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "runtimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "utilCheckStatusResponse": {
+      "type": "object",
+      "properties": {
+        "Status": {
+          "$ref": "#/definitions/utilStatus"
+        }
+      },
+      "description": "CheckStatusResponse is the response for a check status."
+    },
+    "utilStatus": {
+      "type": "string",
+      "enum": [
+        "Unknown",
+        "Error",
+        "OK"
+      ],
+      "default": "Unknown",
+      "description": "Status is a server health status.\n\n - Unknown: Status_Unknown is the default, unset status value.\n - Error: Status_Error is a status value that implies something went wrong.\n - OK: Status_OK is a status value used when all went well."
+    }
+  }
+}

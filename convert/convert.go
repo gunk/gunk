@@ -10,7 +10,7 @@ import (
 
 	"github.com/gunk/gunk/config"
 	"github.com/gunk/gunk/format"
-	"github.com/gunk/gunk/generate"
+	"github.com/gunk/gunk/generate/downloader"
 	"github.com/gunk/gunk/loader"
 )
 
@@ -41,7 +41,7 @@ func run(path string, overwrite bool) error {
 		cfgProtocVer = cfg.ProtocVersion
 	}
 
-	protocPath, err := generate.CheckOrDownloadProtoc(cfgProtocPath, cfgProtocVer)
+	protocPath, err := downloader.CheckOrDownloadProtoc(cfgProtocPath, cfgProtocVer)
 	if err != nil {
 		return err
 	}

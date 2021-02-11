@@ -9,9 +9,11 @@ module testdata.tld/util
 [generate go]
 plugins=grpc
 json_tag_postproc=true
+plugin_version=v1.4.3
 
 -- disabled/.gunkconfig --
 [generate go]
+plugin_version=v1.4.3
 
 -- enabled/echo.gunk --
 package test

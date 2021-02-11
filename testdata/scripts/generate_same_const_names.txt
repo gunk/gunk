@@ -4,6 +4,7 @@ grep 'Available_Available_FOO Available = 0' all.pb.go
 
 -- .gunkconfig --
 [generate go]
+plugin_version=v1.4.3
 
 -- go.mod --
 module testdata.tld/util

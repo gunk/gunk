@@ -32,9 +32,6 @@ func TestMain(m *testing.M) {
 		os.Setenv("GOBIN", binDir)
 		os.Setenv("PATH", binDir+string(filepath.ListSeparator)+os.Getenv("PATH"))
 		cmd := exec.Command("go", "install", "-ldflags=-w -s",
-			"github.com/golang/protobuf/protoc-gen-go",
-			"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway",
-			"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger",
 			"./docgen/",
 			"./scopegen/",
 			"github.com/Kunde21/pulpMd",

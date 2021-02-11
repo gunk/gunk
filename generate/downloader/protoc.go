@@ -1,4 +1,4 @@
-package generate
+package downloader
 
 import (
 	"archive/zip"
@@ -32,6 +32,9 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 		version = defaultProtocVersion
 	}
 
+	// note - functionality is shared partly with getPaths in download.go
+	// but as that does not test existing binaries (as protoc-gen- binaries do not need to return version)
+	// let's keep it separate
 	dstPath := path
 	if dstPath == "" {
 		// Get the OS-specific cache directory.
@@ -64,6 +67,7 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 	// We are the only goroutine with access to dstPath. Check if it already
 	// exists. Using lockedfile.OpenFile allows us to do an atomic write
 	// when it doesn't exist yet.
+	// TODO: isn't this lock entirely superfluous? The first lock already blocks the whole time
 	dstFile, err := lockedfile.OpenFile(dstPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0775)
 	if os.IsExist(err) {
 		// It exists. Because of O_EXCL, we haven't actually opened the
@@ -81,7 +85,7 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 	// The file does not exist. Download it, using dstFile.
 	url, err := protocDownloadURL(runtime.GOOS, runtime.GOARCH, version)
 	if err != nil {
-		return "", fmt.Errorf("downloading protoc: %v", err)
+		return "", fmt.Errorf("downloading protoc: %w", err)
 	}
 
 	// Download protoc since we were unable to find a usable
@@ -157,8 +161,11 @@ func verifyProtocBinary(path, version string) error {
 	// NOTE: the output of protoc --version doesn't include a 'v',
 	// but the release tags do
 	gotVersion := strings.TrimSpace(versionOutput[10:])
-	if gotVersion != version[1:] {
-		return fmt.Errorf("want protoc version %q got %q", version, gotVersion)
+	short := version[1:]
+	// split "-rc"
+	split := strings.Split(short, "-")
+	if gotVersion != split[0] {
+		return fmt.Errorf("want protoc version %q got %q", split[0], gotVersion)
 	}
 
 	return nil
@@ -210,87 +217,14 @@ func protocDownloadURL(os, arch, version string) (string, error) {
 		return "", fmt.Errorf("unknown os %q and arch %q", os, arch)
 	}
 
+	// the version string is guaranteed to starts with "v", removing it
+	short := version[1:]
+	short = strings.ReplaceAll(short, "rc", "rc-")
+
 	return fmt.Sprintf("https://github.com/%s/releases/download/%s/protoc-%s-%s.zip",
 		protocGitHubRepo,
 		version,
-		version[1:], // the version string is guaranteed to starts with "v", removing it
+		short,
 		platform,
 	), nil
-}
-
-func BuildProtocGenGo(version string) (string, error) {
-	if version == "" {
-		// require version. this is used only with version explicitly set.
-		return "", fmt.Errorf("must provide protoc-gen-go version")
-	}
-
-	// Get the OS-specific cache directory.
-	cachePath, err := os.UserCacheDir()
-	if err != nil {
-		return "", err
-	}
-	if dir := os.Getenv("GUNK_CACHE_DIR"); dir != "" {
-		// Allow overriding the cache dir entirely. Mainly for
-		// the tests.
-		cachePath = dir
-	}
-
-	gitCloneDir := filepath.Join(cachePath, "gunk", fmt.Sprintf("protoc-gen-go-%s", version))
-
-	binaryDir := filepath.Join(gitCloneDir, "protoc-gen-go")
-	binaryPath := filepath.Join(binaryDir, "protoc-gen-go")
-
-	// lock cannot be in the dir where we git clone, otherwise git is unhappy
-	lockPath := gitCloneDir + ".lock"
-
-	// First, grab a lock separate from the destination file. The
-	// destination file is a binary we'll want to execute, so using it
-	// directly as the lock can lead to "text file busy" errors.
-	unlock, err := lockedfile.MutexAt(lockPath).Lock()
-	if err != nil {
-		panic(err)
-	}
-	defer unlock()
-
-	_, fErr := os.Stat(binaryPath)
-	if !os.IsNotExist(fErr) {
-		if fErr != nil {
-			return "", fErr
-		}
-
-		return binaryPath, nil
-	}
-
-	// remove the whole git clone dir if something happened wrong
-	_, fErr = os.Stat(gitCloneDir)
-	if !os.IsNotExist(fErr) {
-		if fErr != nil {
-			return "", fErr
-		}
-
-		if err := os.RemoveAll(gitCloneDir); err != nil {
-			return "", err
-		}
-	}
-
-	gitCmd := log.ExecCommand("git", "clone", "--depth", "1", "--branch", version, "https://github.com/golang/protobuf", gitCloneDir)
-	err = gitCmd.Run()
-	if err != nil {
-		all := "git clone --depth 1 --branch " + version + " https://github.com/golang/protobuf " + gitCloneDir
-		return "", log.ExecError(all, err)
-	}
-
-	buildCmd := log.ExecCommand("go", "build")
-	buildCmd.Dir = binaryDir
-
-	var stderr bytes.Buffer
-	buildCmd.Stderr = &stderr
-
-	err = buildCmd.Run()
-	if err != nil {
-		all := "go build"
-		return "", log.ExecError(all, err)
-	}
-
-	return binaryPath, nil
 }

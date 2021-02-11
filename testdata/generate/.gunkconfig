@@ -1,6 +1,19 @@
-[generate]
-command=protoc-gen-go
-plugins=grpc
+[protoc]
+version=v3.9.1
 
-[generate]
-command=protoc-gen-grpc-gateway
+[generate go]
+plugins=grpc
+plugin_version=v1.4.3
+
+[generate grpc-gateway]
+plugin_version=v1.16.0
+
+[generate java]
+lite
+
+[generate grpc-java]
+plugin_version=v1.35.0
+lite
+
+[generate swagger]
+plugin_version=v1.14.4

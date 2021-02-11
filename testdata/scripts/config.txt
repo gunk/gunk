@@ -10,6 +10,7 @@ module testdata.tld/util
 -- gunk/.gunkconfig --
 [generate]
 command=protoc-gen-go
+plugin_version=v1.4.3
 plugins=grpc
 
 [generate]

@@ -8,6 +8,7 @@ grep '\tAvailable_BAR Available = 2' all.pb.go
 -- .gunkconfig --
 strip_enum_type_names=true
 [generate go]
+plugin_version=v1.4.3
 
 [protoc]
 version=v3.6.0

@@ -5,7 +5,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -38,8 +37,15 @@ func (g Generator) IsProtoc() bool {
 	return g.ProtocGen != ""
 }
 
+func (g Generator) Code() string {
+	if g.ProtocGen != "" {
+		return g.ProtocGen
+	}
+	return strings.TrimPrefix(g.Command, "protoc-gen-")
+}
+
 func (g Generator) IsGo() bool {
-	return g.ProtocGen == "go" || strings.Contains(g.Command, "protoc-gen-go")
+	return g.Code() == "go"
 }
 
 func (g Generator) ParamString() string {
@@ -188,6 +194,19 @@ func Load(dir string) (*Config, error) {
 	return config, nil
 }
 
+// from https://github.com/protocolbuffers/protobuf/blob/master/src/google/protobuf/compiler/main.cc
+// hardcode what languages are built-in in protoc, rest must have their own generator binary
+var protocBuiltinLanguages = map[string]bool{
+	"cpp": true,
+	"java": true,
+	"python": true,
+	"php": true,
+	"ruby": true,
+	"csharp": true,
+	"objc": true,
+	"js": true,
+}
+
 func load(reader io.Reader) (*Config, error) {
 	f, err := ini.Load(reader)
 	if err != nil {
@@ -221,12 +240,13 @@ func load(reader io.Reader) (*Config, error) {
 
 			gen, err = handleGenerate(s)
 			generator := strings.Trim(sParts[1], "\"")
+
 			// Is this shortened generator a protoc-gen-* binary, or
 			// should it be passed to protoc.
 			// We ignore the binary path since we don't do the same for the
 			// normal generate section. If we start using the binary path here
 			// we should also use it for the normal generate section.
-			if _, err := exec.LookPath("protoc-gen-" + generator); err == nil {
+			if !protocBuiltinLanguages[generator]{
 				gen.Command = "protoc-gen-" + generator
 			} else {
 				gen.ProtocGen = generator

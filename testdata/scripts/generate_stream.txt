@@ -29,6 +29,7 @@ require (
 -- .gunkconfig --
 [generate]
 command=protoc-gen-go
+plugin_version=v1.4.3
 plugins=grpc
 -- echo.gunk --
 package util

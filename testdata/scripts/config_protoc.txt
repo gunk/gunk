@@ -27,7 +27,7 @@ exists noversion/all.pb.go
 # pathversion/.gunkconfig work correctly across OSes
 cp $GUNK_CACHE_DIR/gunk/protoc-v3.8.0 protoc-v3.8.0
 ! gunk generate ./pathversion
-stderr 'want protoc version "v3.7.0" got "3.8.0"'
+stderr 'want protoc version "3.7.0" got "3.8.0"'
 ! exists pathversion/all.pb.go
 
 -- go.mod --
@@ -36,6 +36,7 @@ module testdata.tld/util
 -- .gunkconfig --
 [generate]
 command=protoc-gen-go
+plugin_version=v1.4.3
 plugins=grpc
 
 -- version/.gunkconfig --

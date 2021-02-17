@@ -589,20 +589,24 @@ func genJSONExample(messages map[string]*Message, path string) properties {
 	op := properties{}
 	for _, f := range m.Fields {
 		if f.Type.QualifiedName == "" || f.Type.IsEnum {
-			op = append(op, keyVal{Key: f.JSONName, Value: f.Type.Name})
+			if f.JSONName != "-" {
+				op = append(op, keyVal{Key: f.JSONName, Value: f.Type.Name})
+			}
 			continue
 		}
 
-		var v interface{} = genJSONExample(messages, f.Type.QualifiedName)
-		if f.Type.IsArray {
-			// Create an slice of type v and append v to it as an example.
-			b := reflect.New(reflect.SliceOf(reflect.TypeOf(v)))
-			v = reflect.Append(b.Elem(), reflect.ValueOf(v)).Interface()
+		if f.JSONName != "-" {
+			var v interface{} = genJSONExample(messages, f.Type.QualifiedName)
+			if f.Type.IsArray {
+				// Create an slice of type v and append v to it as an example.
+				b := reflect.New(reflect.SliceOf(reflect.TypeOf(v)))
+				v = reflect.Append(b.Elem(), reflect.ValueOf(v)).Interface()
+			}
+			op = append(op, keyVal{
+				Key:   f.JSONName,
+				Value: v,
+			})
 		}
-		op = append(op, keyVal{
-			Key:   f.JSONName,
-			Value: v,
-		})
 	}
 	return op
 }

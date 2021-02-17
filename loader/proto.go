@@ -185,8 +185,8 @@ func (b *builder) goType(fieldType string) string {
 func (b *builder) handleProtoType(typ proto.Visitee) error {
 	var err error
 	switch typ := typ.(type) {
-	case *proto.Syntax:
-		// Do nothing with syntax
+	case *proto.Syntax, *proto.Comment:
+		// Do nothing with syntax or comment
 	case *proto.Package:
 		// This gets translated at the very end because it is used
 		// in conjuction with the option "go_package" when writting

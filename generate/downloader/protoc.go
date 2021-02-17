@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/rogpeppe/go-internal/lockedfile"
+	"golang.org/x/sys/unix"
 
 	"github.com/gunk/gunk/log"
 )
@@ -56,12 +57,22 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 		dstPath = filepath.Join(cacheDir, fmt.Sprintf("protoc-%s", version))
 	}
 
+	dstDir, _ := filepath.Split(dstPath)
+	if unix.Access(dstDir, unix.W_OK) != nil {
+		// we use unwritable dstPath (system protoc),
+		// let's not do any of the locking/downloading and just test it
+		if err := verifyProtocBinary(dstPath, version); err != nil {
+			return "", err
+		}
+		return dstPath, nil
+	}
+
 	// First, grab a lock separate from the destination file. The
 	// destination file is a binary we'll want to execute, so using it
 	// directly as the lock can lead to "text file busy" errors.
 	unlock, err := lockedfile.MutexAt(dstPath + ".lock").Lock()
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 	defer unlock()
 	// We are the only goroutine with access to dstPath. Check if it already

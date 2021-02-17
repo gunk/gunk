@@ -68,7 +68,7 @@ Status | Description
 
 Name | Type | Description
 ---- | ---- | -----------
-{{range $f := .Fields}}{{mdType $f.JSONName}} | {{mdType $f.Type.Name}} | {{GetText $f.Comment.Leading}}
+{{range $f := .Fields}}{{if ne $f.JSONName "-"}}{{mdType $f.JSONName}} | {{mdType $f.Type.Name}} | {{GetText $f.Comment.Leading}}{{end}}
 {{end}}{{/* end field range */}}
 
 {{if .NestedMessages}}
@@ -79,7 +79,7 @@ Name | Type | Description
 
 Name | Type | Description
 ---- | ---- | -----------
-{{range $nf := $nm.Fields}}{{mdType $nf.JSONName}} | {{mdType $nf.Type.Name}} | {{GetText $nf.Comment.Leading}}
+{{range $nf := $nm.Fields}}{{if ne $nf.JSONName "-"}}{{mdType $nf.JSONName}} | {{mdType $nf.Type.Name}} | {{GetText $nf.Comment.Leading}}{{end}}
 {{end}}{{/* end nested message field range */}}
 {{end}}{{/* end nested message range*/}}
 {{end}}{{/* end nested message if*/}}

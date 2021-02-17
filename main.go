@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	version = "v0.0.0-dev"
+	version = "v0.6.0"
 
 	app = kingpin.New("gunk", "The modern frontend and syntax for Protocol Buffers.").UsageTemplate(kingpin.CompactUsageTemplate)
 

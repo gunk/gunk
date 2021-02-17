@@ -1,0 +1,30 @@
+gunk convert util.proto
+cmp util.gunk util.gunk.golden
+
+-- util.proto --
+syntax = "proto3";
+
+package api;
+
+// start employee types
+
+// employee type
+message Employee {
+
+  // employe name
+  string name  = 1;
+
+  // employee location
+  string location = 2;
+}
+
+-- util.gunk.golden --
+package api
+
+// employee type
+type Employee struct {
+	// employe name
+	Name string `pb:"1" json:"name"`
+	// employee location
+	Location string `pb:"2" json:"location"`
+}

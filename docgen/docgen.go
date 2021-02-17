@@ -9,12 +9,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Kunde21/markdownfmt/v2/markdownfmt"
+
 	"github.com/golang/protobuf/proto"
 	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
 
 	"github.com/gunk/gunk/docgen/generate"
 	"github.com/gunk/gunk/docgen/parser"
-	"github.com/gunk/gunk/log"
 	"github.com/gunk/gunk/plugin"
 )
 
@@ -117,14 +118,10 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 		}
 	}
 
-	// execute pulpMd to inject code snippets for examples.
-	cmd := log.ExecCommand("pulpMd", "--stdin=true")
-	cmd.Stdin = &buf
-	out, err := cmd.Output()
+	formatted, err := markdownfmt.Process("", buf.Bytes())
 	if err != nil {
-		return nil, log.ExecError("pulpMd", err)
+		return nil, err
 	}
-	buf = *bytes.NewBuffer(out)
 
 	return &plugin_go.CodeGeneratorResponse{
 		File: []*plugin_go.CodeGeneratorResponse_File{
@@ -134,7 +131,7 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 			},
 			{
 				Name:    proto.String(filepath.Join(base, "all.md")),
-				Content: proto.String(buf.String()),
+				Content: proto.String(string(formatted)),
 			},
 		},
 	}, nil

@@ -29,7 +29,7 @@ require (
 	github.com/spf13/viper v1.7.1 // indirect
 	golang.org/x/mod v0.4.0 // indirect
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb // indirect
-	golang.org/x/sys v0.0.0-20201202213521-69691e467435 // indirect
+	golang.org/x/sys v0.0.0-20201202213521-69691e467435
 	golang.org/x/text v0.3.4 // indirect
 	golang.org/x/tools v0.0.0-20210106214847-113979e3529a
 	google.golang.org/genproto v0.0.0-20201203001206-6486ece9c497

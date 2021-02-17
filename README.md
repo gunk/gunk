@@ -184,6 +184,12 @@ type Util interface {
 }
 ```
 
+Technically speaking, gunk is not actually strict subset of go, as gunk allows
+unused imports; it actually requires them for some features.
+
+See the example above;
+in pure go, this would not be a valid go code, as `http` is not used outside of the comment.
+
 ### Scalars
 
 Gunk's Go-derived syntax uses the canonical [Go scalar types][protobuf-types]
@@ -206,7 +212,8 @@ of the `proto3` syntax, defined by the [protocol buffer project][protobuf]:
 **Note:** Variable-length scalars will be enabled in the future using a tag
 parameter.
 
-[Gunk annotations]: #gunk-annotations (Gunk Annotation Syntax)
+[Gunk 
+ons]: #gunk-annotations (Gunk Annotation Syntax)
 
 ### Messages
 

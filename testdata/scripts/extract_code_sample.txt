@@ -313,6 +313,7 @@ acc, err := c.GetAccount(
 	&apb.GetAccountRequest{
 		ID: "123",
 	})
+
 ```
 
 ### HTTP Request

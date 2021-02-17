@@ -7,8 +7,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/kenshaw/snaker"
-
 	"github.com/gunk/gunk/assets"
 	"github.com/gunk/gunk/docgen/parser"
 	"github.com/gunk/gunk/docgen/pot"
@@ -67,8 +65,11 @@ func Run(w io.Writer, f *parser.FileDescWrapper, lang []string,
 				}
 				return txt
 			},
-			"AddSnippet": func(name string) string {
-				return fmt.Sprintf("{{snippet %s %v}}", snaker.CamelToSnake(name), lang)
+			"AddSnippet": func(name string) (string, error) {
+				return addSnippet(name, lang)
+			},
+			"mdType": func(txt string) string {
+				return strings.ReplaceAll(txt, "[", "\\[")
 			},
 		}).
 		Parse(string(b)))

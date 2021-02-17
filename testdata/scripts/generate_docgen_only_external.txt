@@ -156,11 +156,11 @@ curl -X GET \
 
 #### Response body
 
-| Name             | Type                                              | Description |
-|------------------|---------------------------------------------------|-------------|
-| map[string]int32 | MapStringInt is a simple map of a <string,int>.   |             |
-| map[int]string   | MapStringInt is a simple map of a <int,string>.   |             |
-| map[string]Price | MapStringPrice is a sample map of <string,price>. |             |
+| Name              | Type                                              | Description |
+|-------------------|---------------------------------------------------|-------------|
+| map\[string]int32 | MapStringInt is a simple map of a <string,int>.   |             |
+| map\[int]string   | MapStringInt is a simple map of a <int,string>.   |             |
+| map\[string]Price | MapStringPrice is a sample map of <string,price>. |             |
 
 Example:
 
@@ -227,11 +227,11 @@ curl -X POST \
 
 #### Response body
 
-| Name             | Type                                              | Description |
-|------------------|---------------------------------------------------|-------------|
-| map[string]int32 | MapStringInt is a simple map of a <string,int>.   |             |
-| map[int]string   | MapStringInt is a simple map of a <int,string>.   |             |
-| map[string]Price | MapStringPrice is a sample map of <string,price>. |             |
+| Name              | Type                                              | Description |
+|-------------------|---------------------------------------------------|-------------|
+| map\[string]int32 | MapStringInt is a simple map of a <string,int>.   |             |
+| map\[int]string   | MapStringInt is a simple map of a <int,string>.   |             |
+| map\[string]Price | MapStringPrice is a sample map of <string,price>. |             |
 
 Example:
 

@@ -34,7 +34,6 @@ func TestMain(m *testing.M) {
 		cmd := exec.Command("go", "install", "-ldflags=-w -s",
 			"./docgen/",
 			"./scopegen/",
-			"github.com/Kunde21/pulpMd",
 			"./testdata/protoc-gen-strict",
 		)
 		cmd.Stderr = os.Stderr

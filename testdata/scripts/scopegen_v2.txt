@@ -96,8 +96,8 @@ var Scopes = map[string]string{
 }
 
 var AuthScopes = map[string][]string{
-	"/test.Service/GetMessage":  []string{"read", "write"},
-	"/test.Service/GetMessage3": []string{"read"},
+	"/test.Service/GetMessage":  {"read", "write"},
+	"/test.Service/GetMessage3": {"read"},
 }
 
 // Any allows a loose challenge, for claims containing any of the method scopes.

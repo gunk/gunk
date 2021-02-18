@@ -98,8 +98,8 @@ const (
 )
 
 var authScopes = map[string][]AuthScope{
-	"/test.Service/GetMessage":  []AuthScope{Scope_read, Scope_write},
-	"/test.Service/GetMessage3": []AuthScope{Scope_read},
+	"/test.Service/GetMessage":  {Scope_read, Scope_write},
+	"/test.Service/GetMessage3": {Scope_read},
 }
 
 // Any allows a loose challenge, for claims containing any of the method scopes.

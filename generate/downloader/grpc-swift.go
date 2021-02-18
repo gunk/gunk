@@ -29,9 +29,9 @@ func (g GrpcSwift) Download(version string, p Paths) (string, error) {
 
 	repoPath := `https://github.com/grpc/grpc-swift`
 
-	binaryPath := filepath.Join(p.gitCloneDir, "protoc-gen-grpc-swift")
+	binaryPath := filepath.Join(p.buildDir, "protoc-gen-grpc-swift")
 
-	cmdArgs := []string{"clone", "--depth", "1", "--branch", version, repoPath, p.gitCloneDir}
+	cmdArgs := []string{"clone", "--depth", "1", "--branch", version, repoPath, p.buildDir}
 
 	gitCmd := log.ExecCommand("git", cmdArgs...)
 
@@ -42,7 +42,7 @@ func (g GrpcSwift) Download(version string, p Paths) (string, error) {
 	}
 
 	buildCmd := log.ExecCommand("make", "plugins")
-	buildCmd.Dir = p.gitCloneDir
+	buildCmd.Dir = p.buildDir
 
 	var stderr bytes.Buffer
 	buildCmd.Stderr = &stderr

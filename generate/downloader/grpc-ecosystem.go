@@ -68,7 +68,7 @@ func (ged GrpcEcosystem) Download(version string, p Paths) (string, error) {
 func (ged GrpcEcosystem) buildGithub(version string, p Paths) (string, error) {
 	const repoPath = `https://github.com/grpc-ecosystem/grpc-gateway`
 
-	cmdArgs := []string{"clone", "--depth", "1", "--branch", version, repoPath, p.gitCloneDir}
+	cmdArgs := []string{"clone", "--depth", "1", "--branch", version, repoPath, p.buildDir}
 
 	gitCmd := log.ExecCommand("git", cmdArgs...)
 
@@ -79,14 +79,14 @@ func (ged GrpcEcosystem) buildGithub(version string, p Paths) (string, error) {
 	}
 
 	// older version don't even have go.mod
-	goModPath := path.Join(p.gitCloneDir, "go.mod")
+	goModPath := path.Join(p.buildDir, "go.mod")
 	_, fErr := os.Stat(goModPath)
 	if fErr != nil {
 		if !os.IsNotExist(fErr) {
 			return "", fErr
 		}
 		goModInitCmd := log.ExecCommand("go", "mod", "init", "github.com/grpc-ecosystem/grpc-gateway")
-		goModInitCmd.Dir = p.gitCloneDir
+		goModInitCmd.Dir = p.buildDir
 		err = goModInitCmd.Run()
 		if err != nil {
 			all := "go mod init github.com/grpc-ecosystem/grpc-gateway"
@@ -94,7 +94,7 @@ func (ged GrpcEcosystem) buildGithub(version string, p Paths) (string, error) {
 		}
 	}
 
-	binaryDir := filepath.Join(p.gitCloneDir, fmt.Sprintf("protoc-gen-%s", ged.Type))
+	binaryDir := filepath.Join(p.buildDir, fmt.Sprintf("protoc-gen-%s", ged.Type))
 
 	buildCmd := log.ExecCommand("go", "build")
 	buildCmd.Dir = binaryDir

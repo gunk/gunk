@@ -26,11 +26,15 @@ type KeyValue struct {
 type Generator struct {
 	ProtocGen     string // The type of protoc generator that should be run; js, python, etc.
 	Command       string
-	PluginVersion string // we can pin a protoc-gen-XX version (just for go for now)
+	PluginVersion string // we can pin a protoc-gen-XX version
 	Params        []KeyValue
 	ConfigDir     string
 	Out           string
 	JSONPostProc  bool
+	FixPaths      bool
+	GoFumpt       bool
+
+	Shortened bool // only for `gunk vet`
 }
 
 func (g Generator) IsProtoc() bool {
@@ -44,8 +48,8 @@ func (g Generator) Code() string {
 	return strings.TrimPrefix(g.Command, "protoc-gen-")
 }
 
-func (g Generator) IsGo() bool {
-	return g.Code() == "go"
+func (g Generator) HasPostproc() bool {
+	return g.JSONPostProc || g.FixPaths || g.GoFumpt
 }
 
 func (g Generator) ParamString() string {
@@ -117,7 +121,7 @@ func Load(dir string) (*Config, error) {
 		reader, err := os.Open(configPath)
 		if err == nil {
 			defer reader.Close()
-			cfg, err := load(reader)
+			cfg, err := LoadSingle(reader)
 			if err != nil {
 				return nil, fmt.Errorf("error loading %q: %v", configPath, err)
 			}
@@ -196,18 +200,18 @@ func Load(dir string) (*Config, error) {
 
 // from https://github.com/protocolbuffers/protobuf/blob/master/src/google/protobuf/compiler/main.cc
 // hardcode what languages are built-in in protoc, rest must have their own generator binary
-var protocBuiltinLanguages = map[string]bool{
-	"cpp": true,
-	"java": true,
+var ProtocBuiltinLanguages = map[string]bool{
+	"cpp":    true,
+	"java":   true,
 	"python": true,
-	"php": true,
-	"ruby": true,
+	"php":    true,
+	"ruby":   true,
 	"csharp": true,
-	"objc": true,
-	"js": true,
+	"objc":   true,
+	"js":     true,
 }
 
-func load(reader io.Reader) (*Config, error) {
+func LoadSingle(reader io.Reader) (*Config, error) {
 	f, err := ini.Load(reader)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse ini file: %v", err)
@@ -246,11 +250,12 @@ func load(reader io.Reader) (*Config, error) {
 			// We ignore the binary path since we don't do the same for the
 			// normal generate section. If we start using the binary path here
 			// we should also use it for the normal generate section.
-			if !protocBuiltinLanguages[generator]{
+			if !ProtocBuiltinLanguages[generator] {
 				gen.Command = "protoc-gen-" + generator
 			} else {
 				gen.ProtocGen = generator
 			}
+			gen.Shortened = true // for vetting
 		default:
 			return nil, fmt.Errorf("unknown section %q", s.Name())
 		}
@@ -301,13 +306,24 @@ func handleGenerate(section *parser.Section) (*Generator, error) {
 			gen.PluginVersion = v
 		case "out":
 			gen.Out = v
-
+		case "fix_paths_postproc":
+			p, err := strconv.ParseBool(v)
+			if err != nil {
+				return nil, fmt.Errorf("cannot parse fix_paths: %w", err)
+			}
+			gen.FixPaths = p
 		case "json_tag_postproc":
 			p, err := strconv.ParseBool(v)
 			if err != nil {
 				return nil, fmt.Errorf("cannot parse json_tag_postproc: %w", err)
 			}
 			gen.JSONPostProc = p
+		case "gofumpt_postproc":
+			p, err := strconv.ParseBool(v)
+			if err != nil {
+				return nil, fmt.Errorf("cannot parse gofumpt_postproc: %w", err)
+			}
+			gen.GoFumpt = p
 		default:
 			gen.Params = append(gen.Params, KeyValue{k, v})
 		}

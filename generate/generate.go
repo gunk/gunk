@@ -19,6 +19,8 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	"google.golang.org/genproto/googleapis/api/annotations"
 
+	"github.com/karelbilek/dirchanges"
+
 	"github.com/gunk/gunk/config"
 	"github.com/gunk/gunk/generate/downloader"
 	"github.com/gunk/gunk/loader"
@@ -30,18 +32,7 @@ import (
 // Run generates the specified Gunk packages via protobuf generators, writing
 // the output files in the same directories.
 func Run(dir string, args ...string) error {
-	g := &Generator{
-		Loader: loader.Loader{
-			Dir:   dir,
-			Fset:  token.NewFileSet(),
-			Types: true,
-		},
-
-		gunkPkgs: make(map[string]*loader.GunkPackage),
-		allProto: make(map[string]*desc.FileDescriptorProto),
-
-		protoLoader: &loader.ProtoLoader{},
-	}
+	g := NewGenerator(dir)
 
 	// Check that protoc exists, if not download it.
 	pkgs, err := g.Load(args...)
@@ -152,6 +143,21 @@ func FileDescriptorSet(dir string, args ...string) (*desc.FileDescriptorSet, err
 	return fds, nil
 }
 
+func NewGenerator(dir string) *Generator {
+	return &Generator{
+		Loader: loader.Loader{
+			Dir:   dir,
+			Fset:  token.NewFileSet(),
+			Types: true,
+		},
+
+		gunkPkgs: make(map[string]*loader.GunkPackage),
+		allProto: make(map[string]*desc.FileDescriptorProto),
+
+		protoLoader: &loader.ProtoLoader{},
+	}
+}
+
 type Generator struct {
 	loader.Loader
 
@@ -209,7 +215,6 @@ func (g *Generator) GeneratePkg(path string, gens []config.Generator, protocPath
 	req := g.requestForPkg(path)
 
 	for _, gen := range gens {
-
 		if gen.IsProtoc() {
 			if gen.PluginVersion != "" {
 				return fmt.Errorf("cannot use pinned version with protoc option")
@@ -304,8 +309,23 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 
 	args = append(args, protoFilenames...)
 
+	var d *dirchanges.Watcher
+
+	// if we have postproc - try to watch for new files (ignore otherwise)
+	// unfortunately, protoc gives us no hint of what files it generated
+	// so we look for FS changes
+	if gen.HasPostproc() {
+		d = dirchanges.New()
+
+		if err := d.AddRecursive(protocOutputPath); err != nil {
+			return err
+		}
+		d.FilterOps(dirchanges.Write, dirchanges.Move, dirchanges.Rename, dirchanges.Create)
+	}
+
 	cmd := log.ExecCommand(protocCommandPath, args...)
 	cmd.Stdin = bytes.NewReader(bs)
+
 	if _, err := cmd.Output(); err != nil {
 		// TODO: For now, output the command name directly as
 		// we actually use the /path/to/protoc when executing
@@ -314,6 +334,26 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 		// it should be consistent with running protoc-gen-*
 		// errors (which currently don't use the /path/to/protoc-gen).
 		return log.ExecError("protoc", err)
+	}
+
+	if gen.HasPostproc() {
+		ev, err := d.Diff()
+		if err != nil {
+			return fmt.Errorf("file diff error: %w", err)
+		}
+
+		for _, ev := range ev {
+			if !ev.IsDir() {
+				bs, err := ioutil.ReadFile(ev.Path)
+				var nbs []byte
+				if nbs, err = postProcess(bs, gen, pkgPath, g.gunkPkgs); err != nil {
+					return fmt.Errorf("failed to execute post processing: %w", err)
+				}
+				if err := ioutil.WriteFile(ev.Path, nbs, ev.Mode()); err != nil {
+					return fmt.Errorf("failed to write to file: %w", err)
+				}
+			}
+		}
 	}
 	return nil
 }
@@ -375,8 +415,11 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen configWi
 		isNotPkg := !ok
 
 		data := []byte(*rf.Content)
-		if data, err = postProcess(data, gen.Generator); err != nil {
-			return fmt.Errorf("failed to execute post processing: %s", err.Error())
+
+		if gen.HasPostproc() {
+			if data, err = postProcess(data, gen.Generator, mainPkgPath, g.gunkPkgs); err != nil {
+				return fmt.Errorf("failed to execute post processing: %w", err)
+			}
 		}
 		dir := gen.OutPath(gpkg.Dir)
 		outPath := filepath.Join(dir, basename)
@@ -386,7 +429,7 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen configWi
 		}
 
 		if err := ioutil.WriteFile(outPath, data, 0644); err != nil {
-			return fmt.Errorf("unable to write to file %q: %v", outPath, err)
+			return fmt.Errorf("unable to write to file %q: %w", outPath, err)
 		}
 	}
 	return nil

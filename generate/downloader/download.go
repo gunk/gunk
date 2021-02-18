@@ -3,16 +3,17 @@ package downloader
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/gunk/gunk/log"
 
 	"github.com/rogpeppe/go-internal/lockedfile"
 )
 
 type Paths struct {
-	gitCloneDir string
-	binary      string
+	buildDir string
+	binary   string
 }
 
 func getPaths(name, version string) (*Paths, func(error), error) {
@@ -36,11 +37,16 @@ func getPaths(name, version string) (*Paths, func(error), error) {
 		cachePath = dir
 	}
 
+	cacheDir := filepath.Join(cachePath, "gunk")
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		return nil, nil, err
+	}
+
 	pname := fmt.Sprintf("protoc-gen-%s-%s", name, version)
 	var p Paths
 
-	p.gitCloneDir = filepath.Join(cachePath, "gunk", fmt.Sprintf("git-%s", pname))
-	p.binary = filepath.Join(cachePath, "gunk", pname)
+	p.buildDir = filepath.Join(cacheDir, fmt.Sprintf("git-%s", pname))
+	p.binary = filepath.Join(cacheDir, pname)
 
 	lockPath := p.binary + ".lock"
 
@@ -51,11 +57,6 @@ func getPaths(name, version string) (*Paths, func(error), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-
-	// return git clone dir here and not in cleanup,
-	// so we can more easily debug
-	// (ignore error)
-	os.RemoveAll(p.gitCloneDir)
 
 	cleanup := func(err error) {
 		// if anything went wrong, remove binary, do not remove git
@@ -82,6 +83,7 @@ var ds = []Downloader{
 	GrpcEcosystem{Type: "openapiv2"},
 	Swift{},
 	GrpcSwift{},
+	Ts{},
 }
 
 func Has(name string) bool {
@@ -127,6 +129,11 @@ func download(d Downloader, version string) (s string, err error) {
 		return p.binary, nil
 	}
 
+	// remove git clone dir here and not in cleanup,
+	// so we can more easily debug
+	// (ignore error)
+	os.RemoveAll(p.buildDir)
+
 	bin, err := d.Download(version, *p)
 	if err != nil {
 		return "", err
@@ -134,7 +141,8 @@ func download(d Downloader, version string) (s string, err error) {
 
 	if bin != p.binary {
 		// TODO windows?
-		cpCmd := exec.Command("cp",
+		cpCmd := log.ExecCommand("ln",
+			"-s",
 			bin,
 			p.binary)
 		err = cpCmd.Run()

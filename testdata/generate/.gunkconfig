@@ -4,9 +4,12 @@ version=v3.9.1
 [generate go]
 plugins=grpc
 plugin_version=v1.4.3
+json_tag_postproc=true
+gofumpt_postproc=true
 
 [generate grpc-gateway]
 plugin_version=v1.16.0
+gofumpt_postproc=true
 
 [generate java]
 lite
@@ -17,3 +20,8 @@ lite
 
 [generate swagger]
 plugin_version=v1.14.4
+
+[generate js]
+fix_paths_postproc=true
+import_style=commonjs
+binary

@@ -107,7 +107,7 @@ func TestGenerate(t *testing.T) {
 	}
 }
 
-var rxGeneratedFile = regexp.MustCompile(`\.go|\.json|\.java$`)
+var rxGeneratedFile = regexp.MustCompile(`\.go|\.json|\.java|\.js$`)
 
 func generatedFiles(dir string) (map[string]string, error) {
 	files := make(map[string]string)

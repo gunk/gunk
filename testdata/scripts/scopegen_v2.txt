@@ -91,12 +91,12 @@ type ServiceScope struct{}
 
 var Scopes = map[string]string{
 	"admin": "Grants read and write access to administrative information",
-	"read": "Grants read access",
+	"read":  "Grants read access",
 	"write": "Grants write access",
 }
 
 var AuthScopes = map[string][]string{
-	"/test.Service/GetMessage": []string{"read", "write"},
+	"/test.Service/GetMessage":  []string{"read", "write"},
 	"/test.Service/GetMessage3": []string{"read"},
 }
 

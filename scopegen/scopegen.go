@@ -11,6 +11,8 @@ import (
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/golang/protobuf/protoc-gen-go/plugin"
 
+	"mvdan.cc/gofumpt/format"
+
 	"github.com/gunk/gunk/plugin"
 	"github.com/gunk/gunk/scopegen/generate"
 	"github.com/gunk/gunk/scopegen/parser"
@@ -97,20 +99,28 @@ func (s *scopePlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.
 
 	for lang := range langs {
 		buf := bytes.NewBuffer(nil)
+		var res string
 		switch lang {
 		case jsonLangName:
 			if err = generate.JSON(buf, parsed, outputVersion); err != nil {
 				return nil, fmt.Errorf("failed to generate scopes: lang=%s err=%s", lang, err.Error())
 			}
+			res = buf.String()
 		case goLangName:
 			if err = generate.Go(buf, parsed, outputVersion); err != nil {
 				return nil, fmt.Errorf("failed to generate scopes: lang=%s err=%s", lang, err.Error())
 			}
+			formatted, err := format.Source(buf.Bytes(), format.Options{LangVersion: "1.14"})
+			if err != nil {
+				return nil, fmt.Errorf("failed to generate scopes: lang=%s err=%s", lang, err.Error())
+			}
+			res = string(formatted)
 		default:
 			// this should never be reached, but be defensive
 			return nil, fmt.Errorf("unsupported language: %s", lang)
 		}
-		resp.File = append(resp.File, newCodeGeneratorFile(baseDir, lang, buf.String()))
+
+		resp.File = append(resp.File, newCodeGeneratorFile(baseDir, lang, res))
 	}
 
 	return resp, nil

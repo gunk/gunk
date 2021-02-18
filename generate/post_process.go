@@ -28,9 +28,7 @@ func postProcess(input []byte, gen config.Generator, mainPkgPath string, pkgs ma
 	}
 
 	if code == "go" || code == "grpc-gateway" {
-		if gen.GoFumpt {
-			return format.Source(input, format.Options{LangVersion: "1.14"})
-		}
+		format.Source(input, format.Options{LangVersion: "1.14"})
 	}
 
 	return input, nil

@@ -53,15 +53,6 @@ func vetCfg(dir string, cfg *config.Config) {
 	for _, g := range cfg.Generators {
 		code := g.Code()
 
-		if code == "go" || code == "grpc-gateway" {
-			if !g.GoFumpt {
-				fmt.Printf(
-					"%s: add gofumpt_postproc=true [generate %s]\n",
-					dir,
-					code)
-			}
-		}
-
 		if code == "ts" || code == "js" {
 			if !g.FixPaths {
 				fmt.Printf(

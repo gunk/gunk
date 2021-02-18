@@ -32,7 +32,6 @@ type Generator struct {
 	Out           string
 	JSONPostProc  bool
 	FixPaths      bool
-	GoFumpt       bool
 
 	Shortened bool // only for `gunk vet`
 }
@@ -49,7 +48,11 @@ func (g Generator) Code() string {
 }
 
 func (g Generator) HasPostproc() bool {
-	return g.JSONPostProc || g.FixPaths || g.GoFumpt
+	if g.Code() == "go" || g.Code() == "grpc-gateway" {
+		// for gofumpt
+		return true
+	}
+	return g.JSONPostProc || g.FixPaths
 }
 
 func (g Generator) ParamString() string {
@@ -318,12 +321,6 @@ func handleGenerate(section *parser.Section) (*Generator, error) {
 				return nil, fmt.Errorf("cannot parse json_tag_postproc: %w", err)
 			}
 			gen.JSONPostProc = p
-		case "gofumpt_postproc":
-			p, err := strconv.ParseBool(v)
-			if err != nil {
-				return nil, fmt.Errorf("cannot parse gofumpt_postproc: %w", err)
-			}
-			gen.GoFumpt = p
 		default:
 			gen.Params = append(gen.Params, KeyValue{k, v})
 		}

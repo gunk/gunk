@@ -456,10 +456,6 @@ generate` tool:
   imported gunk packages, because of the way gunk moves files around.
   Works only if `js` also has `import_style=commonjs` option.
 
-* `gofumpt_postproc` - for `go` and `grpc-gateway` - uses `gofumpt` (more strict `gofmt`)
-  to format the resulting go files
-  
-
 All other `name[=value]` pairs specified within the `generate` section will be
 passed as plugin parameters to `protoc` and the `protoc-gen-<type>` generators.
 

@@ -25,9 +25,9 @@ func (g Swift) Download(version string, p Paths) (string, error) {
 
 	repoPath := `https://github.com/apple/swift-protobuf`
 
-	binaryPath := filepath.Join(p.gitCloneDir, ".build", "release", "protoc-gen-swift")
+	binaryPath := filepath.Join(p.buildDir, ".build", "release", "protoc-gen-swift")
 
-	cmdArgs := []string{"clone", "--depth", "1", "--branch", version, repoPath, p.gitCloneDir}
+	cmdArgs := []string{"clone", "--depth", "1", "--branch", version, repoPath, p.buildDir}
 
 	gitCmd := log.ExecCommand("git", cmdArgs...)
 
@@ -38,7 +38,7 @@ func (g Swift) Download(version string, p Paths) (string, error) {
 	}
 
 	buildCmd := log.ExecCommand("swift", "build", "-c", "release")
-	buildCmd.Dir = p.gitCloneDir
+	buildCmd.Dir = p.buildDir
 
 	var stderr bytes.Buffer
 	buildCmd.Stderr = &stderr

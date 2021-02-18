@@ -444,12 +444,21 @@ generate` tool:
   - protoc-gen-openapiv2
   - protoc-gen-swift (installing swift itself first is necessary)
   - protoc-gen-grpc-swift (installing swift itself first is necessary)
+  - ts (installing node and npm first is necessary)
 
   It is recommended to use this function everywhere, for reproducible builds,
   together with `version` for protoc.
 
 * `json_tag_postproc` - uses `json` tags defined in gunk file also for go-generated
   file
+
+* `fix_paths_postproc` - for `js` and `ts` - by default, gunk generates wrong paths for other
+  imported gunk packages, because of the way gunk moves files around.
+  Works only if `js` also has `import_style=commonjs` option.
+
+* `gofumpt_postproc` - for `go` and `grpc-gateway` - uses `gofumpt` (more strict `gofmt`)
+  to format the resulting go files
+  
 
 All other `name[=value]` pairs specified within the `generate` section will be
 passed as plugin parameters to `protoc` and the `protoc-gen-<type>` generators.

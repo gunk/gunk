@@ -95,7 +95,7 @@ type CheckStatusResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Status Status `protobuf:"varint,1,opt,name=Status,json=status,proto3,enum=testdata.v1.util.Status" json:"Status,omitempty"`
+	Status Status `protobuf:"varint,1,opt,name=Status,json=status,proto3,enum=testdata.v1.util.Status" json:"status,omitempty"`
 }
 
 func (x *CheckStatusResponse) Reset() {

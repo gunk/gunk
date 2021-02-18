@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gunk/gunk/vetconfig"
+
 	kingpin "gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/gunk/gunk/convert"
@@ -40,6 +42,8 @@ var (
 	dlProtocVer  = dlProtoc.Flag("version", "version of protoc to use").String()
 
 	ver = app.Command("version", "Show Gunk version.")
+
+	vet = app.Command("vet", "Vet gunk config files")
 )
 
 func main() {
@@ -86,6 +90,8 @@ func main2() (code int) {
 		downloadProtoc,
 	}
 
+	vet.Flag("strip", "recommend stripping enums").Short('s').BoolVar(&vetconfig.RecommendStrip)
+
 	command, err := app.Parse(os.Args[1:])
 	if code != 0 {
 		// simulate the os.Exit that would have happened
@@ -99,6 +105,8 @@ func main2() (code int) {
 		fmt.Fprintf(os.Stdout, "gunk %s\n", version)
 	case gen.FullCommand():
 		err = generate.Run("", *genPatterns...)
+	case vet.FullCommand():
+		err = vetconfig.Run(".")
 	case conv.FullCommand():
 		err = convert.Run(*convProtoFilesOrFolders, *convOverwriteGunkFile)
 	case frmt.FullCommand():

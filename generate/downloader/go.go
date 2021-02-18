@@ -23,12 +23,12 @@ func (g Go) Download(version string, p Paths) (string, error) {
 		return "", err
 	}
 
-	cmdBuildPath = append([]string{p.gitCloneDir}, cmdBuildPath...)
+	cmdBuildPath = append([]string{p.buildDir}, cmdBuildPath...)
 
 	binaryDir := filepath.Join(cmdBuildPath...)
 	binaryPath := filepath.Join(binaryDir, "protoc-gen-go")
 
-	cmdArgs := []string{"clone", "--depth", "1", "--branch", version, repoPath, p.gitCloneDir}
+	cmdArgs := []string{"clone", "--depth", "1", "--branch", version, repoPath, p.buildDir}
 
 	gitCmd := log.ExecCommand("git", cmdArgs...)
 
@@ -41,14 +41,14 @@ func (g Go) Download(version string, p Paths) (string, error) {
 	// protoc-gen-go versions 1.3.0 and older do not have go modules
 	// so compilation would load new version of submodules and produce a hybrid
 	// we need to init modules
-	goModPath := path.Join(p.gitCloneDir, "go.mod")
+	goModPath := path.Join(p.buildDir, "go.mod")
 	_, fErr := os.Stat(goModPath)
 	if fErr != nil {
 		if !os.IsNotExist(fErr) {
 			return "", fErr
 		}
 		goModInitCmd := log.ExecCommand("go", "mod", "init", "github.com/golang/protobuf")
-		goModInitCmd.Dir = p.gitCloneDir
+		goModInitCmd.Dir = p.buildDir
 		err = goModInitCmd.Run()
 		if err != nil {
 			all := "go mod init github.com/golang/protobuf"

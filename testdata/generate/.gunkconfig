@@ -5,11 +5,9 @@ version=v3.9.1
 plugins=grpc
 plugin_version=v1.4.3
 json_tag_postproc=true
-gofumpt_postproc=true
 
 [generate grpc-gateway]
 plugin_version=v1.16.0
-gofumpt_postproc=true
 
 [generate java]
 lite

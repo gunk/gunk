@@ -58,7 +58,7 @@ func vetCfg(dir string, cfg *config.Config) {
 				fmt.Printf(
 					"%s: add gofumpt_postproc=true [generate %s]\n",
 					dir,
-					g.ProtocGen)
+					code)
 			}
 		}
 
@@ -67,7 +67,7 @@ func vetCfg(dir string, cfg *config.Config) {
 				fmt.Printf(
 					"%s: add fix_paths_postproc=true [generate %s]\n",
 					dir,
-					g.ProtocGen)
+					code)
 			}
 		}
 

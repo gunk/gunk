@@ -11,7 +11,11 @@ func postProcess(input []byte, gen config.Generator, mainPkgPath string, pkgs ma
 	code := gen.Code()
 	if code == "go" {
 		if gen.JSONPostProc {
-			return jsonTagPostProcessor(input)
+			b, err := jsonTagPostProcessor(input)
+			if err != nil {
+				return b, err
+			}
+			input = b
 		}
 	}
 

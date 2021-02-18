@@ -10,6 +10,9 @@ package util
 
 import (
 	context "context"
+	reflect "reflect"
+	sync "sync"
+
 	proto "github.com/golang/protobuf/proto"
 	duration "github.com/golang/protobuf/ptypes/duration"
 	empty "github.com/golang/protobuf/ptypes/empty"
@@ -20,8 +23,7 @@ import (
 	status "google.golang.org/grpc/status"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
+
 	imported "testdata.tld/util/imported"
 )
 
@@ -351,19 +353,22 @@ func file_testdata_tld_util_all_proto_rawDescGZIP() []byte {
 	return file_testdata_tld_util_all_proto_rawDescData
 }
 
-var file_testdata_tld_util_all_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_testdata_tld_util_all_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_testdata_tld_util_all_proto_goTypes = []interface{}{
-	(Status)(0),                 // 0: testdata.v1.util.Status
-	(*CheckStatusResponse)(nil), // 1: testdata.v1.util.CheckStatusResponse
-	(*UtilTestRequest)(nil),     // 2: testdata.v1.util.UtilTestRequest
-	nil,                         // 3: testdata.v1.util.UtilTestRequest.MapSimpleEntry
-	nil,                         // 4: testdata.v1.util.UtilTestRequest.MapComplexEntry
-	(*imported.Message)(nil),    // 5: testdata.v1.util.imported.Message
-	(*timestamp.Timestamp)(nil), // 6: google.protobuf.Timestamp
-	(*duration.Duration)(nil),   // 7: google.protobuf.Duration
-	(*empty.Empty)(nil),         // 8: google.protobuf.Empty
-}
+var (
+	file_testdata_tld_util_all_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+	file_testdata_tld_util_all_proto_msgTypes  = make([]protoimpl.MessageInfo, 4)
+	file_testdata_tld_util_all_proto_goTypes   = []interface{}{
+		(Status)(0),                 // 0: testdata.v1.util.Status
+		(*CheckStatusResponse)(nil), // 1: testdata.v1.util.CheckStatusResponse
+		(*UtilTestRequest)(nil),     // 2: testdata.v1.util.UtilTestRequest
+		nil,                         // 3: testdata.v1.util.UtilTestRequest.MapSimpleEntry
+		nil,                         // 4: testdata.v1.util.UtilTestRequest.MapComplexEntry
+		(*imported.Message)(nil),    // 5: testdata.v1.util.imported.Message
+		(*timestamp.Timestamp)(nil), // 6: google.protobuf.Timestamp
+		(*duration.Duration)(nil),   // 7: google.protobuf.Duration
+		(*empty.Empty)(nil),         // 8: google.protobuf.Empty
+	}
+)
+
 var file_testdata_tld_util_all_proto_depIdxs = []int32{
 	0,  // 0: testdata.v1.util.CheckStatusResponse.Status:type_name -> testdata.v1.util.Status
 	5,  // 1: testdata.v1.util.UtilTestRequest.Structs:type_name -> testdata.v1.util.imported.Message
@@ -438,8 +443,10 @@ func file_testdata_tld_util_all_proto_init() {
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConnInterface
+var (
+	_ context.Context
+	_ grpc.ClientConnInterface
+)
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
@@ -490,12 +497,12 @@ type UtilServer interface {
 }
 
 // UnimplementedUtilServer can be embedded to have forward compatible implementations.
-type UnimplementedUtilServer struct {
-}
+type UnimplementedUtilServer struct{}
 
 func (*UnimplementedUtilServer) Echo(context.Context, *imported.Message) (*imported.Message, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Echo not implemented")
 }
+
 func (*UnimplementedUtilServer) CheckStatus(context.Context, *empty.Empty) (*CheckStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckStatus not implemented")
 }
@@ -587,8 +594,7 @@ type UtilTestsServer interface {
 }
 
 // UnimplementedUtilTestsServer can be embedded to have forward compatible implementations.
-type UnimplementedUtilTestsServer struct {
-}
+type UnimplementedUtilTestsServer struct{}
 
 func (*UnimplementedUtilTestsServer) UtilTest(context.Context, *UtilTestRequest) (*CheckStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UtilTest not implemented")

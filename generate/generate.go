@@ -513,7 +513,13 @@ func (g *Generator) translatePkg(pkgPath string, stripEnumTypeNames bool) error 
 	}
 
 	// Set the GoPackage file option to be the gunk package name.
-	fo.GoPackage = proto.String(gpkg.PkgPath)
+	fo.GoPackage = proto.String(gpkg.Name)
+
+	// note - do not set above to gpkg.PkgPath or basename of that;
+	// gunk files can have different names than path
+	// (package github.com/foo/bar can be "package foobar").
+	// We need to use "foobar", otherwise gunk will break
+	// (not matching package paths)
 
 	g.pfile = &desc.FileDescriptorProto{
 		Syntax:  proto.String("proto3"),

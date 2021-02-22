@@ -202,6 +202,21 @@ func (c configWithBinary) actualCommand() string {
 	return *c.binary
 }
 
+// findPkg resolves package names for languages with different naming requirements and restrictions.
+// Python does not allow '.' in package names.
+func (g *Generator) findPkg(path string) *loader.GunkPackage {
+	if p, ok := g.gunkPkgs[path]; ok {
+		return p
+	}
+	for k, p := range g.gunkPkgs {
+		switch path {
+		case strings.Replace(k, ".", "/", -1):
+			return p
+		}
+	}
+	return nil
+}
+
 // GeneratePkg runs the proto files resulting from translating gunk packages
 // through a code generator, such as protoc-gen-go to generate Go packages.
 //
@@ -405,15 +420,10 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen configWi
 		// on-disk file path.
 		pkgPath, basename := filepath.Split(*rf.Name)
 		pkgPath = filepath.Clean(pkgPath) // to remove trailing slashes
-		gpkg, ok := g.gunkPkgs[pkgPath]
-
-		if !ok {
-			// for local relative path
-			gpkg = mainPkg
+		gpkg := g.findPkg(pkgPath)
+		if gpkg == nil {
+			return fmt.Errorf("path %q has no packages %v", pkgPath, g.gunkPkgs)
 		}
-
-		isNotPkg := !ok
-
 		data := []byte(*rf.Content)
 
 		if gen.HasPostproc() {
@@ -423,10 +433,6 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen configWi
 		}
 		dir := gen.OutPath(gpkg.Dir)
 		outPath := filepath.Join(dir, basename)
-
-		if isNotPkg {
-			outPath = filepath.Join(dir, *rf.Name)
-		}
 
 		if err := ioutil.WriteFile(outPath, data, 0644); err != nil {
 			return fmt.Errorf("unable to write to file %q: %w", outPath, err)
@@ -743,6 +749,12 @@ func (g *Generator) messageOptions(tspec *ast.TypeSpec) (*desc.MessageOptions, e
 			o.NoStandardDescriptorAccessor = proto.Bool(constant.BoolVal(tag.Value))
 		case "github.com/gunk/opt/message.Deprecated":
 			o.Deprecated = proto.Bool(constant.BoolVal(tag.Value))
+		case "github.com/gunk/opt/openapiv2.Schema":
+			schema := &options.Schema{}
+			reflectutil.UnmarshalAST(schema, tag.Expr)
+			if err := proto.SetExtension(o, options.E_Openapiv2Schema, schema); err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("gunk message option %q not supported", s)
 		}

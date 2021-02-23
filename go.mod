@@ -10,7 +10,7 @@ require (
 	github.com/golang/protobuf v1.4.3
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/gunk/opt v0.0.0-20190514110406-385321f21939
-	github.com/karelbilek/dirchanges v1.0.8-0.20210218071031-880a92f1a313
+	github.com/karelbilek/dirchanges v0.0.0-20210218071031-880a92f1a313
 	github.com/kenshaw/ini v0.5.0
 	github.com/kenshaw/snaker v0.1.0
 	github.com/rogpeppe/go-internal v1.6.2

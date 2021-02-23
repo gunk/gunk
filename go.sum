@@ -57,8 +57,8 @@ github.com/grpc-ecosystem/grpc-gateway v1.16.0 h1:gmcG1KaJ57LophUzW0Hy8NmPhnMZb4
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
 github.com/gunk/opt v0.0.0-20190514110406-385321f21939 h1:6o8km4OArmTAyGJjWBCiNmd8ZqkgFLQjD0vGoSGSYsI=
 github.com/gunk/opt v0.0.0-20190514110406-385321f21939/go.mod h1:9wP1gVodayD0zF7ZzMEKJr9myJv+4DnfjEWOEOtmpBY=
-github.com/karelbilek/dirchanges v1.0.8-0.20210218071031-880a92f1a313 h1:reySm8YtVbyQ5/d/JgnRv4n3zPJm8luERT2HMHgkQZI=
-github.com/karelbilek/dirchanges v1.0.8-0.20210218071031-880a92f1a313/go.mod h1:dlA+c3EKVjO55QldHhdrSKFyjNw/+RXenGVbvC9YnHs=
+github.com/karelbilek/dirchanges v0.0.0-20210218071031-880a92f1a313 h1:dwPmGBdt2Jh1T1uX/9ub/+IPrfRwbLDbiv4kytqNts8=
+github.com/karelbilek/dirchanges v0.0.0-20210218071031-880a92f1a313/go.mod h1:dlA+c3EKVjO55QldHhdrSKFyjNw/+RXenGVbvC9YnHs=
 github.com/kenshaw/ini v0.5.0 h1:t62DfwYK7UFgKyDgLHUITr6c2dVOABXZdH9n4TPP62E=
 github.com/kenshaw/ini v0.5.0/go.mod h1:v5uWwqgB77QUIdF3wryBIhlcXBVsWQZ2ScH5HY6q8Xw=
 github.com/kenshaw/snaker v0.1.0 h1:h6dvdkBw6Qe1ya/LE9kMa9Y8M3RSAhbELfirZHIFobU=

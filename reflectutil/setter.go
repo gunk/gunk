@@ -3,6 +3,7 @@ package reflectutil
 import (
 	"fmt"
 	"go/ast"
+	"go/token"
 	"reflect"
 	"sort"
 	"strconv"
@@ -128,6 +129,54 @@ func valueFor(typ reflect.Type, tag reflect.StructTag, value interface{}) reflec
 		etyp := typ.Elem()
 		list := reflect.MakeSlice(typ, 0, 0)
 		switch value := value.(type) {
+		case *ast.CallExpr:
+			v := func() *reflect.Value {
+				// allow []byte("foo") as slice of uints
+				if etyp.Kind() != reflect.Uint8 {
+					return nil
+				}
+
+				valueFun, ok := value.Fun.(*ast.ArrayType)
+				if !ok {
+					return nil
+				}
+
+				valueElt, ok := valueFun.Elt.(*ast.Ident)
+				if !ok {
+					return nil
+				}
+
+				if valueElt.Name != "byte" {
+					return nil
+				}
+
+				if len(value.Args) != 1 {
+					return nil
+				}
+
+				valueArg := value.Args[0]
+				valueArgL, ok := valueArg.(*ast.BasicLit)
+				if !ok {
+					return nil
+				}
+
+				if valueArgL.Kind != token.STRING {
+					return nil
+				}
+				val, err := strconv.Unquote(valueArgL.Value)
+				if err != nil {
+					return nil
+				}
+				v := reflect.ValueOf([]byte(val))
+				return &v
+			}()
+
+			if v == nil {
+				panic(fmt.Sprintf("%T is not a valid value for %s", value, typ))
+			}
+
+			return *v
+
 		case *ast.CompositeLit:
 			for _, elt := range value.Elts {
 				list = reflect.Append(list, valueFor(etyp, tag, elt))

@@ -428,7 +428,7 @@ func (g *Generator) generatePlugin(req plugin.CodeGeneratorRequest, gen configWi
 			outPath = filepath.Join(dir, *rf.Name)
 		}
 
-		if err := ioutil.WriteFile(outPath, data, 0644); err != nil {
+		if err := ioutil.WriteFile(outPath, data, 0o644); err != nil {
 			return fmt.Errorf("unable to write to file %q: %w", outPath, err)
 		}
 	}
@@ -743,6 +743,12 @@ func (g *Generator) messageOptions(tspec *ast.TypeSpec) (*desc.MessageOptions, e
 			o.NoStandardDescriptorAccessor = proto.Bool(constant.BoolVal(tag.Value))
 		case "github.com/gunk/opt/message.Deprecated":
 			o.Deprecated = proto.Bool(constant.BoolVal(tag.Value))
+		case "github.com/gunk/opt/openapiv2.Schema":
+			schema := &options.Schema{}
+			reflectutil.UnmarshalAST(schema, tag.Expr)
+			if err := proto.SetExtension(o, options.E_Openapiv2Schema, schema); err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("gunk message option %q not supported", s)
 		}

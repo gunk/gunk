@@ -1,0 +1,119 @@
+gunk generate
+cmp all.swagger.json all.swagger.json.golden
+
+# note that this cannot be used with openapiv2, because
+# they have different proto option definitions that are not compatible
+# with the old one (that we currently use)
+
+-- go.mod --
+module testdata.tld/util
+
+require (
+	github.com/gunk/opt v0.0.0-20190514110406-385321f21939
+)
+-- .gunkconfig --
+[generate swagger]
+plugin_version=v1.14.4
+
+-- util.gunk --
+package util
+
+import (
+	"github.com/gunk/opt/openapiv2"
+)
+
+// +gunk openapiv2.Schema{
+//         JSONSchema: openapiv2.JSONSchema{
+//                 Required: []string{"a", "b", "c"},
+//         },
+//         Example: openapiv2.Any{Value: []byte(`{"foo":"bar"}`)},
+// }
+type Util struct {
+	// +gunk openapiv2.Schema{
+	//         JSONSchema: openapiv2.JSONSchema{
+	//                 Required: []string{"d", "e", "f"},
+	//         },
+	// }
+	Hello string `pb:"1" json:"hello"`
+}
+
+type Service interface {
+	// +gunk openapiv2.Operation{
+	//         Tags:        []string{"Util"},
+	//         Description: "Get Util",
+	//         Summary:     "Retrieves Util",
+	// }
+	GetUtil(Util) Util
+}
+
+-- all.swagger.json.golden --
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "testdata.tld/util/all.proto",
+    "version": "version not set"
+  },
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {},
+  "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "runtimeError": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "utilUtil": {
+      "type": "object",
+      "example": {
+        "foo": "bar"
+      },
+      "properties": {
+        "Hello": {
+          "type": "string",
+          "required": [
+            "d",
+            "e",
+            "f"
+          ]
+        }
+      },
+      "required": [
+        "a",
+        "b",
+        "c"
+      ]
+    }
+  }
+}

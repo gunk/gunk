@@ -20,7 +20,7 @@ func (g Swift) Download(version string, p Paths) (string, error) {
 	version = strings.TrimPrefix(version, "v")
 
 	if _, err := exec.LookPath("swift"); err != nil {
-		return "", fmt.Errorf("swift is not installed. See https://swift.org/download/")
+		return "", fmt.Errorf("swift is not installed, see https://swift.org/download/")
 	}
 
 	repoPath := `https://github.com/apple/swift-protobuf`

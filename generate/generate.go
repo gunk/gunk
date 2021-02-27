@@ -202,6 +202,21 @@ func (c configWithBinary) actualCommand() string {
 	return *c.binary
 }
 
+// findPkg resolves package names for languages with different naming requirements and restrictions.
+// Python does not allow '.' in package names.
+func (g *Generator) findPkg(path string) (*loader.GunkPackage, bool) {
+	if p, ok := g.gunkPkgs[path]; ok {
+		return p, true
+	}
+	for k, p := range g.gunkPkgs {
+		switch path {
+		case strings.Replace(k, ".", "/", -1):
+			return p, true
+		}
+	}
+	return nil, false
+}
+
 // GeneratePkg runs the proto files resulting from translating gunk packages
 // through a code generator, such as protoc-gen-go to generate Go packages.
 //
@@ -290,7 +305,7 @@ func (g *Generator) generateProtoc(req plugin.CodeGeneratorRequest, gen config.G
 	// we can use that package path on disk as the default location
 	// to output generated files.
 	pkgPath = filepath.Clean(pkgPath)
-	gpkg, ok := g.gunkPkgs[pkgPath]
+	gpkg, ok := g.findPkg(pkgPath)
 	if !ok {
 		return fmt.Errorf("failed to get package %s to protoc generate", pkgPath)
 	}

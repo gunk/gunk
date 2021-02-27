@@ -83,6 +83,7 @@ var ds = []Downloader{
 	GrpcEcosystem{Type: "openapiv2"},
 	Swift{},
 	GrpcSwift{},
+	GrpcPython{},
 	Ts{},
 }
 

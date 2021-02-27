@@ -445,6 +445,7 @@ generate` tool:
   - protoc-gen-swift (installing swift itself first is necessary)
   - protoc-gen-grpc-swift (installing swift itself first is necessary)
   - ts (installing node and npm first is necessary)
+  - protoc-gen-grpc-python (cmake, gcc is necessary; takes ~10 minutes to clone build)
 
   It is recommended to use this function everywhere, for reproducible builds,
   together with `version` for protoc.

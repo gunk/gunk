@@ -598,6 +598,8 @@ syntax = "proto3";
 // file, adding them to pkg.GunkTags and removing the source lines from each
 // comment.
 func (l *Loader) splitGunkTags(pkg *GunkPackage, file *ast.File) {
+	hadError := false
+
 	ast.Inspect(file, func(node ast.Node) bool {
 		if gd, ok := node.(*ast.GenDecl); ok {
 			if len(gd.Specs) != 1 {
@@ -616,7 +618,8 @@ func (l *Loader) splitGunkTags(pkg *GunkPackage, file *ast.File) {
 		}
 		docText, exprs, err := SplitGunkTag(pkg, l.Fset, *doc)
 		if err != nil {
-			pkg.addError(ParseError, 0, nil, "%s", err)
+			hadError = true
+			pkg.addError(ParseError, (*doc).Pos(), l.Fset, "%s", err)
 			return false
 		}
 		if len(exprs) > 0 {
@@ -628,8 +631,16 @@ func (l *Loader) splitGunkTags(pkg *GunkPackage, file *ast.File) {
 		}
 		return true
 	})
-	// TODO(mvdan): check that we aren't ignoring any other +gunk comments,
-	// to prevent human error.
+
+	if !hadError {
+		for _, cg := range file.Comments {
+			for _, c := range cg.List {
+				if strings.Contains(c.Text, "+gunk") {
+					pkg.addError(ParseError, c.Pos(), l.Fset, "gunk tag without declaration: %s", c.Text)
+				}
+			}
+		}
+	}
 }
 
 func nodeDoc(node ast.Node) **ast.CommentGroup {

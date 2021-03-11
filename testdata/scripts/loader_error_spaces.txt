@@ -1,0 +1,13 @@
+! gunk generate ./...
+stderr 'errors.gunk:1:1: gunk tag without declaration'
+
+-- go.mod --
+module testdata.tld/util
+-- errors.gunk --
+// +gunk foo
+
+package p1
+
+type Message struct {
+	Field string `pb:2`
+}

@@ -10,7 +10,6 @@ import (
 	"go/token"
 	"go/types"
 	"html/template"
-	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
@@ -21,23 +20,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/proto"
-	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
-	"golang.org/x/tools/go/packages"
-
 	"github.com/gunk/gunk/assets"
 	"github.com/gunk/gunk/log"
+	"golang.org/x/tools/go/packages"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 type Loader struct {
 	Dir  string
 	Fset *token.FileSet
-
 	// If Types is true, we parse and type-check the given packages and all
 	// transitive dependencies, including gunk tags. Otherwise, we only
 	// parse the given packages.
 	Types bool
-
 	cache map[string]*GunkPackage // map from import path to pkg
 }
 
@@ -69,7 +65,6 @@ func (l *Loader) addTempGoFiles() (undo func(), _ error) {
 	if root == "" {
 		return nil, fmt.Errorf("empty module root; missing module?")
 	}
-
 	var toDelete []string
 	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -145,7 +140,6 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 			return []*GunkPackage{pkg}, nil
 		}
 	}
-
 	var pkgs []*GunkPackage
 	loadFiles := len(patterns) > 0 && strings.HasSuffix(patterns[0], ".gunk")
 	if loadFiles {
@@ -167,7 +161,6 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 			return nil, err
 		}
 		defer undo()
-
 		// Load the Gunk packages as Go packages.
 		cfg := &packages.Config{
 			Dir:  l.Dir,
@@ -187,7 +180,6 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 			pkgs = append(pkgs, pkg)
 		}
 	}
-
 	// Add the Gunk files to each package.
 	for _, pkg := range pkgs {
 		l.parseGunkPackage(pkg)
@@ -218,7 +210,6 @@ func findGunkFiles(pkg *GunkPackage) {
 			return // we can't continue
 		}
 	}
-
 	matches, err := filepath.Glob(filepath.Join(pkg.Dir, "*.gunk"))
 	if err != nil {
 		// can only be a malformed pattern; should never happen.
@@ -232,10 +223,8 @@ const (
 	ListError    = packages.ListError
 	ParseError   = packages.ParseError
 	TypeError    = packages.TypeError
-
 	// Our kinds of errors. Add a gap of 10 to be sure we won't conflict
 	// with previous enum values.
-
 	ValidateError = packages.TypeError + 10 + iota
 )
 
@@ -270,23 +259,18 @@ func (l *Loader) Import(path string) (*types.Package, error) {
 
 type GunkPackage struct {
 	packages.Package
-	Dir string // for now, we require all files to be in the same dir
-
+	Dir        string      // for now, we require all files to be in the same dir
 	GunkFiles  []string    // absolute paths of the Gunk files
 	GunkSyntax []*ast.File // syntax trees for the files in GunkFiles
-
 	// GunkNames are unique arbitrary names for each gunk file in GunkFiles.
 	// We don't want to use absolute paths when referring to files in the
 	// CodeGeneratorRequest, because that will trigger many generators to
 	// write to disk.
 	GunkNames []string
-
 	// GunkTags stores the "+gunk" tags associated with each syntax tree
 	// node in GunkSyntax.
-	GunkTags map[ast.Node][]GunkTag
-
-	Imports map[string]*GunkPackage
-
+	GunkTags  map[ast.Node][]GunkTag
+	Imports   map[string]*GunkPackage
 	ProtoName string // protobuf package name
 }
 
@@ -303,10 +287,9 @@ func (g *GunkPackage) addError(kind packages.ErrorKind, tokenPos token.Pos, fset
 }
 
 type GunkTag struct {
-	ast.Expr            // original expression
-	Type     types.Type // type of the expression
-
-	Value constant.Value // constant value of the expression, if any
+	ast.Expr                // original expression
+	Type     types.Type     // type of the expression
+	Value    constant.Value // constant value of the expression, if any
 }
 
 // parseGunkPackage parses the package's GunkFiles, and type-checks the package
@@ -324,14 +307,12 @@ func (l *Loader) parseGunkPackage(pkg *GunkPackage) {
 		relPath := pkg.PkgPath + "/" + filepath.Base(fpath)
 		pkg.GunkNames = append(pkg.GunkNames, relPath)
 		pkg.GunkSyntax = append(pkg.GunkSyntax, file)
-
 		if name := file.Name.Name; pkg.Name == "" {
 			pkg.Name = name
 		} else if pkg.Name != name && l.Types {
 			pkg.addError(ValidateError, 0, nil, "gunk package name mismatch: %q %q",
 				pkg.Name, name)
 		}
-
 		name, err := protoPackageName(l.Fset, file)
 		if err != nil {
 			pkg.addError(ParseError, 0, nil, "%s", err)
@@ -348,16 +329,13 @@ func (l *Loader) parseGunkPackage(pkg *GunkPackage) {
 	if pkg.ProtoName == "" {
 		pkg.ProtoName = pkg.Name
 	}
-
 	// the reported error will be handle at generate.Run function.
 	if len(pkg.Errors) > 0 {
 		return
 	}
-
 	if !l.Types {
 		return
 	}
-
 	pkg.Types = types.NewPackage(pkg.PkgPath, pkg.Name)
 	tconfig := &types.Config{
 		DisableUnusedImportCheck: true,
@@ -371,7 +349,6 @@ func (l *Loader) parseGunkPackage(pkg *GunkPackage) {
 		Scopes:     make(map[ast.Node]*types.Scope),
 		Selections: make(map[*ast.SelectorExpr]*types.Selection),
 	}
-
 	check := types.NewChecker(tconfig, l.Fset, pkg.Types, pkg.TypesInfo)
 	if err := check.Files(pkg.GunkSyntax); err != nil {
 		pkg.addError(TypeError, 0, nil, "%s", err)
@@ -404,7 +381,6 @@ func (l *Loader) validatePackage(pkg *GunkPackage) {
 			if !ok || st.Fields == nil {
 				return true
 			}
-
 			// Look through all fields for anonymous/unnamed types.
 			for _, field := range st.Fields.List {
 				if len(field.Names) < 1 {
@@ -412,7 +388,6 @@ func (l *Loader) validatePackage(pkg *GunkPackage) {
 					return false
 				}
 			}
-
 			// Check for struct tag 'pb' and ensure that if it does exist
 			// it is a valid integer, and it is unique in that struct.
 			// The other validation should happen in format and generate
@@ -466,7 +441,6 @@ allComments:
 			return unquoted, err
 		}
 	}
-
 	// none found
 	return "", nil
 }
@@ -484,10 +458,9 @@ type ProtoLoader struct {
 // It does so with protoc, to leverage protoc's features such as locating the
 // files, and the protoc parser to get a FileDescriptorProto out of the proto
 // file content.
-func (l *ProtoLoader) LoadProto(names ...string) ([]*desc.FileDescriptorProto, error) {
+func (l *ProtoLoader) LoadProto(names ...string) ([]*descriptorpb.FileDescriptorProto, error) {
 	tmpl := template.Must(template.New("letter").Parse(`
 syntax = "proto3";
-
 {{range $_, $name := .}}import "{{$name}}";
 {{end}}
 `))
@@ -495,7 +468,6 @@ syntax = "proto3";
 	generatedFilesToLoad := []string{}
 	// Imports to load using protoc
 	filteredNames := make([]string, 0, len(names))
-
 	// Check to see if we are trying to load any libraries that we have
 	// bundled with Gunk. If so, load the generated libraries. If not, use
 	// protoc to load those libraries from disk.
@@ -515,7 +487,7 @@ syntax = "proto3";
 			filteredNames = append(filteredNames, n)
 		}
 	}
-	var combinedFset desc.FileDescriptorSet
+	var combinedFset descriptorpb.FileDescriptorSet
 	// Use protoc to load any imports that aren't currently bundles with
 	// Gunk.
 	if len(filteredNames) > 0 {
@@ -534,7 +506,6 @@ syntax = "proto3";
 			return nil, err
 		}
 		defer os.Remove(gunkProtoFile)
-
 		// TODO(mvdan): any way to specify stdout while being portable?
 		// See https://github.com/protocolbuffers/protobuf/issues/4163.
 		args := []string{
@@ -557,7 +528,7 @@ syntax = "proto3";
 			}
 			return nil, err
 		}
-		var fset desc.FileDescriptorSet
+		var fset descriptorpb.FileDescriptorSet
 		if err := proto.Unmarshal(out, &fset); err != nil {
 			return nil, err
 		}
@@ -570,23 +541,12 @@ syntax = "proto3";
 	}
 	// Load any bundled libraries.
 	for _, fileToLoad := range generatedFilesToLoad {
-		file, err := assets.Assets.Open(fileToLoad)
+		buf, err := assets.ReadFile(fileToLoad)
 		if err != nil {
 			return nil, err
 		}
-		defer file.Close()
-		fi, err := file.Stat()
-		if err != nil {
-			return nil, err
-		}
-		f := make([]byte, fi.Size())
-		if _, err := file.Read(f); err != nil {
-			if err != io.EOF {
-				return nil, err
-			}
-		}
-		var fset desc.FileDescriptorSet
-		if err := proto.Unmarshal(f, &fset); err != nil {
+		var fset descriptorpb.FileDescriptorSet
+		if err := proto.Unmarshal(buf, &fset); err != nil {
 			return nil, err
 		}
 		combinedFset.File = append(combinedFset.File, fset.File...)
@@ -599,7 +559,6 @@ syntax = "proto3";
 // comment.
 func (l *Loader) splitGunkTags(pkg *GunkPackage, file *ast.File) {
 	hadError := false
-
 	ast.Inspect(file, func(node ast.Node) bool {
 		if gd, ok := node.(*ast.GenDecl); ok {
 			if len(gd.Specs) != 1 {
@@ -631,7 +590,6 @@ func (l *Loader) splitGunkTags(pkg *GunkPackage, file *ast.File) {
 		}
 		return true
 	})
-
 	if !hadError {
 		for _, cg := range file.Comments {
 			for _, c := range cg.List {
@@ -659,7 +617,6 @@ func nodeDoc(node ast.Node) **ast.CommentGroup {
 
 // TODO(mvdan): both loader and format use CommentFromText, but it feels awkward
 // to have it here.
-
 // CommentFromText creates a multi-line comment from the given text, with its
 // start and end positions matching the given node's.
 func CommentFromText(orig ast.Node, text string) *ast.CommentGroup {
@@ -667,7 +624,6 @@ func CommentFromText(orig ast.Node, text string) *ast.CommentGroup {
 	lines := strings.Split(text, "\n")
 	for i, line := range lines {
 		comment := &ast.Comment{Text: "// " + line}
-
 		// Ensure that group.Pos() and group.End() stay on the same
 		// lines, to ensure that printing doesn't move the comment
 		// around or introduce newlines.

@@ -30,7 +30,6 @@ func run(path string, overwrite bool) error {
 	if err != nil {
 		return err
 	}
-
 	// Look for a .gunkconfig
 	absPath, _ := filepath.Abs(path)
 	cfg, err := config.Load(filepath.Dir(absPath))
@@ -40,12 +39,10 @@ func run(path string, overwrite bool) error {
 		cfgProtocPath = cfg.ProtocPath
 		cfgProtocVer = cfg.ProtocVersion
 	}
-
 	protocPath, err := downloader.CheckOrDownloadProtoc(cfgProtocPath, cfgProtocVer)
 	if err != nil {
 		return err
 	}
-
 	// Determine whether the path is a file or a directory.
 	// If it is a file convert the file.
 	if !fi.IsDir() {
@@ -54,7 +51,6 @@ func run(path string, overwrite bool) error {
 		// If the path is a directory and has a .proto extension then error.
 		return fmt.Errorf("%s is a directory, should be a proto file", path)
 	}
-
 	// Handle the case where it is a directory. Loop through
 	// the files and if we have a .proto file attempt to
 	// convert it.
@@ -83,20 +79,16 @@ func convertFile(path string, overwrite bool, importPath string, protocPath stri
 		return fmt.Errorf("unable to read file %q: %v", path, err)
 	}
 	defer file.Close()
-
 	filename := filepath.Base(path)
 	fileToWrite := strings.Replace(filename, ".proto", ".gunk", 1)
 	fullpath := filepath.Join(filepath.Dir(path), fileToWrite)
-
 	if _, err := os.Stat(fullpath); !os.IsNotExist(err) && !overwrite {
 		return fmt.Errorf("path already exists %q, use --overwrite", fullpath)
 	}
-
 	var b bytes.Buffer
 	if err := loader.ConvertFromProto(&b, file, filename, importPath, protocPath); err != nil {
 		return err
 	}
-
 	result, err := format.Source(b.Bytes())
 	if err != nil {
 		// Also print the source being formatted, since the go/format
@@ -104,7 +96,6 @@ func convertFile(path string, overwrite bool, importPath string, protocPath stri
 		fmt.Fprintln(os.Stderr, b.String())
 		return err
 	}
-
 	if err := ioutil.WriteFile(fullpath, result, 0644); err != nil {
 		return fmt.Errorf("unable to write to file %q: %v", fullpath, err)
 	}

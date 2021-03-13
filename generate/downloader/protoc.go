@@ -12,10 +12,9 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/gunk/gunk/log"
 	"github.com/rogpeppe/go-internal/lockedfile"
 	"golang.org/x/sys/unix"
-
-	"github.com/gunk/gunk/log"
 )
 
 const defaultProtocVersion = "v3.9.1"
@@ -32,7 +31,6 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 	if version == "" {
 		version = defaultProtocVersion
 	}
-
 	// note - functionality is shared partly with getPaths in download.go
 	// but as that does not test existing binaries (as protoc-gen- binaries do not need to return version)
 	// let's keep it separate
@@ -52,11 +50,9 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 		if err := os.MkdirAll(cacheDir, 0755); err != nil {
 			return "", err
 		}
-
 		// The proto command path to use or download to.
 		dstPath = filepath.Join(cacheDir, fmt.Sprintf("protoc-%s", version))
 	}
-
 	dstDir, _ := filepath.Split(dstPath)
 	if unix.Access(dstDir, unix.W_OK) != nil {
 		// we use unwritable dstPath (system protoc),
@@ -66,7 +62,6 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 		}
 		return dstPath, nil
 	}
-
 	// First, grab a lock separate from the destination file. The
 	// destination file is a binary we'll want to execute, so using it
 	// directly as the lock can lead to "text file busy" errors.
@@ -92,13 +87,11 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 		return "", err
 	}
 	defer dstFile.Close()
-
 	// The file does not exist. Download it, using dstFile.
 	url, err := protocDownloadURL(runtime.GOOS, runtime.GOARCH, version)
 	if err != nil {
 		return "", fmt.Errorf("downloading protoc: %w", err)
 	}
-
 	// Download protoc since we were unable to find a usable
 	// protoc installation.
 	cl := &http.Client{}
@@ -111,11 +104,9 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 		return "", err
 	}
 	defer res.Body.Close()
-
 	if res.StatusCode != 200 {
 		return "", fmt.Errorf("could not retrieve %q (%d)", url, res.StatusCode)
 	}
-
 	// Check the contents of the zipped folder for the protoc binary.
 	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -126,19 +117,16 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	// Search in the zip download for the 'protoc' command.
 	for _, f := range rdr.File {
 		if f.Name != "bin/protoc" {
 			continue
 		}
-
 		fc, err := f.Open()
 		if err != nil {
 			return "", err
 		}
 		defer fc.Close()
-
 		// Write protoc command to cache.
 		if _, err := io.Copy(dstFile, fc); err != nil {
 			return "", err
@@ -147,11 +135,9 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 			return "", err
 		}
 		log.Verbosef("downloaded protoc to %s", dstPath)
-
 		if err := verifyProtocBinary(dstPath, version); err != nil {
 			return "", err
 		}
-
 		return dstPath, nil
 	}
 	return "", fmt.Errorf("unable to download and extract protoc")
@@ -163,12 +149,10 @@ func verifyProtocBinary(path, version string) error {
 	if err != nil {
 		return log.ExecError(path, err)
 	}
-
 	versionOutput := string(out)
 	if versionOutput[:9] != "libprotoc" {
 		return fmt.Errorf("%q was not a valid protoc binary", path)
 	}
-
 	// NOTE: the output of protoc --version doesn't include a 'v',
 	// but the release tags do
 	gotVersion := strings.TrimSpace(versionOutput[10:])
@@ -178,7 +162,6 @@ func verifyProtocBinary(path, version string) error {
 	if gotVersion != split[0] {
 		return fmt.Errorf("want protoc version %q got %q", split[0], gotVersion)
 	}
-
 	return nil
 }
 
@@ -199,11 +182,9 @@ func verifyProtocBinary(path, version string) error {
 func protocDownloadURL(os, arch, version string) (string, error) {
 	// retrieve the specified version's release assets
 	const protocGitHubRepo = "protocolbuffers/protobuf"
-
 	if !strings.HasPrefix(version, "v") {
 		return "", fmt.Errorf("invalid version: %s", version)
 	}
-
 	// determine the platform
 	var platform string
 	switch {
@@ -211,27 +192,22 @@ func protocDownloadURL(os, arch, version string) (string, error) {
 		platform = "osx-x86_32"
 	case os == "darwin" && arch == "amd64":
 		platform = "osx-x86_64"
-
 	case os == "linux" && arch == "386":
 		platform = "linux-x86_32"
 	case os == "linux" && arch == "amd64":
 		platform = "linux-x86_64"
 	case os == "linux" && arch == "arm64":
 		platform = "linux-aarch_64"
-
 	case os == "windows" && arch == "386":
 		platform = "win32"
 	case os == "windows" && arch == "amd64":
 		platform = "win64"
-
 	default:
 		return "", fmt.Errorf("unknown os %q and arch %q", os, arch)
 	}
-
 	// the version string is guaranteed to starts with "v", removing it
 	short := version[1:]
 	short = strings.ReplaceAll(short, "rc", "rc-")
-
 	return fmt.Sprintf("https://github.com/%s/releases/download/%s/protoc-%s-%s.zip",
 		protocGitHubRepo,
 		version,

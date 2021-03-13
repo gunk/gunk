@@ -59,7 +59,6 @@ func (b *builder) String() string {
 	v := reflect.ValueOf(b.entries)
 	k := v.MapKeys()
 	reflectutil.SortValues(k)
-
 	s := &strings.Builder{}
 	fmt.Fprintf(s, "%s\n", pot)
 	for _, e := range k {
@@ -77,7 +76,6 @@ func (b *builder) AddFromFile(name string) error {
 		return err
 	}
 	defer f.Close()
-
 	s := bufio.NewScanner(f)
 	for s.Scan() {
 		l := s.Text()

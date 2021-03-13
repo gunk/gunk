@@ -9,10 +9,9 @@ import (
 )
 
 var (
-	Out io.Writer = os.Stderr
-
-	PrintCommands = false
-	Verbose       = false
+	Out           io.Writer = os.Stderr
+	PrintCommands           = false
+	Verbose                 = false
 )
 
 func Printf(format string, args ...interface{}) {

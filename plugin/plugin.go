@@ -6,15 +6,14 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/golang/protobuf/proto"
-	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
-
 	"github.com/gunk/gunk/protoutil"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/pluginpb"
 )
 
 // Plugin provides plugin method.
 type Plugin interface {
-	Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.CodeGeneratorResponse, error)
+	Generate(req *pluginpb.CodeGeneratorRequest) (*pluginpb.CodeGeneratorResponse, error)
 }
 
 func RunMain(p Plugin) {
@@ -23,46 +22,39 @@ func RunMain(p Plugin) {
 		fmt.Fprint(os.Stderr, err)
 		os.Exit(1)
 	}
-
 	resp, err := p.Generate(req)
 	if err != nil {
 		fmt.Fprint(os.Stderr, err)
 		os.Exit(1)
 	}
-
 	if err := writeResponse(os.Stdout, resp); err != nil {
 		fmt.Fprint(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func readRequest(r io.Reader) (*plugin_go.CodeGeneratorRequest, error) {
+func readRequest(r io.Reader) (*pluginpb.CodeGeneratorRequest, error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
-
-	req := new(plugin_go.CodeGeneratorRequest)
+	req := new(pluginpb.CodeGeneratorRequest)
 	if err = proto.Unmarshal(data, req); err != nil {
 		return nil, err
 	}
-
 	if len(req.GetFileToGenerate()) == 0 {
 		return nil, fmt.Errorf("no files were supplied to the generator")
 	}
-
 	return req, nil
 }
 
-func writeResponse(w io.Writer, resp *plugin_go.CodeGeneratorResponse) error {
+func writeResponse(w io.Writer, resp *pluginpb.CodeGeneratorResponse) error {
 	data, err := protoutil.MarshalDeterministic(resp)
 	if err != nil {
 		return err
 	}
-
 	if _, err := w.Write(data); err != nil {
 		return err
 	}
-
 	return nil
 }

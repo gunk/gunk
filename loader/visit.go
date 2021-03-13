@@ -8,7 +8,6 @@ import (
 
 // This file is an almost exact copy of go/packages/visit.go, but changed to
 // work on Gunk packages.
-
 // Visit visits all the packages in the import graph whose roots are
 // pkgs, calling the optional pre function the first time each package
 // is encountered (preorder), and the optional post function after a
@@ -23,7 +22,6 @@ func Visit(pkgs []*GunkPackage, pre func(*GunkPackage) bool, post func(*GunkPack
 			return
 		}
 		seen[pkg] = true
-
 		if pre == nil || pre(pkg) {
 			paths := make([]string, 0, len(pkg.Imports))
 			for path := range pkg.Imports {
@@ -34,7 +32,6 @@ func Visit(pkgs []*GunkPackage, pre func(*GunkPackage) bool, post func(*GunkPack
 				visit(pkg.Imports[path])
 			}
 		}
-
 		if post != nil {
 			post(pkg)
 		}

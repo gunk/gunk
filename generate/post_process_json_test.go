@@ -11,7 +11,6 @@ func TestJSONTagPostProcessor(t *testing.T) {
 	}{
 		{
 			input: `package test
-
 // Person represents a homo sapien instance.
 type Person struct {
 	FirstName            string   ` + "`" + `protobuf:"bytes,1,opt,name=FirstName,json=first_name,proto3" json:"FirstName,omitempty"` + "`" + `
@@ -22,7 +21,6 @@ type Person struct {
 }
 `,
 			output: `package test
-
 // Person represents a homo sapien instance.
 type Person struct {
 	FirstName            string   ` + "`" + `protobuf:"bytes,1,opt,name=FirstName,json=first_name,proto3" json:"first_name,omitempty"` + "`" + `
@@ -36,7 +34,6 @@ type Person struct {
 		{
 			input: `// This file intentionally has many json strings to confuse the post processor
 package test
-
 type ABCJSONTest struct {
 	// JSONField is a json field
 	JSONField string ` + "`" + `json2:"abc"` + "`" + `
@@ -44,7 +41,6 @@ type ABCJSONTest struct {
 `,
 			output: `// This file intentionally has many json strings to confuse the post processor
 package test
-
 type ABCJSONTest struct {
 	// JSONField is a json field
 	JSONField string ` + "`" + `json2:"abc"` + "`" + `
@@ -52,7 +48,6 @@ type ABCJSONTest struct {
 `,
 		},
 	}
-
 	for _, tc := range tests {
 		output, err := jsonTagPostProcessor([]byte(tc.input))
 		if err != nil {

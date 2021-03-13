@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 // FileDescWrapper is a wrapper for FileDescriptorProto for holding a map of dependencies.
 type FileDescWrapper struct {
-	*descriptor.FileDescriptorProto
-	DependencyMap map[string]*descriptor.FileDescriptorProto
+	*descriptorpb.FileDescriptorProto
+	DependencyMap map[string]*descriptorpb.FileDescriptorProto
 }
 
 // File is a proto parsed file.
@@ -68,7 +68,6 @@ func (f *File) CheckSwagger() error {
 	if f.Swagger.Info.Version == "" {
 		return fmt.Errorf("needs a swagger.info.version")
 	}
-
 	for _, s := range f.Services {
 		for _, m := range s.Methods {
 			if m.Operation == nil {

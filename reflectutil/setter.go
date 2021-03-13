@@ -10,13 +10,13 @@ import (
 	"strings"
 
 	protop "github.com/emicklei/proto"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 func UnmarshalProto(v interface{}, lit *protop.Literal) {
 	value := reflect.Indirect(reflect.ValueOf(v))
 	typ := value.Type()
-
 	switch typ.Kind() {
 	case reflect.Struct:
 		for _, elem := range lit.OrderedMap {
@@ -30,7 +30,6 @@ func UnmarshalProto(v interface{}, lit *protop.Literal) {
 func UnmarshalAST(v interface{}, expr ast.Expr) {
 	value := reflect.Indirect(reflect.ValueOf(v))
 	typ := value.Type()
-
 	switch typ.Kind() {
 	case reflect.Struct:
 		expr := expr.(*ast.CompositeLit)
@@ -57,7 +56,6 @@ func setField(structVal reflect.Value, name string, value interface{}) {
 		panic(fmt.Errorf("%s was not found in %s", name, typ))
 	}
 	fval := structVal.FieldByIndex(field.Index)
-
 	val := valueFor(field.Type, field.Tag, value)
 	// Merge slices and maps. For example, maps are often decoded one
 	// key-value element at a time for backwards compatibility, so we must
@@ -83,7 +81,6 @@ func valueFor(typ reflect.Type, tag reflect.StructTag, value interface{}) reflec
 		// We don't care about the name here.
 		value = named.Literal
 	}
-
 	switch typ.Kind() {
 	case reflect.Ptr:
 		return valueFor(typ.Elem(), tag, value).Addr()
@@ -135,31 +132,25 @@ func valueFor(typ reflect.Type, tag reflect.StructTag, value interface{}) reflec
 				if etyp.Kind() != reflect.Uint8 {
 					return nil
 				}
-
 				valueFun, ok := value.Fun.(*ast.ArrayType)
 				if !ok {
 					return nil
 				}
-
 				valueElt, ok := valueFun.Elt.(*ast.Ident)
 				if !ok {
 					return nil
 				}
-
 				if valueElt.Name != "byte" {
 					return nil
 				}
-
 				if len(value.Args) != 1 {
 					return nil
 				}
-
 				valueArg := value.Args[0]
 				valueArgL, ok := valueArg.(*ast.BasicLit)
 				if !ok {
 					return nil
 				}
-
 				if valueArgL.Kind != token.STRING {
 					return nil
 				}
@@ -170,13 +161,10 @@ func valueFor(typ reflect.Type, tag reflect.StructTag, value interface{}) reflec
 				v := reflect.ValueOf([]byte(val))
 				return &v
 			}()
-
 			if v == nil {
 				panic(fmt.Sprintf("%T is not a valid value for %s", value, typ))
 			}
-
 			return *v
-
 		case *ast.CompositeLit:
 			for _, elt := range value.Elts {
 				list = reflect.Append(list, valueFor(etyp, tag, elt))
@@ -198,7 +186,6 @@ func valueFor(typ reflect.Type, tag reflect.StructTag, value interface{}) reflec
 		}
 		return list
 	}
-
 	valueStr := ""
 	switch x := value.(type) {
 	case *ast.Ident:
@@ -212,23 +199,21 @@ func valueFor(typ reflect.Type, tag reflect.StructTag, value interface{}) reflec
 	default:
 		panic(fmt.Sprintf("%T contains no name or string value", value))
 	}
-	value = reflect.Value{} // ensure we just use valueStr from this point
-
-	// If the field is an enum, decode it, and store it via a conversion
-	// from int32 to the named enum type.
+	value = reflect.Value{}
+	// ensure we just use valueStr from this point. If the field is an enum,
+	// decode it, and store it via a conversion from int32 to the named enum
+	// type.
 	for _, kv := range strings.Split(tag.Get("protobuf"), ",") {
 		kv := strings.SplitN(kv, "=", 2)
 		if kv[0] != "enum" {
 			continue
 		}
-		enumMap := proto.EnumValueMap(kv[1])
-		val, ok := enumMap[valueStr]
-		if !ok {
-			panic(fmt.Errorf("%q is not a valid %s", valueStr, kv[1]))
+		val, err := protoregistry.GlobalTypes.FindEnumByName(protoreflect.FullName(kv[1]))
+		if err != nil {
+			panic(fmt.Errorf("%q is not a valid %s: %w", valueStr, kv[1], err))
 		}
 		return reflect.ValueOf(val).Convert(typ)
 	}
-
 	var v interface{}
 	var err error
 	switch typ.Kind() {

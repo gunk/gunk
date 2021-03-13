@@ -10,11 +10,10 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/gunk/gunk/generate"
 	"github.com/rogpeppe/go-internal/goproxytest"
 	"github.com/rogpeppe/go-internal/gotooltest"
 	"github.com/rogpeppe/go-internal/testscript"
-
-	"github.com/gunk/gunk/generate"
 )
 
 var write = flag.Bool("w", false, "overwrite testdata output files")
@@ -40,7 +39,6 @@ func TestMain(m *testing.M) {
 		if err := cmd.Run(); err != nil {
 			panic(err)
 		}
-
 		// Start the Go proxy server running for all tests.
 		srv, err := goproxytest.NewServer("testdata/mod", "")
 		if err != nil {
@@ -48,7 +46,6 @@ func TestMain(m *testing.M) {
 		}
 		proxyURL = srv.URL
 	}
-
 	os.Exit(testscript.RunMain(m, map[string]func() int{
 		"gunk": main1,
 	}))
@@ -70,7 +67,6 @@ func TestGenerate(t *testing.T) {
 		// make sure we're writing the files
 		os.Remove(path)
 	}
-
 	if err := generate.Run(dir, pkgs...); err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +74,6 @@ func TestGenerate(t *testing.T) {
 		// don't check that the output files match
 		return
 	}
-
 	gotFiles, err := generatedFiles(dir)
 	if err != nil {
 		t.Fatal(err)
@@ -137,7 +132,6 @@ func TestScripts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	p := testscript.Params{
 		Dir: filepath.Join("testdata", "scripts"),
 		Setup: func(e *testscript.Env) error {

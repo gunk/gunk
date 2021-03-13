@@ -32,8 +32,7 @@ type Generator struct {
 	Out           string
 	JSONPostProc  bool
 	FixPaths      bool
-
-	Shortened bool // only for `gunk vet`
+	Shortened     bool // only for `gunk vet`
 }
 
 func (g Generator) IsProtoc() bool {
@@ -128,7 +127,6 @@ func Load(dir string) (*Config, error) {
 			if err != nil {
 				return nil, fmt.Errorf("error loading %q: %v", configPath, err)
 			}
-
 			cfg.Dir = dir
 			// Patch in the directory of where to output the generated
 			// files. And patch in the 'out' path if it has been set globally,
@@ -139,10 +137,8 @@ func Load(dir string) (*Config, error) {
 					cfg.Generators[i].Out = cfg.Out
 				}
 			}
-
 			cfgs = append(cfgs, cfg)
 		}
-
 		// Check to see if this directory contains a 'go.mod' file or '.git'
 		// file or folder. If so, we assume that is the root of the project
 		// and we have found all the gunk configs.
@@ -150,7 +146,6 @@ func Load(dir string) (*Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("unable to list files in directory %q", dir)
 		}
-
 		foundProjectRoot := false
 		for _, f := range files {
 			if f.Name() == goModFilename || f.Name() == gitFilename {
@@ -158,33 +153,26 @@ func Load(dir string) (*Config, error) {
 				break
 			}
 		}
-
 		if foundProjectRoot {
 			break
 		}
-
 		prevDir := dir
 		dir = filepath.Dir(dir)
-
 		// Is the parent directory the same as the child.
 		if prevDir == dir {
 			// If we are unable to determine a different parent from
 			// the current directory (most likely we have hit the root '/').
 			break
 		}
-
 	}
-
 	// If no configs were found, return an error.
 	if len(cfgs) == 0 {
 		return nil, fmt.Errorf("no .gunkconfig found")
 	}
-
 	// Merge the found configs.
 	config := cfgs[0]
 	for i := 1; i < len(cfgs); i++ {
 		c := cfgs[i]
-
 		// Set the protoc path + version to the first non-blank values found (if any).
 		// They are visited in order of specificity, so a .gunkconfig in a child directory can
 		// override the protoc configuration specified in its parent.
@@ -194,10 +182,8 @@ func Load(dir string) (*Config, error) {
 		if protocPath := c.ProtocPath; config.ProtocPath == "" {
 			config.ProtocPath = protocPath
 		}
-
 		config.Generators = append(config.Generators, c.Generators...)
 	}
-
 	return config, nil
 }
 
@@ -244,10 +230,8 @@ func LoadSingle(reader io.Reader) (*Config, error) {
 			if len(sParts) != 2 {
 				return nil, fmt.Errorf("generate section name should have 2 values, not %d", len(sParts))
 			}
-
 			gen, err = handleGenerate(s)
 			generator := strings.Trim(sParts[1], "\"")
-
 			// Is this shortened generator a protoc-gen-* binary, or
 			// should it be passed to protoc.
 			// We ignore the binary path since we don't do the same for the

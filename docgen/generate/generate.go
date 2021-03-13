@@ -3,7 +3,6 @@ package generate
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"text/template"
 
@@ -21,22 +20,18 @@ const (
 	CustomHeaderIdsOptEnabled
 )
 
-// Run generates a markdown file describing the API
-// and a messages.pot containing all sentences that need to be
-// translated.
+// Run generates a markdown file describing the API and a messages.pot
+// containing all sentences that need to be translated.
 func Run(w io.Writer, f *parser.FileDescWrapper, lang []string,
 	customHeaderIds CustomHeaderIdsOpt, onlyExternal parser.OnlyExternalOpt) (pot.Builder, error) {
 	pb := pot.NewBuilder()
-
 	api, err := parser.ParseFile(f, onlyExternal)
 	if err != nil {
 		return nil, err
 	}
-
 	if !api.HasServices() {
 		return nil, ErrNoServices
 	}
-
 	if err := api.CheckSwagger(); err != nil {
 		name := ""
 		if f.Name != nil {
@@ -44,14 +39,11 @@ func Run(w io.Writer, f *parser.FileDescWrapper, lang []string,
 		}
 		return nil, fmt.Errorf("swagger error in file %s: %w", name, err)
 	}
-	tplName := "api.md"
-
-	b, err := loadTemplate(tplName)
+	buf, err := assets.ReadFile("api.md")
 	if err != nil {
 		return nil, err
 	}
-
-	tmpl := template.Must(template.New("doc").
+	tpl := template.Must(template.New("doc").
 		Funcs(template.FuncMap{
 			"CustomHeaderId": func(txt ...string) string {
 				if customHeaderIds != CustomHeaderIdsOptEnabled {
@@ -71,21 +63,9 @@ func Run(w io.Writer, f *parser.FileDescWrapper, lang []string,
 			"mdType": func(txt string) string {
 				return strings.ReplaceAll(txt, "[", "\\[")
 			},
-		}).
-		Parse(string(b)))
-
-	if err := tmpl.Execute(w, api); err != nil {
+		}).Parse(string(buf)))
+	if err := tpl.Execute(w, api); err != nil {
 		return nil, err
 	}
 	return pb, nil
-}
-
-func loadTemplate(name string) ([]byte, error) {
-	file, err := assets.Assets.Open(name)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	return ioutil.ReadAll(file)
 }

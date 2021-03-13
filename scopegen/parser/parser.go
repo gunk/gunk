@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 // Scope represents an OAuth2 scope.
@@ -61,22 +61,17 @@ func generateFullMethodName(pkg, servName, methName string) string {
 	return fmt.Sprintf("/%s/%s", fullServName, methName)
 }
 
-func parseScopes(file *descriptor.FileDescriptorProto) (string, []Scope, error) {
+func parseScopes(file *descriptorpb.FileDescriptorProto) (string, []Scope, error) {
 	var (
 		oauth2SecuritySchemeName string
 		scopes                   []Scope
 	)
-
-	fileExt, err := proto.GetExtension(file.GetOptions(), options.E_Openapiv2Swagger)
-	if err == proto.ErrMissingExtension {
+	fileExt := proto.GetExtension(file.GetOptions(), options.E_Openapiv2Swagger)
+	if fileExt == nil {
 		// no swagger option defined, generated nothing
 		return "", nil, nil
-	} else if err != nil {
-		return "", nil, err
 	}
-
 	swagger := fileExt.(*options.Swagger)
-
 	if swagger.GetSecurityDefinitions() == nil {
 		return "", nil, nil
 	}
@@ -90,14 +85,12 @@ func parseScopes(file *descriptor.FileDescriptorProto) (string, []Scope, error) 
 				scopeKeys = append(scopeKeys, scopeName)
 			}
 			sort.Strings(scopeKeys)
-
 			for _, scopeName := range scopeKeys {
 				scopes = append(scopes, Scope{
 					Name:  scopeName,
 					Value: securityScheme.Scopes.Scope[scopeName],
 				})
 			}
-
 			oauth2SecuritySchemeName = securitySchemeName
 			// for now we only handle first OAuth2 security scheme definition,
 			// supports for generating multiple schemes might come later
@@ -108,13 +101,11 @@ func parseScopes(file *descriptor.FileDescriptorProto) (string, []Scope, error) 
 }
 
 // parseMethodsFromService parsed the given service and store its method OAuth2 scopes to method map.
-func parseMethodsFromService(methods map[string][]string, packageName, securitySchemeName string, service *descriptor.ServiceDescriptorProto) error {
+func parseMethodsFromService(methods map[string][]string, packageName, securitySchemeName string, service *descriptorpb.ServiceDescriptorProto) error {
 	for _, method := range service.GetMethod() {
-		methodExt, err := proto.GetExtension(method.GetOptions(), options.E_Openapiv2Operation)
-		if err == proto.ErrMissingExtension {
+		methodExt := proto.GetExtension(method.GetOptions(), options.E_Openapiv2Operation)
+		if methodExt == nil {
 			continue
-		} else if err != nil {
-			return err
 		}
 		op := methodExt.(*options.Operation)
 		for _, securityRequirement := range op.GetSecurity() {
@@ -129,29 +120,25 @@ func parseMethodsFromService(methods map[string][]string, packageName, securityS
 	return nil
 }
 
-func parseMethods(securitySchemeName string, file *descriptor.FileDescriptorProto) ([]Method, error) {
+func parseMethods(securitySchemeName string, file *descriptorpb.FileDescriptorProto) ([]Method, error) {
 	var (
 		methods = make(map[string][]string)
 		result  []Method
 	)
-
 	if securitySchemeName == "" {
 		return nil, nil
 	}
-
 	for _, service := range file.GetService() {
 		if err := parseMethodsFromService(methods, file.GetPackage(), securitySchemeName, service); err != nil {
 			return nil, err
 		}
 	}
-
 	// sorted methods by key before storing to *File, to guarantee order of method in output
 	var methodNames []string
 	for name := range methods {
 		methodNames = append(methodNames, name)
 	}
 	sort.Strings(methodNames)
-
 	for _, name := range methodNames {
 		methodScopes := methods[name]
 		sort.Strings(methodScopes)
@@ -160,31 +147,26 @@ func parseMethods(securitySchemeName string, file *descriptor.FileDescriptorProt
 			Scopes: methodScopes,
 		})
 	}
-
 	return result, nil
 }
 
 // ParseFile parsed the given proto file to extract its OAuth2 scopes information.
-func ParseFile(file *descriptor.FileDescriptorProto) (*File, error) {
+func ParseFile(file *descriptorpb.FileDescriptorProto) (*File, error) {
 	f := &File{
 		Package: file.GetPackage(),
 	}
-
 	oauth2SecuritySchemeName, scopes, err := parseScopes(file)
 	if err != nil {
 		return nil, err
 	}
 	f.Scopes = scopes
-
 	methods, err := parseMethods(oauth2SecuritySchemeName, file)
 	if err != nil {
 		return nil, err
 	}
 	f.Methods = methods
-
 	if err = f.validate(); err != nil {
 		return nil, err
 	}
-
 	return f, nil
 }

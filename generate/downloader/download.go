@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/gunk/gunk/log"
-
 	"github.com/rogpeppe/go-internal/lockedfile"
 )
 
@@ -21,11 +20,9 @@ func getPaths(name, version string) (*Paths, func(error), error) {
 		// require version. this is used only with version explicitly set.
 		return nil, nil, fmt.Errorf("must provide protoc-gen-go version")
 	}
-
 	if !strings.HasPrefix(version, "v") {
 		return nil, nil, fmt.Errorf("invalid version: %s", version)
 	}
-
 	// Get the OS-specific cache directory.
 	cachePath, err := os.UserCacheDir()
 	if err != nil {
@@ -36,20 +33,15 @@ func getPaths(name, version string) (*Paths, func(error), error) {
 		// the tests.
 		cachePath = dir
 	}
-
 	cacheDir := filepath.Join(cachePath, "gunk")
 	if err := os.MkdirAll(cacheDir, 0755); err != nil {
 		return nil, nil, err
 	}
-
 	pname := fmt.Sprintf("protoc-gen-%s-%s", name, version)
 	var p Paths
-
 	p.buildDir = filepath.Join(cacheDir, fmt.Sprintf("git-%s", pname))
 	p.binary = filepath.Join(cacheDir, pname)
-
 	lockPath := p.binary + ".lock"
-
 	// Grab a lock separate from the destination file. The
 	// destination file is a binary we'll want to execute, so using it
 	// directly as the lock can lead to "text file busy" errors.
@@ -57,7 +49,6 @@ func getPaths(name, version string) (*Paths, func(error), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-
 	cleanup := func(err error) {
 		// if anything went wrong, remove binary, do not remove git
 		// (just do remove and ignore errors)
@@ -66,7 +57,6 @@ func getPaths(name, version string) (*Paths, func(error), error) {
 		}
 		unlock()
 	}
-
 	return &p, cleanup, nil
 }
 
@@ -115,31 +105,25 @@ func download(d Downloader, version string) (s string, err error) {
 	if err != nil {
 		return "", err
 	}
-
 	defer func() {
 		// note - cannot do `defer cleanup(err)`, that might have wrong err
 		cleanup(err)
 	}()
-
 	_, fErr := os.Stat(p.binary)
 	if !os.IsNotExist(fErr) {
 		if fErr != nil {
 			return "", fErr
 		}
-
 		return p.binary, nil
 	}
-
 	// remove git clone dir here and not in cleanup,
 	// so we can more easily debug
 	// (ignore error)
 	os.RemoveAll(p.buildDir)
-
 	bin, err := d.Download(version, *p)
 	if err != nil {
 		return "", err
 	}
-
 	if bin != p.binary {
 		// TODO windows?
 		cpCmd := log.ExecCommand("ln",
@@ -151,6 +135,5 @@ func download(d Downloader, version string) (s string, err error) {
 			return "", err
 		}
 	}
-
 	return p.binary, nil
 }

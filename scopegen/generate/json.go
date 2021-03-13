@@ -6,7 +6,6 @@ import (
 	"io"
 
 	_ "github.com/golang/protobuf/protoc-gen-go/grpc"
-
 	"github.com/gunk/gunk/scopegen/parser"
 )
 
@@ -30,15 +29,12 @@ func jsonV2(w io.Writer, f *parser.File) error {
 		Scopes:     make(map[string]string, len(f.Scopes)),
 		AuthScopes: make(map[string][]string, len(f.Methods)),
 	}
-
 	for _, method := range f.Methods {
 		m.AuthScopes[method.Name] = method.Scopes
 	}
-
 	for _, scope := range f.Scopes {
 		m.Scopes[scope.Name] = scope.Value
 	}
-
 	return json.NewEncoder(w).Encode(m)
 }
 

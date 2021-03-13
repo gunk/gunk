@@ -18,14 +18,11 @@ var codeTags = map[string]string{
 
 func addSnippet(name string, langs []string) (string, error) {
 	pattern := fmt.Sprintf("%s/%s.*", "./**", snaker.CamelToSnake(name))
-
 	matches, err := doublestar.Glob(pattern)
 	if err != nil {
 		return "", err
 	}
-
 	var res bytes.Buffer
-
 	for _, ext := range langs {
 		ext = strings.TrimSpace(ext)
 	MATCHES:
@@ -35,7 +32,6 @@ func addSnippet(name string, langs []string) (string, error) {
 			if tag != ext {
 				continue MATCHES
 			}
-
 			if _, ok := codeTags[tag]; ok {
 				tag = codeTags[tag]
 			}
@@ -43,7 +39,6 @@ func addSnippet(name string, langs []string) (string, error) {
 			if err != nil {
 				return "", fmt.Errorf("read code file %s: %w", file, err)
 			}
-
 			if tag != "md" {
 				// fake source here
 				source := "```" + tag + "\n"
@@ -54,12 +49,9 @@ func addSnippet(name string, langs []string) (string, error) {
 				source += "```"
 				inject = []byte(source)
 			}
-
 			res.Write(inject)
-
 			res.WriteString("\n\n")
 		}
 	}
-
 	return res.String(), nil
 }

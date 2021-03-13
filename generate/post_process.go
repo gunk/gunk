@@ -18,22 +18,18 @@ func postProcess(input []byte, gen config.Generator, mainPkgPath string, pkgs ma
 			input = b
 		}
 	}
-
 	if code == "js" {
 		if gen.FixPaths {
 			return jsPathProcessor(input, mainPkgPath, pkgs)
 		}
 	}
-
 	if code == "ts" {
 		if gen.FixPaths {
 			return tsPathProcessor(input, mainPkgPath, pkgs)
 		}
 	}
-
 	if code == "go" || code == "grpc-gateway" {
 		return format.Source(input, format.Options{LangVersion: "1.14"})
 	}
-
 	return input, nil
 }

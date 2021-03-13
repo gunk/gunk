@@ -3,6 +3,7 @@
 Docgen is a plugin of gunk. For now, it goes through the same gunk package used
 in `gunk generate` command and generates a documentation markdown file `all.md`
 and a `messages.pot`.
+
 The `messages.pot` files contains all strings from the openapi annotations.
 
 ## Installation
@@ -10,7 +11,7 @@ The `messages.pot` files contains all strings from the openapi annotations.
 Use the following command to install docgen:
 
 ```sh
-go get -u github.com/gunk/gunk/docgen
+$ go get -u github.com/gunk/gunk/docgen
 ```
 
 This will place `docgen` in your `$GOBIN`
@@ -25,7 +26,7 @@ command=docgen
 out=examples/util/v1/
 ```
 
-### Code examples
+### Code examples
 
 To generate code examples, add the following to the `.gunkconfig` docgen section:
 
@@ -33,8 +34,8 @@ To generate code examples, add the following to the `.gunkconfig` docgen section
 lang=go
 ```
 
-Then add your `*.go` files near your gunk files.
-The examples files must be named according to the gunk method you want to showcase.
+Then add your `*.go` files near your gunk files. The examples files must be
+named according to the gunk method you want to showcase.
 
 Example:
 
@@ -50,4 +51,5 @@ You should have `update_account.go` and `delete_account.go`.
 
 ## Contributing
 
-After any changes on `templates/api.md`, make sure to perform `go generate` in `assets` folder to embed your changes.
+After any changes on `templates/api.md`, make sure to perform `go generate` in
+`assets` folder to embed your changes.

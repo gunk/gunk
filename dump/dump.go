@@ -18,7 +18,6 @@ func Run(format, dir string, patterns ...string) error {
 	if err != nil {
 		return err
 	}
-
 	// Format the FileDescriptorSet.
 	var bs []byte
 	switch format {
@@ -36,7 +35,6 @@ func Run(format, dir string, patterns ...string) error {
 	default:
 		return fmt.Errorf("unknown output format %q", format)
 	}
-
 	// Otherwise, output to stdout
 	_, err = os.Stdout.Write(bs)
 	return err

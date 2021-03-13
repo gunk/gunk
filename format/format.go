@@ -36,12 +36,10 @@ func Run(dir string, args ...string) error {
 			if err != nil {
 				return err
 			}
-
 			got, err := formatFile(fset, file)
 			if err != nil {
 				return err
 			}
-
 			if !bytes.Equal(orig, got) {
 				if err := ioutil.WriteFile(path, got, 0666); err != nil {
 					return err
@@ -114,7 +112,6 @@ func formatComment(fset *token.FileSet, group *ast.CommentGroup) error {
 	}
 	for i, tag := range tags {
 		var buf bytes.Buffer
-
 		// Print with space indentation, since all comment lines begin
 		// with "// " and we don't want to mix spaces and tabs.
 		config := printer.Config{Mode: printer.UseSpaces, Tabwidth: 8}
@@ -170,7 +167,6 @@ func formatStruct(fset *token.FileSet, st *ast.StructType) error {
 		}
 		usedSequences = append(usedSequences, i)
 	}
-
 	// Determine missing sequences.
 	missingSequences := []int{}
 	for i := 1; i < len(st.Fields.List)+1; i++ {
@@ -185,7 +181,6 @@ func formatStruct(fset *token.FileSet, st *ast.StructType) error {
 			missingSequences = append(missingSequences, i)
 		}
 	}
-
 	// Add the sequence number to the field tag, creating a new
 	// tag if one doesn't exist, or prepend the sequence number
 	// to the tag that is already there.

@@ -1,7 +1,5 @@
 package generate
-
 import "testing"
-
 func TestPathFromTo(t *testing.T) {
 	tests := []struct {
 		from     string
@@ -34,7 +32,6 @@ func TestPathFromTo(t *testing.T) {
 			expected: ".",
 		},
 	}
-
 	for _, tc := range tests {
 		res := pathFromTo(tc.from, tc.to)
 		if res != tc.expected {

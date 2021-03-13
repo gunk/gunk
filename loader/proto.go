@@ -12,10 +12,9 @@ import (
 	"unicode"
 
 	"github.com/emicklei/proto"
-	"github.com/kenshaw/snaker"
-
 	"github.com/gunk/gunk/reflectutil"
 	"github.com/gunk/opt/openapiv2"
+	"github.com/kenshaw/snaker"
 )
 
 var urlVarRegexp = regexp.MustCompile(`\{(.*?)\}`)
@@ -30,40 +29,34 @@ func ConvertFromProto(w io.Writer, r io.Reader, filename string, importPath stri
 	if err != nil {
 		return fmt.Errorf("unable to parse proto file %q: %v", filename, err)
 	}
-
 	// Start converting the proto declarations to gunk.
 	b := builder{
 		filename:      filename,
 		importsUsed:   map[string]string{},
 		existingDecls: map[string]bool{},
 	}
-
 	if importPath != "" {
 		b.protoLoader = &ProtoLoader{
 			Dir:        importPath,
 			ProtocPath: protocPath,
 		}
 	}
-
 	for _, e := range d.Elements {
 		if err := b.handleProtoType(e); err != nil {
 			return err
 		}
 	}
-
 	// Validate that the package name is a a valid
 	// Go package name.
 	if err := b.validatePackageName(); err != nil {
 		return err
 	}
-
 	// Convert the proto package and imports to gunk.
 	translatedPkg, err := b.handlePackage()
 	if err != nil {
 		return err
 	}
 	translatedImports := b.handleImports()
-
 	// Add the converted package and imports, and then
 	// add all the rest of the converted types. This will
 	// keep the order that things were declared.
@@ -87,28 +80,23 @@ func ConvertFromProto(w io.Writer, r io.Reader, filename string, importPath stri
 type builder struct {
 	// The current filename of file being converted
 	filename string
-
 	// The converted proto to gunk declarations. This only stores
 	// the messages, enums and services. These get converted to as
 	// they are found.
 	translatedDeclarations []string
-
 	// The package, option and imports from the proto file.
 	// These are converted to gunk after we have converted
 	// the rest of the proto declarations.
 	pkg     *proto.Package
 	pkgOpts []*proto.Option
 	imports []*proto.Import
-
 	// Imports that are required to ro generate a valid Gunk file.
 	// Mostly these will be Gunk annotations. Import name will be
 	// mapped to its possible named import.
 	importsUsed map[string]string
-
 	// imported proto files will be loaded using protoLoader
 	// holds the absolute path passed to -I flag from protoc
 	protoLoader *ProtoLoader
-
 	// Holds existings declaration to avoid duplicate
 	existingDecls map[string]bool
 }
@@ -244,7 +232,6 @@ func (b *builder) handleMessageField(w *strings.Builder, field proto.Visitee) er
 		comment  *proto.Comment
 		options  []*proto.Option
 	)
-
 	switch field := field.(type) {
 	case *proto.NormalField:
 		name = field.Name
@@ -264,14 +251,12 @@ func (b *builder) handleMessageField(w *strings.Builder, field proto.Visitee) er
 	default:
 		return fmt.Errorf("unhandled message field type %T", field)
 	}
-
 	if comment != nil && strings.HasPrefix(strings.TrimSpace(comment.Message()), name) {
 		comment.Lines[0] = strings.Replace(comment.Message(), name, snaker.ForceCamelIdentifier(name), 1)
 	}
 	if repeated {
 		typ = "[]" + typ
 	}
-
 	for _, o := range options {
 		val := o.Constant.Source
 		var impt string
@@ -293,11 +278,9 @@ func (b *builder) handleMessageField(w *strings.Builder, field proto.Visitee) er
 			impt = "github.com/gunk/opt/message/js"
 			value = b.genAnnotationString("Type", val)
 		}
-
 		pkg := b.addImportUsed(impt)
 		b.format(w, 1, nil, fmt.Sprintf("// +gunk %s.%s\n", pkg, value))
 	}
-
 	// TODO(vishen): Is this correct to explicitly camelcase the variable name and
 	// snakecase the json name???
 	// If we do, gunk should probably have an option to set the variable name
@@ -387,7 +370,6 @@ func (b *builder) handleOption(w *strings.Builder, opt *proto.Option) error {
 	case "(grpc.gateway.protoc_gen_swagger.options.openapiv2_schema)":
 		schema := &openapiv2.Schema{}
 		reflectutil.UnmarshalProto(schema, &opt.Constant)
-
 		pkg := b.addImportUsed("github.com/gunk/opt/openapiv2")
 		b.format(w, 1, nil, "// +gunk %s.Schema{\n", pkg)
 		if schema.JSONSchema != nil {
@@ -411,7 +393,6 @@ func (b *builder) handleEnum(e *proto.Enum) error {
 	w := &strings.Builder{}
 	b.format(w, 0, e.Comment, "type %s int\n", e.Name)
 	b.format(w, 0, nil, "\nconst (\n")
-
 	// Check to see if we can output the enum using an iota. This is
 	// currently only possible if every enum value is an increment of 1
 	// from the previous enum value.
@@ -428,7 +409,6 @@ func (b *builder) handleEnum(e *proto.Enum) error {
 			return b.formatError(e.Position, "unexpected type %T in enum, expected enum field", c)
 		}
 	}
-
 	// Now we can output the enum as a const.
 	for i, c := range e.Elements {
 		ef, ok := c.(*proto.EnumField)
@@ -438,26 +418,22 @@ func (b *builder) handleEnum(e *proto.Enum) error {
 			// TODO(vishen): handle enum option
 			continue
 		}
-
 		// Check if there is already an existing enum field with this name
 		if ok := b.existingDecls[ef.Name]; ok {
 			// prefix with the enum type name
 			ef.Name = e.Name + "_" + ef.Name
 		}
 		b.existingDecls[ef.Name] = true
-
 		for _, e := range ef.Elements {
 			if o, ok := e.(*proto.Option); ok && o != nil {
 				fmt.Fprintln(os.Stderr, b.formatError(o.Position, "unhandled enumvalue option %q", o.Name))
 			}
 		}
-
 		// If we can't output as an iota.
 		if !outputIota {
 			b.format(w, 1, ef.Comment, "%s %s = %d\n", ef.Name, e.Name, ef.Integer)
 			continue
 		}
-
 		// If we can output as an iota, output the first element as the
 		// iota and output the rest as just the enum field name.
 		if i == 0 {
@@ -506,7 +482,6 @@ func (b *builder) handleService(s *proto.Service) error {
 			case "(grpc.gateway.protoc_gen_swagger.options.openapiv2_operation)":
 				op := &openapiv2.Operation{}
 				reflectutil.UnmarshalProto(op, &opt.Constant)
-
 				pkg := b.addImportUsed("github.com/gunk/opt/openapiv2")
 				if comment != nil {
 					b.format(w, 1, comment, "//\n")
@@ -532,7 +507,6 @@ func (b *builder) handleService(s *proto.Service) error {
 						})
 					}
 				}
-
 				// Check if we received a valid google http annotation. If
 				// so we will convert it to gunk http match.
 				if method != "" && url != "" {
@@ -563,17 +537,14 @@ func (b *builder) handleService(s *proto.Service) error {
 		if returnsType == "google.protobuf.Empty" {
 			returnsType = ""
 		}
-
 		// If the request is a stream, add chan
 		if r.StreamsRequest {
 			requestType = "chan " + requestType
 		}
-
 		// If the response is a stream, add chan
 		if r.StreamsReturns {
 			returnsType = "chan " + returnsType
 		}
-
 		b.format(w, 1, comment, "%s(%s) %s\n", r.Name, requestType, returnsType)
 	}
 	b.format(w, 0, nil, "}")
@@ -643,7 +614,6 @@ func (b *builder) handlePackage() (string, error) {
 			impt = "github.com/gunk/opt/openapiv2"
 			swagger := &openapiv2.Swagger{}
 			reflectutil.UnmarshalProto(swagger, &o.Constant)
-
 			res := &strings.Builder{}
 			b.format(res, 0, nil, "Swagger {\n")
 			b.format(res, 0, nil, b.fromStructToAnnotation(*swagger))
@@ -652,17 +622,14 @@ func (b *builder) handlePackage() (string, error) {
 		default:
 			return "", b.formatError(o.Position, "%q is an unhandled proto file option", n)
 		}
-
 		pkg := b.addImportUsed(impt)
 		gunkAnnotations = append(gunkAnnotations, fmt.Sprintf("%s.%s", pkg, value))
 	}
-
 	// Output the gunk annotations above the package comment. This
 	// should be first lines in the file.
 	for _, ga := range gunkAnnotations {
 		b.format(w, 0, nil, fmt.Sprintf("// +gunk %s\n", ga))
 	}
-
 	p := b.pkg
 	b.format(w, 0, p.Comment, "")
 	if opt != nil {
@@ -672,7 +639,6 @@ func (b *builder) handlePackage() (string, error) {
 	if opt != nil && opt.Constant.Source != "" {
 		b.format(w, 0, nil, " // proto %s", opt.Constant.Source)
 	}
-
 	return w.String(), nil
 }
 
@@ -686,10 +652,8 @@ func indirectType(t reflect.Type) reflect.Type {
 
 func (b *builder) fromStructToAnnotation(val interface{}) string {
 	w := &strings.Builder{}
-
 	v := reflect.ValueOf(val)
 	t := v.Type()
-
 	for i := 0; i < t.NumField(); i++ {
 		name := t.Field(i).Name
 		value := v.FieldByName(name)
@@ -790,7 +754,6 @@ func (b *builder) addImportUsed(i string) string {
 	r := strings.NewReplacer("github.com/gunk/opt", "", "/", "")
 	namedImport := r.Replace(i)
 	pkg := filepath.Base(i)
-
 	// Determine if there is a package with the same name
 	// as this one, if there is give this current one a
 	// named import with "/" replaced, eg:
@@ -802,14 +765,12 @@ func (b *builder) addImportUsed(i string) string {
 			break
 		}
 	}
-
 	// If the import requires a named import, record it and
 	// return the named import as the new package name.
 	if useNamedImport {
 		b.importsUsed[i] = namedImport
 		return namedImport
 	}
-
 	// If this is the first time that package name has been
 	// seen then we can keep the import as is.
 	b.importsUsed[i] = ""
@@ -820,10 +781,8 @@ func (b *builder) handleImports() string {
 	if len(b.importsUsed) == 0 && len(b.imports) == 0 {
 		return ""
 	}
-
 	w := &strings.Builder{}
 	b.format(w, 0, nil, "import (")
-
 	// Imports that have been used during convert.
 	for i, named := range b.importsUsed {
 		b.format(w, 0, nil, "\n")
@@ -833,7 +792,6 @@ func (b *builder) handleImports() string {
 			b.format(w, 1, nil, fmt.Sprintf("%q", i))
 		}
 	}
-
 	// Add any proto imports as comments.
 	for _, i := range b.imports {
 		b.format(w, 0, nil, "\n")

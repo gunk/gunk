@@ -7,15 +7,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/protoc-gen-go/descriptor"
-	"github.com/golang/protobuf/protoc-gen-go/plugin"
-
-	"mvdan.cc/gofumpt/format"
-
 	"github.com/gunk/gunk/plugin"
 	"github.com/gunk/gunk/scopegen/generate"
 	"github.com/gunk/gunk/scopegen/parser"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/pluginpb"
+	"mvdan.cc/gofumpt/format"
 )
 
 func main() {
@@ -24,7 +22,7 @@ func main() {
 
 type scopePlugin struct{}
 
-func (s *scopePlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.CodeGeneratorResponse, error) {
+func (s *scopePlugin) Generate(req *pluginpb.CodeGeneratorRequest) (*pluginpb.CodeGeneratorResponse, error) {
 	const (
 		jsonLangName         = "json"
 		goLangName           = "go"
@@ -35,7 +33,6 @@ func (s *scopePlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.
 		baseDir       string
 		outputVersion int
 	)
-
 	if param := req.GetParameter(); param != "" {
 		ps := strings.Split(param, ",")
 		for _, p := range ps {
@@ -65,9 +62,8 @@ func (s *scopePlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.
 			}
 		}
 	}
-
 	// find the source by looping through the proto files and finding the one that matches the FileToGenerate
-	var f *descriptor.FileDescriptorProto
+	var f *descriptorpb.FileDescriptorProto
 	for _, descriptorProto := range req.GetProtoFile() {
 		if strings.Contains(descriptorProto.GetName(), "all.proto") {
 			for _, fileToGenerate := range req.FileToGenerate {
@@ -81,22 +77,17 @@ func (s *scopePlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.
 	if f == nil {
 		return nil, fmt.Errorf("no file to generate")
 	}
-
 	parsed, err := parser.ParseFile(f)
 	if err != nil {
 		return nil, err
 	}
-
 	if baseDir == "" {
 		baseDir = filepath.Dir(f.GetName())
 	}
-
 	if outputVersion == 0 {
 		outputVersion = defaultOutputVersion
 	}
-
-	resp := &plugin_go.CodeGeneratorResponse{}
-
+	resp := &pluginpb.CodeGeneratorResponse{}
 	for lang := range langs {
 		buf := bytes.NewBuffer(nil)
 		var res string
@@ -119,15 +110,13 @@ func (s *scopePlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.
 			// this should never be reached, but be defensive
 			return nil, fmt.Errorf("unsupported language: %s", lang)
 		}
-
 		resp.File = append(resp.File, newCodeGeneratorFile(baseDir, lang, res))
 	}
-
 	return resp, nil
 }
 
-func newCodeGeneratorFile(baseDir, lang, content string) *plugin_go.CodeGeneratorResponse_File {
-	return &plugin_go.CodeGeneratorResponse_File{
+func newCodeGeneratorFile(baseDir, lang, content string) *pluginpb.CodeGeneratorResponse_File {
+	return &pluginpb.CodeGeneratorResponse_File{
 		Name:    proto.String(filepath.Join(baseDir, "all.scopes."+lang)),
 		Content: proto.String(content),
 	}

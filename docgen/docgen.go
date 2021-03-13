@@ -10,13 +10,11 @@ import (
 	"strings"
 
 	"github.com/Kunde21/markdownfmt/v2/markdownfmt"
-
-	"github.com/golang/protobuf/proto"
-	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
-
 	"github.com/gunk/gunk/docgen/generate"
 	"github.com/gunk/gunk/docgen/parser"
 	"github.com/gunk/gunk/plugin"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/pluginpb"
 )
 
 const modeAppend = "append"
@@ -27,7 +25,7 @@ func main() {
 
 type docPlugin struct{}
 
-func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.CodeGeneratorResponse, error) {
+func (p *docPlugin) Generate(req *pluginpb.CodeGeneratorRequest) (*pluginpb.CodeGeneratorResponse, error) {
 	var (
 		lang            []string
 		mode, dir       string
@@ -73,8 +71,8 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 			}
 		}
 	}
-
-	// find the source by looping through the protofiles and finding the one that matches the FileToGenerate
+	// find the source by looping through the protofiles and finding the one
+	// that matches the FileToGenerate
 	var source *parser.FileDescWrapper
 	for _, f := range req.GetProtoFile() {
 		if strings.Contains(f.GetName(), "all.proto") {
@@ -91,19 +89,17 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 	}
 	base := filepath.Join(filepath.Dir(source.GetName()))
 	source.DependencyMap = parser.GenerateDependencyMap(source.FileDescriptorProto, req.GetProtoFile())
-
 	var buf bytes.Buffer
 	pb, err := generate.Run(&buf, source, lang, customHeaderIds, onlyExternal)
 	if err != nil {
 		// file does not include a service -> just don't do anything
 		if err == generate.ErrNoServices {
-			return &plugin_go.CodeGeneratorResponse{
-				File: []*plugin_go.CodeGeneratorResponse_File{},
+			return &pluginpb.CodeGeneratorResponse{
+				File: []*pluginpb.CodeGeneratorResponse_File{},
 			}, nil
 		}
 		return nil, fmt.Errorf("failed markdown generation: %v", err)
 	}
-
 	if mode == modeAppend {
 		// Load content from existing all.md
 		e, err := ioutil.ReadFile(filepath.Join(dir, "all.md"))
@@ -111,20 +107,17 @@ func (p *docPlugin) Generate(req *plugin_go.CodeGeneratorRequest) (*plugin_go.Co
 			return nil, err
 		}
 		buf = *bytes.NewBuffer(append(e, buf.Bytes()...))
-
 		// Get existing entries from messages.pot
 		if err := pb.AddFromFile(filepath.Join(dir, "messages.pot")); err != nil {
 			return nil, err
 		}
 	}
-
 	formatted, err := markdownfmt.Process("", buf.Bytes())
 	if err != nil {
 		return nil, err
 	}
-
-	return &plugin_go.CodeGeneratorResponse{
-		File: []*plugin_go.CodeGeneratorResponse_File{
+	return &pluginpb.CodeGeneratorResponse{
+		File: []*pluginpb.CodeGeneratorResponse_File{
 			{
 				Name:    proto.String(filepath.Join(base, "messages.pot")),
 				Content: proto.String(pb.String()),

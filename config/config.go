@@ -258,7 +258,7 @@ func LoadSingle(reader io.Reader) (*Config, error) {
 
 func handleProtoc(config *Config, section *parser.Section) error {
 	for _, k := range section.RawKeys() {
-		v := section.GetRaw(k)
+		v := strings.TrimSpace(section.GetRaw(k))
 		switch k {
 		case "path":
 			config.ProtocPath = v
@@ -277,7 +277,7 @@ func handleGenerate(section *parser.Section) (*Generator, error) {
 		Params: make([]KeyValue, 0, len(keys)),
 	}
 	for _, k := range keys {
-		v := section.GetRaw(k)
+		v := strings.TrimSpace(section.GetRaw(k))
 		switch k {
 		case "command":
 			if gen.ProtocGen != "" {
@@ -314,7 +314,7 @@ func handleGenerate(section *parser.Section) (*Generator, error) {
 
 func handleGlobal(config *Config, section *parser.Section) error {
 	for _, k := range section.RawKeys() {
-		v := section.GetRaw(k)
+		v := strings.TrimSpace(section.GetRaw(k))
 		switch k {
 		case "out":
 			config.Out = v

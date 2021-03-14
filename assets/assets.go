@@ -9,7 +9,7 @@ import (
 //go:generate protoc -Ibundled/ --include_imports -ogen/google_protobuf_empty.fdp bundled/google/protobuf/empty.proto
 //go:generate protoc -Ibundled/ --include_imports -ogen/google_protobuf_timestamp.fdp bundled/google/protobuf/timestamp.proto
 //go:generate protoc -Ibundled/ --include_imports -ogen/google_protobuf_duration.fdp bundled/google/protobuf/duration.proto
-//go:generate protoc -Ibundled/ --include_imports -ogen/protoc-gen-swagger_options_annotations.fdp bundled/protoc-gen-swagger/options/annotations.proto
+//go:generate protoc -Ibundled/ --include_imports -ogen/protoc-gen-openapiv2_options_annotations.fdp bundled/protoc-gen-openapiv2/options/annotations.proto
 //go:generate cp ../docgen/templates/api.md gen/api.md
 // Assets contains gen project assets.
 //

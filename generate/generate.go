@@ -826,6 +826,7 @@ func (g *Generator) serviceOptions(tspec *ast.TypeSpec) (*descriptorpb.ServiceOp
 
 func (g *Generator) methodOptions(method *ast.Field) (*descriptorpb.MethodOptions, error) {
 	o := &descriptorpb.MethodOptions{}
+	var httpRule *annotations.HttpRule
 	for _, tag := range g.curPkg.GunkTags[method] {
 		switch s := tag.Type.String(); s {
 		case "github.com/gunk/opt/method.Deprecated":
@@ -861,6 +862,11 @@ func (g *Generator) methodOptions(method *ast.Field) (*descriptorpb.MethodOption
 			rule := &annotations.HttpRule{
 				Body: body,
 			}
+			if httpRule == nil {
+				httpRule = rule
+			} else {
+				httpRule.AdditionalBindings = append(httpRule.AdditionalBindings, rule)
+			}
 			switch method {
 			case "GET":
 				rule.Pattern = &annotations.HttpRule_Get{Get: path}
@@ -875,8 +881,6 @@ func (g *Generator) methodOptions(method *ast.Field) (*descriptorpb.MethodOption
 			default:
 				return nil, fmt.Errorf("unknown method type: %q", method)
 			}
-			proto.SetExtension(o, annotations.E_Http, rule)
-			g.addProtoDep("google/api/annotations.proto")
 		case "github.com/gunk/opt/openapiv2.Operation":
 			op := &options.Operation{}
 			reflectutil.UnmarshalAST(op, tag.Expr)
@@ -885,6 +889,10 @@ func (g *Generator) methodOptions(method *ast.Field) (*descriptorpb.MethodOption
 		default:
 			return nil, fmt.Errorf("gunk method option %q not supported", s)
 		}
+	}
+	if httpRule != nil {
+		proto.SetExtension(o, annotations.E_Http, httpRule)
+		g.addProtoDep("google/api/annotations.proto")
 	}
 	// proto.SetDefaults(o)
 	return o, nil

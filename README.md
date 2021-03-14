@@ -212,7 +212,7 @@ of the `proto3` syntax, defined by the [protocol buffer project][protobuf]:
 **Note:** Variable-length scalars will be enabled in the future using a tag
 parameter.
 
-[Gunk 
+[Gunk
 ons]: #gunk-annotations (Gunk Annotation Syntax)
 
 ### Messages
@@ -386,10 +386,10 @@ protoc=js
 ### Global section
 
 * `import_path` - see "Converting Existing Protobuf Files"
-  
+
 * `strip_enum_type_names` - with this option on, enums with their type prefixed
   will be renamed to the version without prefix.
-  
+
   Note that this might produce invalid protobuf that stops compiling in 1.4.*
   protoc-gen-go, if the enum names clash.
 
@@ -405,7 +405,7 @@ The version can also be pinned.
   version, or check that the version of `protoc` at the specified path matches what was
   configured.
 
-* `path` - the path to check for the `protoc` binary. If unspecified, defaults appropriate user 
+* `path` - the path to check for the `protoc` binary. If unspecified, defaults appropriate user
    cache directory for the user's OS. If no file exists at the path, `gunk` will attempt to download
    protoc.
 
@@ -434,9 +434,9 @@ generate` tool:
   the same directory as the location of the `.gunk` files.
 
 * `plugin_version` - specify version of plugin. The plugin is downloaded
-  from github/maven, built in cache and used. It is *not* installed in $PATH. 
+  from github/maven, built in cache and used. It is *not* installed in $PATH.
   This currently works with the following plugins:
-  
+
   - protoc-gen-go
   - protoc-gen-grpc-java
   - protoc-gen-grpc-gateway
@@ -501,14 +501,14 @@ The first one uses protoc-gen-go plugin directly, without using protoc.
 It also attempts to move files to the same directory as the gunk file.
 
 The second one uses protoc and does not attempt to move any files.
-Protoc attempts to load plugin from $PATH, if it is not one of the 
+Protoc attempts to load plugin from $PATH, if it is not one of the
 built-in protoc plugins; this will *not* work together with pinned version
 and other gunk features and is not recommended outside of built-in
 protoc generators.
 
-The third version is reccomended. It will try to detect whether language 
+The third version is reccomended. It will try to detect whether language
 is one of built-in
-protoc generators, in that case behaves like the second way, otherwise 
+protoc generators, in that case behaves like the second way, otherwise
 behaves like the first.
 
 The built-in protoc generators are:
@@ -517,7 +517,7 @@ The built-in protoc generators are:
 - java
 - python
 - php
-- ruby 
+- ruby
 - csharp
 - objc
 - js
@@ -551,8 +551,8 @@ type Util interface {
 }
 ```
 
-Further documentation on available options can be found at the [Gunk options
-project][gunk-options].
+Further documentation on available options can be found at the
+[Gunk options project][gunk-options].
 
 ## Formatting Gunk Files
 
@@ -573,7 +573,7 @@ $ gunk convert /path/to/file.proto
 $ gunk convert /path/to/protobuf/directory
 ```
 
-If your `.proto` is referencing another `.proto` from another directory, 
+If your `.proto` is referencing another `.proto` from another directory,
 you can add `import_path` in the global section of your `.gunkconfig`.
 If you don't provide `import_path` it will only search in the root directory.
 

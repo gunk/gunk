@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 //
 // taken from: https://github.com/golang/protobuf/blob/master/proto/defaults.go
-package generate
+package reflectutil
 
 import (
 	"google.golang.org/protobuf/proto"

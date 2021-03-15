@@ -579,7 +579,7 @@ func fileOptions(pkg *loader.GunkPackage) (*descriptorpb.FileOptions, error) {
 		}
 	}
 	// Set unset protocol buffer fields to their default values.
-	SetDefaults(fo)
+	reflectutil.SetDefaults(fo)
 	return fo, nil
 }
 
@@ -693,7 +693,7 @@ func (g *Generator) messageOptions(tspec *ast.TypeSpec) (*descriptorpb.MessageOp
 			return nil, fmt.Errorf("gunk message option %q not supported", s)
 		}
 	}
-	SetDefaults(o)
+	reflectutil.SetDefaults(o)
 	return o, nil
 }
 
@@ -727,7 +727,7 @@ func (g *Generator) fieldOptions(field *ast.Field) (*descriptorpb.FieldOptions, 
 			return nil, fmt.Errorf("gunk field option %q not supported", s)
 		}
 	}
-	SetDefaults(o)
+	reflectutil.SetDefaults(o)
 	return o, nil
 }
 
@@ -820,7 +820,7 @@ func (g *Generator) serviceOptions(tspec *ast.TypeSpec) (*descriptorpb.ServiceOp
 			return nil, fmt.Errorf("gunk service option %q not supported", s)
 		}
 	}
-	SetDefaults(o)
+	reflectutil.SetDefaults(o)
 	return o, nil
 }
 
@@ -894,7 +894,7 @@ func (g *Generator) methodOptions(method *ast.Field) (*descriptorpb.MethodOption
 		proto.SetExtension(o, annotations.E_Http, httpRule)
 		g.addProtoDep("google/api/annotations.proto")
 	}
-	SetDefaults(o)
+	reflectutil.SetDefaults(o)
 	return o, nil
 }
 
@@ -1031,7 +1031,7 @@ func (g *Generator) enumOptions(tspec *ast.TypeSpec) (*descriptorpb.EnumOptions,
 			return nil, fmt.Errorf("gunk enum option %q not supported", s)
 		}
 	}
-	SetDefaults(o)
+	reflectutil.SetDefaults(o)
 	return o, nil
 }
 
@@ -1045,7 +1045,7 @@ func (g *Generator) enumValueOptions(vspec *ast.ValueSpec) (*descriptorpb.EnumVa
 			return nil, fmt.Errorf("gunk enumvalue option %q not supported", s)
 		}
 	}
-	SetDefaults(o)
+	reflectutil.SetDefaults(o)
 	return o, nil
 }
 

@@ -4,8 +4,11 @@ gunk generate ./util -v -x
 module testdata.tld/util
 
 require (
-	github.com/gunk/opt v0.0.0-20190514110406-385321f21939
+	github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8
 )
+-- go.sum --
+github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8 h1:PhTyXTMyebFm+ti5Wk4+Zam9D0OjVDPPlmfQicRuF8k=
+github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8/go.mod h1:Nn3H/M7L2O6MpSAlo2bW57c8QvPiV6LHYd3nhYGYkRI=
 -- v1/go/.empty --
 -- v1/python/.empty --
 -- v1/java/.empty --
@@ -18,7 +21,7 @@ require (
 -- .gunkconfig --
 [generate go]
 out=v1/go
-plugin_version=v1.4.3
+plugin_version=v1.25.0
 
 [generate python]
 out=v1/python

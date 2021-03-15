@@ -23,6 +23,8 @@ func (pd Go) Download(version string, p Paths) (string, error) {
 		"install",
 		"google.golang.org/protobuf/cmd/protoc-gen-go@"+version)
 	buildCmd.Dir = p.buildDir
+	buildCmd.Stdout = os.Stdout
+	buildCmd.Stderr = os.Stderr
 	buildCmd.Env = append(buildCmd.Env,
 		"GOBIN="+p.buildDir,
 		"GOPATH="+os.Getenv("GOPATH"),

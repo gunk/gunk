@@ -1,6 +1,9 @@
 ! gunk generate
 stderr 'anonymous.gunk:3:18: anonymous struct fields are not supported'
 
+-- go.mod --
+module testdata.tld/util
+
 -- .gunkconfig --
 [generate go]
 

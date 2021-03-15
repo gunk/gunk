@@ -1,36 +1,41 @@
 gunk generate echo.gunk
 
 exists all.pb.go
-grep 'StreamName:    "GetEvent"' all.pb.go
-grep 'ServerStreams: true' all.pb.go
-grep 'ClientStreams: true' all.pb.go
+grep 'StreamName:    "GetEvent"' all_grpc.pb.go
+grep 'ServerStreams: true' all_grpc.pb.go
+grep 'ClientStreams: true' all_grpc.pb.go
 
 gunk generate echo2.gunk
 
 exists all.pb.go
-grep 'StreamName:    "GetStreamResponse"' all.pb.go
-grep 'ServerStreams: true' all.pb.go
-! grep 'ClientStreams: true' all.pb.go
+grep 'StreamName:    "GetStreamResponse"' all_grpc.pb.go
+grep 'ServerStreams: true' all_grpc.pb.go
+! grep 'ClientStreams: true' all_grpc.pb.go
 
 
 gunk generate echo3.gunk
 
 exists all.pb.go
-grep 'StreamName:    "GetStreamRequest"' all.pb.go
-! grep 'ServerStreams: true' all.pb.go
-grep 'ClientStreams: true' all.pb.go
+grep 'StreamName:    "GetStreamRequest"' all_grpc.pb.go
+! grep 'ServerStreams: true' all_grpc.pb.go
+grep 'ClientStreams: true' all_grpc.pb.go
 
 -- go.mod --
 module testdata.tld/util
 
 require (
-	github.com/gunk/opt v0.0.0-20190514110406-385321f21939
+	github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8
 )
+-- go.sum --
+github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8 h1:PhTyXTMyebFm+ti5Wk4+Zam9D0OjVDPPlmfQicRuF8k=
+github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8/go.mod h1:Nn3H/M7L2O6MpSAlo2bW57c8QvPiV6LHYd3nhYGYkRI=
 -- .gunkconfig --
-[generate]
-command=protoc-gen-go
-plugin_version=v1.4.3
-plugins=grpc
+[generate go]
+plugin_version=v1.25.0
+json_tag_postproc=true
+
+[generate grpc-go]
+plugin_version=v1.1.0
 -- echo.gunk --
 package util
 

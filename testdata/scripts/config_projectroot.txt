@@ -27,10 +27,12 @@ module root
 [generate python]
 -- gitfolder/.git/config --
 -- gitfolder/.gunkconfig --
-[generate]
-command=protoc-gen-go
-plugin_version=v1.4.3
-plugins=grpc
+[generate go]
+plugin_version=v1.25.0
+json_tag_postproc=true
+
+[generate grpc-go]
+plugin_version=v1.1.0
 -- gitfolder/util.gunk --
 package util
 
@@ -45,10 +47,12 @@ type Util interface {
 
 -- gitfile/.git --
 -- gitfile/.gunkconfig --
-[generate]
-command=protoc-gen-go
-plugin_version=v1.4.3
-plugins=grpc
+[generate go]
+plugin_version=v1.25.0
+json_tag_postproc=true
+
+[generate grpc-go]
+plugin_version=v1.1.0
 -- gitfile/util.gunk --
 package util
 
@@ -64,10 +68,12 @@ type Util interface {
 -- gomod/go.mod --
 module testdata.tld/util
 -- gomod/.gunkconfig --
-[generate]
-command=protoc-gen-go
-plugin_version=v1.4.3
-plugins=grpc
+[generate go]
+plugin_version=v1.25.0
+json_tag_postproc=true
+
+[generate grpc-go]
+plugin_version=v1.1.0
 -- gomod/util.gunk --
 package util
 

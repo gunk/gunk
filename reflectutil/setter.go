@@ -10,8 +10,7 @@ import (
 	"strings"
 
 	protop "github.com/emicklei/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/reflect/protoregistry"
+	"github.com/golang/protobuf/proto"
 )
 
 func UnmarshalProto(v interface{}, lit *protop.Literal) {
@@ -208,9 +207,11 @@ func valueFor(typ reflect.Type, tag reflect.StructTag, value interface{}) reflec
 		if kv[0] != "enum" {
 			continue
 		}
-		val, err := protoregistry.GlobalTypes.FindEnumByName(protoreflect.FullName(kv[1]))
-		if err != nil {
-			panic(fmt.Errorf("%q is not a valid %s: %w", valueStr, kv[1], err))
+		// TODO(karel): figure out how to migrate to protoregistry.GlobalTypes.FindEnumByName
+		enumMap := proto.EnumValueMap(kv[1])
+		val, ok := enumMap[valueStr]
+		if !ok {
+			panic(fmt.Errorf("%q is not a valid %s", valueStr, kv[1]))
 		}
 		return reflect.ValueOf(val).Convert(typ)
 	}

@@ -34,10 +34,12 @@ stderr 'want protoc version "3.7.0" got "3.8.0"'
 module testdata.tld/util
 
 -- .gunkconfig --
-[generate]
-command=protoc-gen-go
-plugin_version=v1.4.3
-plugins=grpc
+[generate go]
+plugin_version=v1.25.0
+json_tag_postproc=true
+
+[generate grpc-go]
+plugin_version=v1.1.0
 
 -- version/.gunkconfig --
 [protoc]

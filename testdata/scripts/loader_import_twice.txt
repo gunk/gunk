@@ -42,5 +42,7 @@ nope
 
 -- .gunkconfig --
 [generate go]
-plugins=grpc
-plugin_version=v1.4.3
+plugin_version=v1.25.0
+
+[generate grpc-go]
+plugin_version=v1.1.0

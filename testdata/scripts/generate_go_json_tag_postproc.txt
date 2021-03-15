@@ -7,13 +7,15 @@ module testdata.tld/util
 
 -- enabled/.gunkconfig --
 [generate go]
-plugins=grpc
+plugin_version=v1.25.0
 json_tag_postproc=true
-plugin_version=v1.4.3
+
+[generate grpc-go]
+plugin_version=v1.1.0
 
 -- disabled/.gunkconfig --
 [generate go]
-plugin_version=v1.4.3
+plugin_version=v1.25.0
 
 -- enabled/echo.gunk --
 package test

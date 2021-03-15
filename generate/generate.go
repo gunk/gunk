@@ -466,7 +466,7 @@ func (g *Generator) translatePkg(pkgPath string, stripEnumTypeNames bool) error 
 		return fmt.Errorf("unable to get file options: %v", err)
 	}
 	// Set the GoPackage file option to be the gunk package name.
-	fo.GoPackage = proto.String(gpkg.Name)
+	fo.GoPackage = proto.String(pkgPath + ";" + gpkg.Name)
 	// note - do not set above to gpkg.PkgPath or basename of that;
 	// gunk files can have different names than path
 	// (package github.com/foo/bar can be "package foobar").

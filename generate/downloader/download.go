@@ -34,7 +34,7 @@ func getPaths(name, version string) (*Paths, func(error), error) {
 		cachePath = dir
 	}
 	cacheDir := filepath.Join(cachePath, "gunk")
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
 		return nil, nil, err
 	}
 	pname := fmt.Sprintf("protoc-gen-%s-%s", name, version)
@@ -75,6 +75,7 @@ var ds = []Downloader{
 	GrpcSwift{},
 	GrpcPython{},
 	Ts{},
+	GrpcGo{},
 }
 
 func Has(name string) bool {

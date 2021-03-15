@@ -5,6 +5,14 @@
     "description": "package util contains a simple Echo service.",
     "version": "version not set"
   },
+  "tags": [
+    {
+      "name": "Util"
+    },
+    {
+      "name": "UtilTests"
+    }
+  ],
   "consumes": [
     "application/json"
   ],
@@ -24,9 +32,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -45,9 +53,9 @@
             }
           },
           "default": {
-            "description": "An unexpected error response",
+            "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/googlerpcStatus"
             }
           }
         },
@@ -68,34 +76,9 @@
     }
   },
   "definitions": {
-    "importedMessage": {
+    "googlerpcStatus": {
       "type": "object",
       "properties": {
-        "Msg": {
-          "type": "string",
-          "description": "Msg holds a message."
-        }
-      },
-      "description": "Message is a Echo message."
-    },
-    "protobufAny": {
-      "type": "object",
-      "properties": {
-        "type_url": {
-          "type": "string"
-        },
-        "value": {
-          "type": "string",
-          "format": "byte"
-        }
-      }
-    },
-    "runtimeError": {
-      "type": "object",
-      "properties": {
-        "error": {
-          "type": "string"
-        },
         "code": {
           "type": "integer",
           "format": "int32"
@@ -111,16 +94,38 @@
         }
       }
     },
+    "importedMessage": {
+      "type": "object",
+      "properties": {
+        "": {
+          "type": "string",
+          "description": "Msg holds a message."
+        }
+      },
+      "description": "Message is a Echo message."
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "typeUrl": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
     "utilCheckStatusResponse": {
       "type": "object",
       "properties": {
-        "Status": {
-          "$ref": "#/definitions/utilStatus"
+        "status": {
+          "$ref": "#/definitions/v1utilStatus"
         }
       },
       "description": "CheckStatusResponse is the response for a check status."
     },
-    "utilStatus": {
+    "v1utilStatus": {
       "type": "string",
       "enum": [
         "Unknown",

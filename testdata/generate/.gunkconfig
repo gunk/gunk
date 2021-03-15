@@ -1,23 +1,25 @@
 [protoc]
 version=v3.9.1
 
+[generate grpc-go]
+plugin_version=v1.1.0
+
 [generate go]
-plugins=grpc
-plugin_version=v1.4.3
+plugin_version=v1.25.0
 json_tag_postproc=true
 
 [generate grpc-gateway]
-plugin_version=v1.16.0
+plugin_version=v2.3.0
 
 [generate java]
 lite
 
 [generate grpc-java]
-plugin_version=v1.35.0
+plugin_version=v1.36.0
 lite
 
-[generate swagger]
-plugin_version=v1.14.4
+[generate openapiv2]
+plugin_version=v2.3.0
 
 [generate js]
 fix_paths_postproc=true

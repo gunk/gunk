@@ -17,7 +17,7 @@ public final class All {
      * Msg holds a message.
      * </pre>
      *
-     * <code>string Msg = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>string Msg = 1;</code>
      */
     java.lang.String getMsg();
     /**
@@ -25,7 +25,7 @@ public final class All {
      * Msg holds a message.
      * </pre>
      *
-     * <code>string Msg = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>string Msg = 1;</code>
      */
     com.google.protobuf.ByteString
         getMsgBytes();
@@ -52,7 +52,7 @@ public final class All {
      * Msg holds a message.
      * </pre>
      *
-     * <code>string Msg = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>string Msg = 1;</code>
      */
     @java.lang.Override
     public java.lang.String getMsg() {
@@ -63,7 +63,7 @@ public final class All {
      * Msg holds a message.
      * </pre>
      *
-     * <code>string Msg = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>string Msg = 1;</code>
      */
     @java.lang.Override
     public com.google.protobuf.ByteString
@@ -75,7 +75,7 @@ public final class All {
      * Msg holds a message.
      * </pre>
      *
-     * <code>string Msg = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>string Msg = 1;</code>
      */
     private void setMsg(
         java.lang.String value) {
@@ -90,7 +90,7 @@ public final class All {
      * Msg holds a message.
      * </pre>
      *
-     * <code>string Msg = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>string Msg = 1;</code>
      */
     private void clearMsg() {
       
@@ -101,7 +101,7 @@ public final class All {
      * Msg holds a message.
      * </pre>
      *
-     * <code>string Msg = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>string Msg = 1;</code>
      */
     private void setMsgBytes(
         com.google.protobuf.ByteString value) {
@@ -217,7 +217,7 @@ public final class All {
        * Msg holds a message.
        * </pre>
        *
-       * <code>string Msg = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>string Msg = 1;</code>
        */
       @java.lang.Override
       public java.lang.String getMsg() {
@@ -228,7 +228,7 @@ public final class All {
        * Msg holds a message.
        * </pre>
        *
-       * <code>string Msg = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>string Msg = 1;</code>
        */
       @java.lang.Override
       public com.google.protobuf.ByteString
@@ -240,7 +240,7 @@ public final class All {
        * Msg holds a message.
        * </pre>
        *
-       * <code>string Msg = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>string Msg = 1;</code>
        */
       public Builder setMsg(
           java.lang.String value) {
@@ -253,7 +253,7 @@ public final class All {
        * Msg holds a message.
        * </pre>
        *
-       * <code>string Msg = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>string Msg = 1;</code>
        */
       public Builder clearMsg() {
         copyOnWrite();
@@ -265,7 +265,7 @@ public final class All {
        * Msg holds a message.
        * </pre>
        *
-       * <code>string Msg = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>string Msg = 1;</code>
        */
       public Builder setMsgBytes(
           com.google.protobuf.ByteString value) {

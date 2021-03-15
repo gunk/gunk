@@ -22,7 +22,7 @@ public final class All {
      * Status_Unknown is the default, unset status value.
      * </pre>
      *
-     * <code>Unknown = 0 [deprecated = false];</code>
+     * <code>Unknown = 0;</code>
      */
     Unknown(0),
     /**
@@ -30,7 +30,7 @@ public final class All {
      * Status_Error is a status value that implies something went wrong.
      * </pre>
      *
-     * <code>Error = 1 [deprecated = false];</code>
+     * <code>Error = 1;</code>
      */
     Error(1),
     /**
@@ -38,7 +38,7 @@ public final class All {
      * Status_OK is a status value used when all went well.
      * </pre>
      *
-     * <code>OK = 2 [deprecated = false];</code>
+     * <code>OK = 2;</code>
      */
     OK(2),
     UNRECOGNIZED(-1),
@@ -49,7 +49,7 @@ public final class All {
      * Status_Unknown is the default, unset status value.
      * </pre>
      *
-     * <code>Unknown = 0 [deprecated = false];</code>
+     * <code>Unknown = 0;</code>
      */
     public static final int Unknown_VALUE = 0;
     /**
@@ -57,7 +57,7 @@ public final class All {
      * Status_Error is a status value that implies something went wrong.
      * </pre>
      *
-     * <code>Error = 1 [deprecated = false];</code>
+     * <code>Error = 1;</code>
      */
     public static final int Error_VALUE = 1;
     /**
@@ -65,7 +65,7 @@ public final class All {
      * Status_OK is a status value used when all went well.
      * </pre>
      *
-     * <code>OK = 2 [deprecated = false];</code>
+     * <code>OK = 2;</code>
      */
     public static final int OK_VALUE = 2;
 
@@ -137,11 +137,11 @@ public final class All {
       com.google.protobuf.MessageLiteOrBuilder {
 
     /**
-     * <code>.testdata.v1.util.Status Status = 1[json_name = "status", ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.testdata.v1.util.Status Status = 1[json_name = "status"];</code>
      */
     int getStatusValue();
     /**
-     * <code>.testdata.v1.util.Status Status = 1[json_name = "status", ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.testdata.v1.util.Status Status = 1[json_name = "status"];</code>
      */
     testdata.v1.util.All.Status getStatus();
   }
@@ -162,14 +162,14 @@ public final class All {
     public static final int STATUS_FIELD_NUMBER = 1;
     private int status_;
     /**
-     * <code>.testdata.v1.util.Status Status = 1[json_name = "status", ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.testdata.v1.util.Status Status = 1[json_name = "status"];</code>
      */
     @java.lang.Override
     public int getStatusValue() {
       return status_;
     }
     /**
-     * <code>.testdata.v1.util.Status Status = 1[json_name = "status", ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.testdata.v1.util.Status Status = 1[json_name = "status"];</code>
      */
     @java.lang.Override
     public testdata.v1.util.All.Status getStatus() {
@@ -177,13 +177,13 @@ public final class All {
       return result == null ? testdata.v1.util.All.Status.UNRECOGNIZED : result;
     }
     /**
-     * <code>.testdata.v1.util.Status Status = 1[json_name = "status", ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.testdata.v1.util.Status Status = 1[json_name = "status"];</code>
      */
     private void setStatusValue(int value) {
         status_ = value;
     }
     /**
-     * <code>.testdata.v1.util.Status Status = 1[json_name = "status", ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.testdata.v1.util.Status Status = 1[json_name = "status"];</code>
      */
     private void setStatus(testdata.v1.util.All.Status value) {
       if (value == null) {
@@ -193,7 +193,7 @@ public final class All {
       status_ = value.getNumber();
     }
     /**
-     * <code>.testdata.v1.util.Status Status = 1[json_name = "status", ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.testdata.v1.util.Status Status = 1[json_name = "status"];</code>
      */
     private void clearStatus() {
       
@@ -300,14 +300,14 @@ public final class All {
 
 
       /**
-       * <code>.testdata.v1.util.Status Status = 1[json_name = "status", ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.testdata.v1.util.Status Status = 1[json_name = "status"];</code>
        */
       @java.lang.Override
       public int getStatusValue() {
         return instance.getStatusValue();
       }
       /**
-       * <code>.testdata.v1.util.Status Status = 1[json_name = "status", ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.testdata.v1.util.Status Status = 1[json_name = "status"];</code>
        */
       public Builder setStatusValue(int value) {
         copyOnWrite();
@@ -315,14 +315,14 @@ public final class All {
         return this;
       }
       /**
-       * <code>.testdata.v1.util.Status Status = 1[json_name = "status", ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.testdata.v1.util.Status Status = 1[json_name = "status"];</code>
        */
       @java.lang.Override
       public testdata.v1.util.All.Status getStatus() {
         return instance.getStatus();
       }
       /**
-       * <code>.testdata.v1.util.Status Status = 1[json_name = "status", ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.testdata.v1.util.Status Status = 1[json_name = "status"];</code>
        */
       public Builder setStatus(testdata.v1.util.All.Status value) {
         copyOnWrite();
@@ -330,7 +330,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>.testdata.v1.util.Status Status = 1[json_name = "status", ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.testdata.v1.util.Status Status = 1[json_name = "status"];</code>
        */
       public Builder clearStatus() {
         copyOnWrite();
@@ -417,66 +417,66 @@ public final class All {
       com.google.protobuf.MessageLiteOrBuilder {
 
     /**
-     * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated int32 Ints = 1;</code>
      */
     java.util.List<java.lang.Integer> getIntsList();
     /**
-     * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated int32 Ints = 1;</code>
      */
     int getIntsCount();
     /**
-     * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated int32 Ints = 1;</code>
      */
     int getInts(int index);
 
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     java.util.List<testdata.v1.util.imported.All.Message> 
         getStructsList();
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     testdata.v1.util.imported.All.Message getStructs(int index);
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     int getStructsCount();
 
     /**
-     * <code>bool Bool = 3 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>bool Bool = 3;</code>
      */
     boolean getBool();
 
     /**
-     * <code>int32 Int32 = 4 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>int32 Int32 = 4;</code>
      */
     int getInt32();
 
     /**
-     * <code>.google.protobuf.Timestamp Timestamp = 5 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Timestamp Timestamp = 5;</code>
      */
     boolean hasTimestamp();
     /**
-     * <code>.google.protobuf.Timestamp Timestamp = 5 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Timestamp Timestamp = 5;</code>
      */
     com.google.protobuf.Timestamp getTimestamp();
 
     /**
-     * <code>.google.protobuf.Duration Duration = 6 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Duration Duration = 6;</code>
      */
     boolean hasDuration();
     /**
-     * <code>.google.protobuf.Duration Duration = 6 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Duration Duration = 6;</code>
      */
     com.google.protobuf.Duration getDuration();
 
     /**
-     * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
      */
     int getMapSimpleCount();
     /**
-     * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
      */
     boolean containsMapSimple(
         java.lang.String key);
@@ -487,30 +487,30 @@ public final class All {
     java.util.Map<java.lang.String, java.lang.Integer>
     getMapSimple();
     /**
-     * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
      */
     java.util.Map<java.lang.String, java.lang.Integer>
     getMapSimpleMap();
     /**
-     * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
      */
 
     int getMapSimpleOrDefault(
         java.lang.String key,
         int defaultValue);
     /**
-     * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
      */
 
     int getMapSimpleOrThrow(
         java.lang.String key);
 
     /**
-     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
      */
     int getMapComplexCount();
     /**
-     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
      */
     boolean containsMapComplex(
         int key);
@@ -521,26 +521,26 @@ public final class All {
     java.util.Map<java.lang.Integer, testdata.v1.util.All.CheckStatusResponse>
     getMapComplex();
     /**
-     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
      */
     java.util.Map<java.lang.Integer, testdata.v1.util.All.CheckStatusResponse>
     getMapComplexMap();
     /**
-     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
      */
 
     testdata.v1.util.All.CheckStatusResponse getMapComplexOrDefault(
         int key,
         testdata.v1.util.All.CheckStatusResponse defaultValue);
     /**
-     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
      */
 
     testdata.v1.util.All.CheckStatusResponse getMapComplexOrThrow(
         int key);
 
     /**
-     * <code>bytes Bytes = 9 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>bytes Bytes = 9;</code>
      */
     com.google.protobuf.ByteString getBytes();
   }
@@ -560,7 +560,7 @@ public final class All {
     public static final int INTS_FIELD_NUMBER = 1;
     private com.google.protobuf.Internal.IntList ints_;
     /**
-     * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated int32 Ints = 1;</code>
      */
     @java.lang.Override
     public java.util.List<java.lang.Integer>
@@ -568,14 +568,14 @@ public final class All {
       return ints_;
     }
     /**
-     * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated int32 Ints = 1;</code>
      */
     @java.lang.Override
     public int getIntsCount() {
       return ints_.size();
     }
     /**
-     * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated int32 Ints = 1;</code>
      */
     @java.lang.Override
     public int getInts(int index) {
@@ -589,7 +589,7 @@ public final class All {
        }
     }
     /**
-     * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated int32 Ints = 1;</code>
      */
     private void setInts(
         int index, int value) {
@@ -597,14 +597,14 @@ public final class All {
       ints_.setInt(index, value);
     }
     /**
-     * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated int32 Ints = 1;</code>
      */
     private void addInts(int value) {
       ensureIntsIsMutable();
       ints_.addInt(value);
     }
     /**
-     * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated int32 Ints = 1;</code>
      */
     private void addAllInts(
         java.lang.Iterable<? extends java.lang.Integer> values) {
@@ -613,7 +613,7 @@ public final class All {
           values, ints_);
     }
     /**
-     * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated int32 Ints = 1;</code>
      */
     private void clearInts() {
       ints_ = emptyIntList();
@@ -622,35 +622,35 @@ public final class All {
     public static final int STRUCTS_FIELD_NUMBER = 2;
     private com.google.protobuf.Internal.ProtobufList<testdata.v1.util.imported.All.Message> structs_;
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     @java.lang.Override
     public java.util.List<testdata.v1.util.imported.All.Message> getStructsList() {
       return structs_;
     }
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     public java.util.List<? extends testdata.v1.util.imported.All.MessageOrBuilder> 
         getStructsOrBuilderList() {
       return structs_;
     }
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     @java.lang.Override
     public int getStructsCount() {
       return structs_.size();
     }
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     @java.lang.Override
     public testdata.v1.util.imported.All.Message getStructs(int index) {
       return structs_.get(index);
     }
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     public testdata.v1.util.imported.All.MessageOrBuilder getStructsOrBuilder(
         int index) {
@@ -664,7 +664,7 @@ public final class All {
     }
 
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     private void setStructs(
         int index, testdata.v1.util.imported.All.Message value) {
@@ -675,7 +675,7 @@ public final class All {
       structs_.set(index, value);
     }
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     private void setStructs(
         int index, testdata.v1.util.imported.All.Message.Builder builderForValue) {
@@ -683,7 +683,7 @@ public final class All {
       structs_.set(index, builderForValue.build());
     }
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     private void addStructs(testdata.v1.util.imported.All.Message value) {
       if (value == null) {
@@ -693,7 +693,7 @@ public final class All {
       structs_.add(value);
     }
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     private void addStructs(
         int index, testdata.v1.util.imported.All.Message value) {
@@ -704,7 +704,7 @@ public final class All {
       structs_.add(index, value);
     }
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     private void addStructs(
         testdata.v1.util.imported.All.Message.Builder builderForValue) {
@@ -712,7 +712,7 @@ public final class All {
       structs_.add(builderForValue.build());
     }
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     private void addStructs(
         int index, testdata.v1.util.imported.All.Message.Builder builderForValue) {
@@ -720,7 +720,7 @@ public final class All {
       structs_.add(index, builderForValue.build());
     }
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     private void addAllStructs(
         java.lang.Iterable<? extends testdata.v1.util.imported.All.Message> values) {
@@ -729,13 +729,13 @@ public final class All {
           values, structs_);
     }
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     private void clearStructs() {
       structs_ = emptyProtobufList();
     }
     /**
-     * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
      */
     private void removeStructs(int index) {
       ensureStructsIsMutable();
@@ -745,21 +745,21 @@ public final class All {
     public static final int BOOL_FIELD_NUMBER = 3;
     private boolean bool_;
     /**
-     * <code>bool Bool = 3 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>bool Bool = 3;</code>
      */
     @java.lang.Override
     public boolean getBool() {
       return bool_;
     }
     /**
-     * <code>bool Bool = 3 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>bool Bool = 3;</code>
      */
     private void setBool(boolean value) {
       
       bool_ = value;
     }
     /**
-     * <code>bool Bool = 3 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>bool Bool = 3;</code>
      */
     private void clearBool() {
       
@@ -769,21 +769,21 @@ public final class All {
     public static final int INT32_FIELD_NUMBER = 4;
     private int int32_;
     /**
-     * <code>int32 Int32 = 4 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>int32 Int32 = 4;</code>
      */
     @java.lang.Override
     public int getInt32() {
       return int32_;
     }
     /**
-     * <code>int32 Int32 = 4 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>int32 Int32 = 4;</code>
      */
     private void setInt32(int value) {
       
       int32_ = value;
     }
     /**
-     * <code>int32 Int32 = 4 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>int32 Int32 = 4;</code>
      */
     private void clearInt32() {
       
@@ -793,21 +793,21 @@ public final class All {
     public static final int TIMESTAMP_FIELD_NUMBER = 5;
     private com.google.protobuf.Timestamp timestamp_;
     /**
-     * <code>.google.protobuf.Timestamp Timestamp = 5 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Timestamp Timestamp = 5;</code>
      */
     @java.lang.Override
     public boolean hasTimestamp() {
       return timestamp_ != null;
     }
     /**
-     * <code>.google.protobuf.Timestamp Timestamp = 5 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Timestamp Timestamp = 5;</code>
      */
     @java.lang.Override
     public com.google.protobuf.Timestamp getTimestamp() {
       return timestamp_ == null ? com.google.protobuf.Timestamp.getDefaultInstance() : timestamp_;
     }
     /**
-     * <code>.google.protobuf.Timestamp Timestamp = 5 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Timestamp Timestamp = 5;</code>
      */
     private void setTimestamp(com.google.protobuf.Timestamp value) {
       if (value == null) {
@@ -817,7 +817,7 @@ public final class All {
       
       }
     /**
-     * <code>.google.protobuf.Timestamp Timestamp = 5 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Timestamp Timestamp = 5;</code>
      */
     private void setTimestamp(
         com.google.protobuf.Timestamp.Builder builderForValue) {
@@ -825,7 +825,7 @@ public final class All {
       
     }
     /**
-     * <code>.google.protobuf.Timestamp Timestamp = 5 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Timestamp Timestamp = 5;</code>
      */
     @java.lang.SuppressWarnings({"ReferenceEquality"})
     private void mergeTimestamp(com.google.protobuf.Timestamp value) {
@@ -842,7 +842,7 @@ public final class All {
       
     }
     /**
-     * <code>.google.protobuf.Timestamp Timestamp = 5 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Timestamp Timestamp = 5;</code>
      */
     private void clearTimestamp() {  timestamp_ = null;
       
@@ -851,21 +851,21 @@ public final class All {
     public static final int DURATION_FIELD_NUMBER = 6;
     private com.google.protobuf.Duration duration_;
     /**
-     * <code>.google.protobuf.Duration Duration = 6 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Duration Duration = 6;</code>
      */
     @java.lang.Override
     public boolean hasDuration() {
       return duration_ != null;
     }
     /**
-     * <code>.google.protobuf.Duration Duration = 6 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Duration Duration = 6;</code>
      */
     @java.lang.Override
     public com.google.protobuf.Duration getDuration() {
       return duration_ == null ? com.google.protobuf.Duration.getDefaultInstance() : duration_;
     }
     /**
-     * <code>.google.protobuf.Duration Duration = 6 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Duration Duration = 6;</code>
      */
     private void setDuration(com.google.protobuf.Duration value) {
       if (value == null) {
@@ -875,7 +875,7 @@ public final class All {
       
       }
     /**
-     * <code>.google.protobuf.Duration Duration = 6 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Duration Duration = 6;</code>
      */
     private void setDuration(
         com.google.protobuf.Duration.Builder builderForValue) {
@@ -883,7 +883,7 @@ public final class All {
       
     }
     /**
-     * <code>.google.protobuf.Duration Duration = 6 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Duration Duration = 6;</code>
      */
     @java.lang.SuppressWarnings({"ReferenceEquality"})
     private void mergeDuration(com.google.protobuf.Duration value) {
@@ -900,7 +900,7 @@ public final class All {
       
     }
     /**
-     * <code>.google.protobuf.Duration Duration = 6 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>.google.protobuf.Duration Duration = 6;</code>
      */
     private void clearDuration() {  duration_ = null;
       
@@ -937,7 +937,7 @@ public final class All {
       return internalGetMapSimple().size();
     }
     /**
-     * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
      */
     @java.lang.Override
 
@@ -955,7 +955,7 @@ public final class All {
       return getMapSimpleMap();
     }
     /**
-     * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
      */
     @java.lang.Override
 
@@ -964,7 +964,7 @@ public final class All {
           internalGetMapSimple());
     }
     /**
-     * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
      */
     @java.lang.Override
 
@@ -977,7 +977,7 @@ public final class All {
       return map.containsKey(key) ? map.get(key) : defaultValue;
     }
     /**
-     * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
      */
     @java.lang.Override
 
@@ -992,7 +992,7 @@ public final class All {
       return map.get(key);
     }
     /**
-     * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
      */
     private java.util.Map<java.lang.String, java.lang.Integer>
     getMutableMapSimpleMap() {
@@ -1030,7 +1030,7 @@ public final class All {
       return internalGetMapComplex().size();
     }
     /**
-     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
      */
     @java.lang.Override
 
@@ -1048,7 +1048,7 @@ public final class All {
       return getMapComplexMap();
     }
     /**
-     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
      */
     @java.lang.Override
 
@@ -1057,7 +1057,7 @@ public final class All {
           internalGetMapComplex());
     }
     /**
-     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
      */
     @java.lang.Override
 
@@ -1070,7 +1070,7 @@ public final class All {
       return map.containsKey(key) ? map.get(key) : defaultValue;
     }
     /**
-     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
      */
     @java.lang.Override
 
@@ -1085,7 +1085,7 @@ public final class All {
       return map.get(key);
     }
     /**
-     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
      */
     private java.util.Map<java.lang.Integer, testdata.v1.util.All.CheckStatusResponse>
     getMutableMapComplexMap() {
@@ -1095,14 +1095,14 @@ public final class All {
     public static final int BYTES_FIELD_NUMBER = 9;
     private com.google.protobuf.ByteString bytes_;
     /**
-     * <code>bytes Bytes = 9 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>bytes Bytes = 9;</code>
      */
     @java.lang.Override
     public com.google.protobuf.ByteString getBytes() {
       return bytes_;
     }
     /**
-     * <code>bytes Bytes = 9 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>bytes Bytes = 9;</code>
      */
     private void setBytes(com.google.protobuf.ByteString value) {
       if (value == null) {
@@ -1112,7 +1112,7 @@ public final class All {
       bytes_ = value;
     }
     /**
-     * <code>bytes Bytes = 9 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+     * <code>bytes Bytes = 9;</code>
      */
     private void clearBytes() {
       
@@ -1215,7 +1215,7 @@ public final class All {
 
 
       /**
-       * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated int32 Ints = 1;</code>
        */
       @java.lang.Override
       public java.util.List<java.lang.Integer>
@@ -1224,21 +1224,21 @@ public final class All {
             instance.getIntsList());
       }
       /**
-       * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated int32 Ints = 1;</code>
        */
       @java.lang.Override
       public int getIntsCount() {
         return instance.getIntsCount();
       }
       /**
-       * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated int32 Ints = 1;</code>
        */
       @java.lang.Override
       public int getInts(int index) {
         return instance.getInts(index);
       }
       /**
-       * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated int32 Ints = 1;</code>
        */
       public Builder setInts(
           int index, int value) {
@@ -1247,7 +1247,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated int32 Ints = 1;</code>
        */
       public Builder addInts(int value) {
         copyOnWrite();
@@ -1255,7 +1255,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated int32 Ints = 1;</code>
        */
       public Builder addAllInts(
           java.lang.Iterable<? extends java.lang.Integer> values) {
@@ -1264,7 +1264,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>repeated int32 Ints = 1 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated int32 Ints = 1;</code>
        */
       public Builder clearInts() {
         copyOnWrite();
@@ -1273,7 +1273,7 @@ public final class All {
       }
 
       /**
-       * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
        */
       @java.lang.Override
       public java.util.List<testdata.v1.util.imported.All.Message> getStructsList() {
@@ -1281,20 +1281,20 @@ public final class All {
             instance.getStructsList());
       }
       /**
-       * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
        */
       @java.lang.Override
       public int getStructsCount() {
         return instance.getStructsCount();
       }/**
-       * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
        */
       @java.lang.Override
       public testdata.v1.util.imported.All.Message getStructs(int index) {
         return instance.getStructs(index);
       }
       /**
-       * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
        */
       public Builder setStructs(
           int index, testdata.v1.util.imported.All.Message value) {
@@ -1303,7 +1303,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
        */
       public Builder setStructs(
           int index, testdata.v1.util.imported.All.Message.Builder builderForValue) {
@@ -1312,7 +1312,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
        */
       public Builder addStructs(testdata.v1.util.imported.All.Message value) {
         copyOnWrite();
@@ -1320,7 +1320,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
        */
       public Builder addStructs(
           int index, testdata.v1.util.imported.All.Message value) {
@@ -1329,7 +1329,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
        */
       public Builder addStructs(
           testdata.v1.util.imported.All.Message.Builder builderForValue) {
@@ -1338,7 +1338,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
        */
       public Builder addStructs(
           int index, testdata.v1.util.imported.All.Message.Builder builderForValue) {
@@ -1347,7 +1347,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
        */
       public Builder addAllStructs(
           java.lang.Iterable<? extends testdata.v1.util.imported.All.Message> values) {
@@ -1356,7 +1356,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
        */
       public Builder clearStructs() {
         copyOnWrite();
@@ -1364,7 +1364,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>repeated .testdata.v1.util.imported.Message Structs = 2 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>repeated .testdata.v1.util.imported.Message Structs = 2;</code>
        */
       public Builder removeStructs(int index) {
         copyOnWrite();
@@ -1373,14 +1373,14 @@ public final class All {
       }
 
       /**
-       * <code>bool Bool = 3 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>bool Bool = 3;</code>
        */
       @java.lang.Override
       public boolean getBool() {
         return instance.getBool();
       }
       /**
-       * <code>bool Bool = 3 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>bool Bool = 3;</code>
        */
       public Builder setBool(boolean value) {
         copyOnWrite();
@@ -1388,7 +1388,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>bool Bool = 3 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>bool Bool = 3;</code>
        */
       public Builder clearBool() {
         copyOnWrite();
@@ -1397,14 +1397,14 @@ public final class All {
       }
 
       /**
-       * <code>int32 Int32 = 4 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>int32 Int32 = 4;</code>
        */
       @java.lang.Override
       public int getInt32() {
         return instance.getInt32();
       }
       /**
-       * <code>int32 Int32 = 4 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>int32 Int32 = 4;</code>
        */
       public Builder setInt32(int value) {
         copyOnWrite();
@@ -1412,7 +1412,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>int32 Int32 = 4 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>int32 Int32 = 4;</code>
        */
       public Builder clearInt32() {
         copyOnWrite();
@@ -1421,21 +1421,21 @@ public final class All {
       }
 
       /**
-       * <code>.google.protobuf.Timestamp Timestamp = 5 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.google.protobuf.Timestamp Timestamp = 5;</code>
        */
       @java.lang.Override
       public boolean hasTimestamp() {
         return instance.hasTimestamp();
       }
       /**
-       * <code>.google.protobuf.Timestamp Timestamp = 5 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.google.protobuf.Timestamp Timestamp = 5;</code>
        */
       @java.lang.Override
       public com.google.protobuf.Timestamp getTimestamp() {
         return instance.getTimestamp();
       }
       /**
-       * <code>.google.protobuf.Timestamp Timestamp = 5 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.google.protobuf.Timestamp Timestamp = 5;</code>
        */
       public Builder setTimestamp(com.google.protobuf.Timestamp value) {
         copyOnWrite();
@@ -1443,7 +1443,7 @@ public final class All {
         return this;
         }
       /**
-       * <code>.google.protobuf.Timestamp Timestamp = 5 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.google.protobuf.Timestamp Timestamp = 5;</code>
        */
       public Builder setTimestamp(
           com.google.protobuf.Timestamp.Builder builderForValue) {
@@ -1452,7 +1452,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>.google.protobuf.Timestamp Timestamp = 5 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.google.protobuf.Timestamp Timestamp = 5;</code>
        */
       public Builder mergeTimestamp(com.google.protobuf.Timestamp value) {
         copyOnWrite();
@@ -1460,7 +1460,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>.google.protobuf.Timestamp Timestamp = 5 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.google.protobuf.Timestamp Timestamp = 5;</code>
        */
       public Builder clearTimestamp() {  copyOnWrite();
         instance.clearTimestamp();
@@ -1468,21 +1468,21 @@ public final class All {
       }
 
       /**
-       * <code>.google.protobuf.Duration Duration = 6 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.google.protobuf.Duration Duration = 6;</code>
        */
       @java.lang.Override
       public boolean hasDuration() {
         return instance.hasDuration();
       }
       /**
-       * <code>.google.protobuf.Duration Duration = 6 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.google.protobuf.Duration Duration = 6;</code>
        */
       @java.lang.Override
       public com.google.protobuf.Duration getDuration() {
         return instance.getDuration();
       }
       /**
-       * <code>.google.protobuf.Duration Duration = 6 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.google.protobuf.Duration Duration = 6;</code>
        */
       public Builder setDuration(com.google.protobuf.Duration value) {
         copyOnWrite();
@@ -1490,7 +1490,7 @@ public final class All {
         return this;
         }
       /**
-       * <code>.google.protobuf.Duration Duration = 6 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.google.protobuf.Duration Duration = 6;</code>
        */
       public Builder setDuration(
           com.google.protobuf.Duration.Builder builderForValue) {
@@ -1499,7 +1499,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>.google.protobuf.Duration Duration = 6 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.google.protobuf.Duration Duration = 6;</code>
        */
       public Builder mergeDuration(com.google.protobuf.Duration value) {
         copyOnWrite();
@@ -1507,7 +1507,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>.google.protobuf.Duration Duration = 6 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>.google.protobuf.Duration Duration = 6;</code>
        */
       public Builder clearDuration() {  copyOnWrite();
         instance.clearDuration();
@@ -1520,7 +1520,7 @@ public final class All {
         return instance.getMapSimpleMap().size();
       }
       /**
-       * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
        */
       @java.lang.Override
 
@@ -1536,7 +1536,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
        */
 
       public Builder removeMapSimple(
@@ -1555,7 +1555,7 @@ public final class All {
         return getMapSimpleMap();
       }
       /**
-       * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
        */
       @java.lang.Override
       public java.util.Map<java.lang.String, java.lang.Integer> getMapSimpleMap() {
@@ -1563,7 +1563,7 @@ public final class All {
             instance.getMapSimpleMap());
       }
       /**
-       * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
        */
       @java.lang.Override
 
@@ -1576,7 +1576,7 @@ public final class All {
         return map.containsKey(key) ? map.get(key) : defaultValue;
       }
       /**
-       * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
        */
       @java.lang.Override
 
@@ -1591,7 +1591,7 @@ public final class All {
         return map.get(key);
       }
       /**
-       * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
        */
       public Builder putMapSimple(
           java.lang.String key,
@@ -1603,7 +1603,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>map&lt;string, int32&gt; MapSimple = 7 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>map&lt;string, int32&gt; MapSimple = 7;</code>
        */
       public Builder putAllMapSimple(
           java.util.Map<java.lang.String, java.lang.Integer> values) {
@@ -1618,7 +1618,7 @@ public final class All {
         return instance.getMapComplexMap().size();
       }
       /**
-       * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
        */
       @java.lang.Override
 
@@ -1634,7 +1634,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
        */
 
       public Builder removeMapComplex(
@@ -1653,7 +1653,7 @@ public final class All {
         return getMapComplexMap();
       }
       /**
-       * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
        */
       @java.lang.Override
       public java.util.Map<java.lang.Integer, testdata.v1.util.All.CheckStatusResponse> getMapComplexMap() {
@@ -1661,7 +1661,7 @@ public final class All {
             instance.getMapComplexMap());
       }
       /**
-       * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
        */
       @java.lang.Override
 
@@ -1674,7 +1674,7 @@ public final class All {
         return map.containsKey(key) ? map.get(key) : defaultValue;
       }
       /**
-       * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
        */
       @java.lang.Override
 
@@ -1689,7 +1689,7 @@ public final class All {
         return map.get(key);
       }
       /**
-       * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
        */
       public Builder putMapComplex(
           int key,
@@ -1701,7 +1701,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>map&lt;int32, .testdata.v1.util.CheckStatusResponse&gt; MapComplex = 8;</code>
        */
       public Builder putAllMapComplex(
           java.util.Map<java.lang.Integer, testdata.v1.util.All.CheckStatusResponse> values) {
@@ -1711,14 +1711,14 @@ public final class All {
       }
 
       /**
-       * <code>bytes Bytes = 9 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>bytes Bytes = 9;</code>
        */
       @java.lang.Override
       public com.google.protobuf.ByteString getBytes() {
         return instance.getBytes();
       }
       /**
-       * <code>bytes Bytes = 9 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>bytes Bytes = 9;</code>
        */
       public Builder setBytes(com.google.protobuf.ByteString value) {
         copyOnWrite();
@@ -1726,7 +1726,7 @@ public final class All {
         return this;
       }
       /**
-       * <code>bytes Bytes = 9 [ctype = STRING, deprecated = false, lazy = false, jstype = JS_NORMAL, weak = false];</code>
+       * <code>bytes Bytes = 9;</code>
        */
       public Builder clearBytes() {
         copyOnWrite();

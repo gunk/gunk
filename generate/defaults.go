@@ -1,9 +1,10 @@
-// taken from: https://github.com/golang/protobuf/blob/master/proto/defaults.go
-package generate
-
 // Copyright 2019 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+//
+// taken from: https://github.com/golang/protobuf/blob/master/proto/defaults.go
+package generate
+
 import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"

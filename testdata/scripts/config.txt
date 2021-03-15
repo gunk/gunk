@@ -8,10 +8,12 @@ exists gunk/all.pb.go gunk/all_pb2.py
 module testdata.tld/util
 
 -- gunk/.gunkconfig --
-[generate]
-command=protoc-gen-go
-plugin_version=v1.4.3
-plugins=grpc
+[generate go]
+plugin_version=v1.25.0
+json_tag_postproc=true
+
+[generate grpc-go]
+plugin_version=v1.1.0
 
 [generate]
 protoc=python

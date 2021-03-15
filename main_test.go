@@ -138,6 +138,7 @@ func TestScripts(t *testing.T) {
 			e.Vars = append(e.Vars, "GOPROXY="+proxyURL+",https://proxy.golang.org,direct")
 			e.Vars = append(e.Vars, "GONOSUMDB=*")
 			e.Vars = append(e.Vars, "GUNK_CACHE_DIR="+cacheDir)
+			e.Vars = append(e.Vars, "HOME=$WORK/home") // go install needs this...
 			return nil
 		},
 	}

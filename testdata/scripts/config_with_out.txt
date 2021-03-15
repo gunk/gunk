@@ -16,8 +16,10 @@ module testdata.tld/util
 [generate]
 out=v1/
 command=protoc-gen-go
-plugin_version=v1.4.3
-plugins=grpc
+plugin_version=v1.25.0
+
+[generate grpc-go]
+plugin_version=v1.1.0
 
 [generate]
 out=v1/

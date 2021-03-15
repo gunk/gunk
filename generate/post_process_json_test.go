@@ -21,6 +21,7 @@ type Person struct {
 }
 `,
 			output: `package test
+
 // Person represents a homo sapien instance.
 type Person struct {
 	FirstName            string   ` + "`" + `protobuf:"bytes,1,opt,name=FirstName,json=first_name,proto3" json:"first_name,omitempty"` + "`" + `
@@ -41,6 +42,7 @@ type ABCJSONTest struct {
 `,
 			output: `// This file intentionally has many json strings to confuse the post processor
 package test
+
 type ABCJSONTest struct {
 	// JSONField is a json field
 	JSONField string ` + "`" + `json2:"abc"` + "`" + `

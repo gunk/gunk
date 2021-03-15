@@ -7,7 +7,7 @@ module testdata.tld/util
 
 -- .gunkconfig --
 [generate go]
-plugin_version=v1.4.3
+plugin_version=v1.25.0
 
 -- echo.gunk --
 package test

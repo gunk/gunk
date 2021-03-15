@@ -657,8 +657,7 @@ func (b *builder) fromStructToAnnotation(val interface{}) string {
 	for i := 0; i < t.NumField(); i++ {
 		name := t.Field(i).Name
 		value := v.FieldByName(name)
-		// TODO: use value.IsZero once we support Go 1.13 and later
-		if !value.IsValid() || reflect.DeepEqual(value.Interface(), reflect.Zero(value.Type()).Interface()) {
+		if value.IsZero() {
 			continue
 		}
 		switch value.Kind() {

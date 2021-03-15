@@ -13,10 +13,12 @@ module testdata.tld/util
 # Set global out
 out=v1/
 
-[generate]
-command=protoc-gen-go
-plugin_version=v1.4.3
-plugins=grpc
+[generate go]
+plugin_version=v1.25.0
+json_tag_postproc=true
+
+[generate grpc-go]
+plugin_version=v1.1.0
 
 [generate]
 # Override global out

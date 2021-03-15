@@ -20,7 +20,7 @@ module testdata.tld/util
 -- .gunkconfig --
 [generate]
 command=protoc-gen-go
-plugin_version=v1.4.3
+plugin_version=v1.25.0
 -- mappings.gunk --
 package mappings
 

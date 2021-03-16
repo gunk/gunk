@@ -1,221 +1,12 @@
-cp echo.gunk json_names_for_fields_disabled/echo.gunk
 cp echo.gunk json_names_for_fields_enabled/echo.gunk
 rm echo.gunk
 gunk generate -v ./...
-cmp json_names_for_fields_disabled/all.swagger.json json_names_for_fields_disabled/all.swagger.json.golden
 cmp json_names_for_fields_enabled/all.swagger.json json_names_for_fields_enabled/all.swagger.json.golden
 
--- go.mod --
-module testdata.tld/util
-
-require (
-	github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8
-)
--- go.sum --
-github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8 h1:PhTyXTMyebFm+ti5Wk4+Zam9D0OjVDPPlmfQicRuF8k=
-github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8/go.mod h1:Nn3H/M7L2O6MpSAlo2bW57c8QvPiV6LHYd3nhYGYkRI=
-
--- json_names_for_fields_disabled/.gunkconfig --
-[generate swagger]
-plugin_version=v1.16.0
-
--- json_names_for_fields_disabled/all.swagger.json.golden --
-{
-  "swagger": "2.0",
-  "info": {
-    "title": "this is a title",
-    "description": "this is a description",
-    "version": "1.0",
-    "contact": {
-      "name": "gunk",
-      "url": "https://github.com/gunk/gunk",
-      "email": "none@example.com"
-    },
-    "license": {
-      "name": "MIT License",
-      "url": "https://github.com/gunk/gunk/blob/master/LICENSE"
-    }
-  },
-  "host": "brank.as",
-  "basePath": "/path",
-  "schemes": [
-    "http",
-    "https",
-    "wss"
-  ],
-  "consumes": [
-    "application/json",
-    "application/x-foo-mime"
-  ],
-  "produces": [
-    "application/json",
-    "application/x-foo-mime"
-  ],
-  "paths": {
-    "/v1/message/{Name}": {
-      "get": {
-        "summary": "Retrieves message",
-        "description": "Get message",
-        "operationId": "Service_GetMessage",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/testMessage"
-            }
-          },
-          "403": {
-            "description": "Returned when the user does not have permission to access the resource.",
-            "schema": {}
-          },
-          "404": {
-            "description": "Returned when the resource does not exist.",
-            "schema": {
-              "type": "string",
-              "format": "string"
-            }
-          },
-          "418": {
-            "description": "I'm a teapot.",
-            "schema": {
-              "type": "string",
-              "$ref": ".grpc.gateway.examples.examplepb.NumericEnum",
-              "title": "my title",
-              "externalDocs": {
-                "description": "More about gunk 418",
-                "url": "https://github.com/gunk/gunk"
-              },
-              "multipleOf": 2,
-              "maximum": 10,
-              "exclusiveMaximum": true,
-              "minimum": 1.3,
-              "exclusiveMinimum": true,
-              "maxLength": 10,
-              "minLength": 5,
-              "pattern": "test pattern",
-              "maxItems": 10,
-              "minItems": 2,
-              "uniqueItems": true,
-              "maxProperties": 100,
-              "minProperties": 50,
-              "required": [
-                "name",
-                "date"
-              ]
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/runtimeError"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "Name",
-            "in": "path",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "AnotherField",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "Message"
-        ]
-      }
-    }
-  },
-  "definitions": {
-    "protobufAny": {
-      "type": "object",
-      "properties": {
-        "type_url": {
-          "type": "string"
-        },
-        "value": {
-          "type": "string",
-          "format": "byte"
-        }
-      }
-    },
-    "runtimeError": {
-      "type": "object",
-      "properties": {
-        "error": {
-          "type": "string"
-        },
-        "code": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "message": {
-          "type": "string"
-        },
-        "details": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/protobufAny"
-          }
-        }
-      }
-    },
-    "testMessage": {
-      "type": "object",
-      "properties": {
-        "Name": {
-          "type": "string"
-        },
-        "AnotherField": {
-          "type": "string"
-        }
-      },
-      "title": "Message comment"
-    }
-  },
-  "securityDefinitions": {
-    "ApiKeyAuth": {
-      "type": "apiKey",
-      "name": "X-API-Key",
-      "in": "header"
-    },
-    "BasicAuth": {
-      "type": "basic"
-    },
-    "OAuth2": {
-      "type": "oauth2",
-      "description": "this is a security scheme description",
-      "flow": "accessCode",
-      "authorizationUrl": "https://example.com/oauth/authorize",
-      "tokenUrl": "https://example.com/oauth/token",
-      "scopes": {
-        "admin": "Grants read and write access to administrative information",
-        "read": "Grants read access",
-        "write": "Grants write access"
-      }
-    }
-  },
-  "security": [
-    {
-      "ApiKeyAuth": [
-        "update"
-      ]
-    }
-  ],
-  "externalDocs": {
-    "description": "More about gunk",
-    "url": "https://github.com/gunk/gunk"
-  }
-}
 -- json_names_for_fields_enabled/.gunkconfig --
-[generate swagger]
+[generate openapiv2]
 json_names_for_fields=true
-plugin_version=v1.16.0
+plugin_version=v2.3.0
 
 -- json_names_for_fields_enabled/all.swagger.json.golden --
 {
@@ -234,6 +25,11 @@ plugin_version=v1.16.0
       "url": "https://github.com/gunk/gunk/blob/master/LICENSE"
     }
   },
+  "tags": [
+    {
+      "name": "Service"
+    }
+  ],
   "host": "brank.as",
   "basePath": "/path",
   "schemes": [
@@ -305,7 +101,7 @@ plugin_version=v1.16.0
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -342,12 +138,9 @@ plugin_version=v1.16.0
         }
       }
     },
-    "runtimeError": {
+    "rpcStatus": {
       "type": "object",
       "properties": {
-        "error": {
-          "type": "string"
-        },
         "code": {
           "type": "integer",
           "format": "int32"
@@ -429,7 +222,7 @@ plugin_version=v1.16.0
 //         },
 //         Host:     "brank.as",
 //         BasePath: "/path",
-//         Schemes: []openapiv2.SwaggerScheme{
+//         Schemes: []openapiv2.Scheme{
 //                 openapiv2.HTTP,
 //                 openapiv2.HTTPS,
 //                 openapiv2.WSS,

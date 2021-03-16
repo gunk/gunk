@@ -23,7 +23,7 @@ func (g Ts) Download(version string, p Paths) (string, error) {
 	if _, err := exec.LookPath("npm"); err != nil {
 		return "", fmt.Errorf("node is not installed. See https://nodejs.org/en/download/")
 	}
-	if err := os.MkdirAll(p.buildDir, 0755); err != nil {
+	if err := os.MkdirAll(p.buildDir, 0o755); err != nil {
 		return "", err
 	}
 	npmCmd := log.ExecCommand("npm", "init", "-y")

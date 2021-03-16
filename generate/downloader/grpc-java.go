@@ -34,7 +34,7 @@ func (pd GrpcJava) Download(version string, p Paths) (string, error) {
 	if res.StatusCode != 200 {
 		return "", fmt.Errorf("could not retrieve %q (%d)", url, res.StatusCode)
 	}
-	dstFile, err := os.OpenFile(p.binary, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0775)
+	dstFile, err := os.OpenFile(p.binary, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o775)
 	if err != nil {
 		return "", err
 	}

@@ -196,7 +196,7 @@ func valueFor(typ reflect.Type, tag reflect.StructTag, value interface{}) reflec
 	case *protop.Literal:
 		valueStr = x.SourceRepresentation()
 	default:
-		panic(fmt.Sprintf("%T contains no name or string value", value))
+		panic(fmt.Sprintf("%T %+v contains no name or string value", value, value))
 	}
 	value = reflect.Value{}
 	// ensure we just use valueStr from this point. If the field is an enum,

@@ -47,7 +47,7 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 			cachePath = dir
 		}
 		cacheDir := filepath.Join(cachePath, "gunk")
-		if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		if err := os.MkdirAll(cacheDir, 0o755); err != nil {
 			return "", err
 		}
 		// The proto command path to use or download to.
@@ -74,7 +74,7 @@ func CheckOrDownloadProtoc(path, version string) (string, error) {
 	// exists. Using lockedfile.OpenFile allows us to do an atomic write
 	// when it doesn't exist yet.
 	// TODO: isn't this lock entirely superfluous? The first lock already blocks the whole time
-	dstFile, err := lockedfile.OpenFile(dstPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0775)
+	dstFile, err := lockedfile.OpenFile(dstPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o775)
 	if os.IsExist(err) {
 		// It exists. Because of O_EXCL, we haven't actually opened the
 		// file. Just verify that protoc works and return.

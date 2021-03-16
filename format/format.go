@@ -21,7 +21,7 @@ func Run(dir string, args ...string) error {
 	l := loader.Loader{Dir: dir, Fset: fset}
 	pkgs, err := l.Load(args...)
 	if err != nil {
-		return err
+		return fmt.Errorf("error on loading: %w", err)
 	}
 	if len(pkgs) == 0 {
 		return fmt.Errorf("no Gunk packages to format")
@@ -34,15 +34,15 @@ func Run(dir string, args ...string) error {
 			path := pkg.GunkFiles[i]
 			orig, err := ioutil.ReadFile(path)
 			if err != nil {
-				return err
+				return fmt.Errorf("error on reading: %w", err)
 			}
 			got, err := formatFile(fset, file)
 			if err != nil {
-				return err
+				return fmt.Errorf("error on formating: %w", err)
 			}
 			if !bytes.Equal(orig, got) {
-				if err := ioutil.WriteFile(path, got, 0666); err != nil {
-					return err
+				if err := ioutil.WriteFile(path, got, 0o666); err != nil {
+					return fmt.Errorf("error on writing: %w", err)
 				}
 			}
 		}

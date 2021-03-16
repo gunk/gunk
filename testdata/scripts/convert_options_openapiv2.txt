@@ -31,8 +31,8 @@ service Service {
             description: "Returned when the resource does not exist.";
         }
       }
-      schemes: "scheme 1"
-      schemes: "scheme 2"
+      schemes: HTTP
+      schemes: HTTPS
       deprecated: true
       security: {
 				security_requirement: {
@@ -98,9 +98,9 @@ type Service interface {
 	//                         Description: "Returned when the resource does not exist.",
 	//                 },
 	//         },
-	//         Schemes: []string{
-	//                 "scheme 1",
-	//                 "scheme 2",
+	//         Schemes: []openapiv2.Scheme{
+	//                 openapiv2.HTTP,
+	//                 openapiv2.HTTPS,
 	//         },
 	//         Deprecated: true,
 	//         Security: []openapiv2.SecurityRequirement{

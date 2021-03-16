@@ -2,18 +2,11 @@ gunk generate echo.gunk
 
 cmp all.swagger.json all.swagger.json.golden
 
--- go.mod --
-module testdata.tld/util
 
-require (
-	github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8
-)
--- go.sum --
-github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8 h1:PhTyXTMyebFm+ti5Wk4+Zam9D0OjVDPPlmfQicRuF8k=
-github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8/go.mod h1:Nn3H/M7L2O6MpSAlo2bW57c8QvPiV6LHYd3nhYGYkRI=
+
 -- .gunkconfig --
-[generate swagger]
-plugin_version=v1.16.0
+[generate openapiv2]
+plugin_version=v2.3.0
 
 -- echo.gunk --
 // +gunk openapiv2.Swagger{
@@ -58,9 +51,9 @@ type Service interface {
 	//                         Description: "Returned when the resource does not exist.",
 	//                 },
 	//         },
-	//         Schemes: []string{
-	//                 "scheme 1",
-	//                 "scheme 2",
+	//         Schemes: []openapiv2.Scheme{
+	//                 openapiv2.HTTP,
+	//                 openapiv2.HTTPS,
 	//         },
 	//         Deprecated: true,
 	//         Security: []openapiv2.SecurityRequirement{
@@ -94,6 +87,11 @@ type Service interface {
     "title": "this is a title",
     "version": "version not set"
   },
+  "tags": [
+    {
+      "name": "Service"
+    }
+  ],
   "consumes": [
     "application/json"
   ],
@@ -101,7 +99,7 @@ type Service interface {
     "application/json"
   ],
   "paths": {
-    "/v1/message/{Name}": {
+    "/v1/message/{name}": {
       "get": {
         "summary": "Retrieves message",
         "description": "Get message",
@@ -120,13 +118,13 @@ type Service interface {
           "default": {
             "description": "An unexpected error response.",
             "schema": {
-              "$ref": "#/definitions/runtimeError"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
         "parameters": [
           {
-            "name": "Name",
+            "name": "name",
             "in": "path",
             "required": true,
             "type": "string"
@@ -162,7 +160,7 @@ type Service interface {
     "protobufAny": {
       "type": "object",
       "properties": {
-        "type_url": {
+        "typeUrl": {
           "type": "string"
         },
         "value": {
@@ -171,12 +169,9 @@ type Service interface {
         }
       }
     },
-    "runtimeError": {
+    "rpcStatus": {
       "type": "object",
       "properties": {
-        "error": {
-          "type": "string"
-        },
         "code": {
           "type": "integer",
           "format": "int32"
@@ -195,7 +190,7 @@ type Service interface {
     "testMessage": {
       "type": "object",
       "properties": {
-        "Name": {
+        "name": {
           "type": "string"
         }
       },

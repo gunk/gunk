@@ -5,18 +5,9 @@ cmp all.swagger.json all.swagger.json.golden
 # they have different proto option definitions that are not compatible
 # with the old one (that we currently use)
 
--- go.mod --
-module testdata.tld/util
-
-require (
-	github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8
-)
--- go.sum --
-github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8 h1:PhTyXTMyebFm+ti5Wk4+Zam9D0OjVDPPlmfQicRuF8k=
-github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8/go.mod h1:Nn3H/M7L2O6MpSAlo2bW57c8QvPiV6LHYd3nhYGYkRI=
 -- .gunkconfig --
-[generate swagger]
-plugin_version=v1.14.4
+[generate openapiv2]
+plugin_version=v2.3.0
 
 -- util.gunk --
 package util
@@ -29,7 +20,7 @@ import (
 //         JSONSchema: openapiv2.JSONSchema{
 //                 Required: []string{"a", "b", "c"},
 //         },
-//         Example: openapiv2.Any{Value: []byte(`{"foo":"bar"}`)},
+//         Example: `{"foo":"bar"}`,
 // }
 type Util struct {
 	// +gunk openapiv2.Schema{
@@ -56,6 +47,11 @@ type Service interface {
     "title": "testdata.tld/util/all.proto",
     "version": "version not set"
   },
+  "tags": [
+    {
+      "name": "Service"
+    }
+  ],
   "consumes": [
     "application/json"
   ],
@@ -67,7 +63,7 @@ type Service interface {
     "protobufAny": {
       "type": "object",
       "properties": {
-        "type_url": {
+        "typeUrl": {
           "type": "string"
         },
         "value": {
@@ -76,12 +72,9 @@ type Service interface {
         }
       }
     },
-    "runtimeError": {
+    "rpcStatus": {
       "type": "object",
       "properties": {
-        "error": {
-          "type": "string"
-        },
         "code": {
           "type": "integer",
           "format": "int32"
@@ -103,7 +96,7 @@ type Service interface {
         "foo": "bar"
       },
       "properties": {
-        "Hello": {
+        "hello": {
           "type": "string",
           "required": [
             "d",
@@ -115,7 +108,10 @@ type Service interface {
       "required": [
         "a",
         "b",
-        "c"
+        "c",
+        "hello",
+        "hello",
+        "hello"
       ]
     }
   }

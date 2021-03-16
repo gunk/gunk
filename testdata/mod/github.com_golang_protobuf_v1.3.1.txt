@@ -1,6 +1,0 @@
-module github.com/golang/protobuf@v1.3.1
-
--- .mod --
-module github.com/golang/protobuf
--- .info --
-{"Version":"v1.3.1","Time":"2019-02-28T07:19:29-08:00"}

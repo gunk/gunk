@@ -96,7 +96,7 @@ func convertFile(path string, overwrite bool, importPath string, protocPath stri
 		fmt.Fprintln(os.Stderr, b.String())
 		return err
 	}
-	if err := ioutil.WriteFile(fullpath, result, 0644); err != nil {
+	if err := ioutil.WriteFile(fullpath, result, 0o644); err != nil {
 		return fmt.Errorf("unable to write to file %q: %v", fullpath, err)
 	}
 	return nil

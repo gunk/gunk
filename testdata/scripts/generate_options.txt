@@ -15,15 +15,8 @@ grep '// Deprecated: Do not use.\ntype Status int32' deprecated/all.pb.go
 grep '// Deprecated: Do not use.\n\t*Status_Error *Status = 2' deprecated/all.pb.go
 grep '// Deprecated: Do not use.\n\t*Msg' deprecated/all.pb.go
 
--- go.mod --
-module testdata.tld/util
 
-require (
-	github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8
-)
--- go.sum --
-github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8 h1:PhTyXTMyebFm+ti5Wk4+Zam9D0OjVDPPlmfQicRuF8k=
-github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8/go.mod h1:Nn3H/M7L2O6MpSAlo2bW57c8QvPiV6LHYd3nhYGYkRI=
+
 -- .gunkconfig --
 [generate]
 command=protoc-gen-go

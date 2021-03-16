@@ -375,8 +375,8 @@ func (b *builder) handleOption(w *strings.Builder, opt *proto.Option) error {
 		if schema.JSONSchema != nil {
 			b.format(w, 1, nil, "// JSONSchema: %s.JSONSchema{Title:%s, Description:%s}, \n", pkg, schema.JSONSchema.Title, schema.JSONSchema.Description)
 		}
-		if schema.Example != nil {
-			b.format(w, 1, nil, "// Example: openapiv2.Any{Value:[]byte(`%s`)}, \n", schema.Example.Value)
+		if schema.Example != "" {
+			b.format(w, 1, nil, "// Example: %q, \n", schema.Example)
 		}
 		b.format(w, 1, nil, "// }\n")
 	default:

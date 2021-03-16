@@ -5,12 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path"
-	"path/filepath"
 	"runtime"
-	"strings"
-
-	"github.com/gunk/gunk/log"
 )
 
 type GrpcEcosystem struct {
@@ -22,6 +17,9 @@ func (ged GrpcEcosystem) Name() string {
 }
 
 func (ged GrpcEcosystem) Download(version string, p Paths) (string, error) {
+	if ged.Type == "swagger" {
+		return "", fmt.Errorf("use protoc-gen-openapiv2 instead of protoc-gen-swagger")
+	}
 	url, err := ged.downloadURL(runtime.GOOS, runtime.GOARCH, version)
 	if err != nil {
 		return "", err
@@ -37,14 +35,9 @@ func (ged GrpcEcosystem) Download(version string, p Paths) (string, error) {
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		// old versions do not have releases, try to build
-		b, err := ged.buildGithub(version, p)
-		if err != nil {
-			return "", err
-		}
-		return b, nil
+		return "", fmt.Errorf("download returns status 200")
 	}
-	dstFile, err := os.OpenFile(p.binary, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0775)
+	dstFile, err := os.OpenFile(p.binary, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o775)
 	if err != nil {
 		return "", err
 	}
@@ -57,41 +50,6 @@ func (ged GrpcEcosystem) Download(version string, p Paths) (string, error) {
 		return "", err
 	}
 	return p.binary, nil
-}
-
-func (ged GrpcEcosystem) buildGithub(version string, p Paths) (string, error) {
-	const repoPath = `https://github.com/grpc-ecosystem/grpc-gateway`
-	cmdArgs := []string{"clone", "--depth", "1", "--branch", version, repoPath, p.buildDir}
-	gitCmd := log.ExecCommand("git", cmdArgs...)
-	err := gitCmd.Run()
-	if err != nil {
-		all := "git " + strings.Join(cmdArgs, " ")
-		return "", log.ExecError(all, err)
-	}
-	// older version don't even have go.mod
-	goModPath := path.Join(p.buildDir, "go.mod")
-	_, fErr := os.Stat(goModPath)
-	if fErr != nil {
-		if !os.IsNotExist(fErr) {
-			return "", fErr
-		}
-		goModInitCmd := log.ExecCommand("go", "mod", "init", "github.com/grpc-ecosystem/grpc-gateway")
-		goModInitCmd.Dir = p.buildDir
-		err = goModInitCmd.Run()
-		if err != nil {
-			all := "go mod init github.com/grpc-ecosystem/grpc-gateway"
-			return "", log.ExecError(all, err)
-		}
-	}
-	binaryDir := filepath.Join(p.buildDir, fmt.Sprintf("protoc-gen-%s", ged.Type))
-	buildCmd := log.ExecCommand("go", "build")
-	buildCmd.Dir = binaryDir
-	err = buildCmd.Run()
-	if err != nil {
-		all := "go build"
-		return "", log.ExecError(all, err)
-	}
-	return filepath.Join(binaryDir, fmt.Sprintf("protoc-gen-%s", ged.Type)), err
 }
 
 func (ged GrpcEcosystem) downloadURL(os, arch, version string) (string, error) {

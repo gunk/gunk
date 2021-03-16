@@ -69,7 +69,7 @@ var ds = []Downloader{
 	Go{},
 	GrpcJava{},
 	GrpcEcosystem{Type: "grpc-gateway"},
-	GrpcEcosystem{Type: "swagger"},
+	GrpcEcosystem{Type: "swagger"}, // deprecated
 	GrpcEcosystem{Type: "openapiv2"},
 	Swift{},
 	GrpcSwift{},

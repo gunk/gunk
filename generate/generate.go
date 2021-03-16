@@ -591,6 +591,11 @@ func (g *Generator) appendFile(fpath string, file *ast.File, stripEnumTypeNames 
 		return nil
 	}
 	g.gfile = file
+
+	if g.pfile.SourceCodeInfo == nil {
+		g.pfile.SourceCodeInfo = &descriptorpb.SourceCodeInfo{}
+	}
+
 	g.addDoc(file.Doc.Text(), packagePath)
 	for _, decl := range file.Decls {
 		g.curPos = decl.Pos()
@@ -662,9 +667,7 @@ func (g *Generator) addDoc(text string, path ...int32) {
 	lines := strings.Split(text, "\n")
 	newText := " " + strings.Join(lines, "\n ")
 	newText = strings.TrimRight(newText, " \n")
-	if g.pfile.SourceCodeInfo == nil {
-		g.pfile.SourceCodeInfo = &descriptorpb.SourceCodeInfo{}
-	}
+
 	g.pfile.SourceCodeInfo.Location = append(g.pfile.SourceCodeInfo.Location,
 		&descriptorpb.SourceCodeInfo_Location{
 			Path:            path,

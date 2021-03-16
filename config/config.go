@@ -47,7 +47,7 @@ func (g Generator) Code() string {
 }
 
 func (g Generator) HasPostproc() bool {
-	if g.Code() == "go" || g.Code() == "grpc-gateway" {
+	if g.Code() == "go" || g.Code() == "grpc-gateway" || g.Code() == "grpc-go" {
 		// for gofumpt
 		return true
 	}

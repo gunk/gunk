@@ -61,7 +61,7 @@ func (g GrpcPython) Download(version string, p Paths) (string, error) {
 	}
 	log.Printf("Running cmake.")
 	cmakeDir := filepath.Join(p.buildDir, "cmake", "build")
-	if err := os.MkdirAll(cmakeDir, 0755); err != nil {
+	if err := os.MkdirAll(cmakeDir, 0o755); err != nil {
 		return "", err
 	}
 	cmakeCmd := log.ExecCommand("cmake", "../..")

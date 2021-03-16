@@ -157,8 +157,8 @@ github.com/grpc-ecosystem/grpc-gateway v1.9.0 h1:bM6ZAFZmc/wPFaRDi0d5L7hGEZEx/2u
 github.com/grpc-ecosystem/grpc-gateway v1.9.0/go.mod h1:vNeuVxBJEsws4ogUvrchl83t/GYV9WGTSLVdBhOQFDY=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.3.0 h1:IvO4FbbQL6n3v3M1rQNobZ61SGL0gJLdvKA5KETM7Xs=
 github.com/grpc-ecosystem/grpc-gateway/v2 v2.3.0/go.mod h1:d2gYTOTUQklu06xp0AJYYmRdTVU1VKrqhkYfYag2L08=
-github.com/gunk/opt v0.0.0-20210315104047-49c6866da8b6 h1:vk3W8yc34hBjlkT2HgtE1WHwjOFYEp25Rc7CxTZisuE=
-github.com/gunk/opt v0.0.0-20210315104047-49c6866da8b6/go.mod h1:hZ9tn7+rC1JCfr7lubfTdbl7rUji3HurV04gve75PIs=
+github.com/gunk/opt v0.0.0-20210316130228-5b8610162890 h1:mY5GVbajZJGIjU8C+1DpVgT9lpurUPKQK4AcEJTQSSI=
+github.com/gunk/opt v0.0.0-20210316130228-5b8610162890/go.mod h1:hZ9tn7+rC1JCfr7lubfTdbl7rUji3HurV04gve75PIs=
 github.com/hashicorp/consul/api v1.1.0/go.mod h1:VmuI/Lkw1nC05EYQWNKwWGbkg+FbDBtguAZLlVdkD9Q=
 github.com/hashicorp/consul/sdk v0.1.1/go.mod h1:VKf9jXwCTEY1QZP2MOLRhb5i/I/ssyNV1vwHyQBF0x8=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=

@@ -4,6 +4,7 @@ package util
 
 import (
 	context "context"
+
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -64,12 +65,12 @@ type UtilServer interface {
 }
 
 // UnimplementedUtilServer must be embedded to have forward compatible implementations.
-type UnimplementedUtilServer struct {
-}
+type UnimplementedUtilServer struct{}
 
 func (UnimplementedUtilServer) Echo(context.Context, *imported.Message) (*imported.Message, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Echo not implemented")
 }
+
 func (UnimplementedUtilServer) CheckStatus(context.Context, *emptypb.Empty) (*CheckStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckStatus not implemented")
 }
@@ -175,8 +176,7 @@ type UtilTestsServer interface {
 }
 
 // UnimplementedUtilTestsServer must be embedded to have forward compatible implementations.
-type UnimplementedUtilTestsServer struct {
-}
+type UnimplementedUtilTestsServer struct{}
 
 func (UnimplementedUtilTestsServer) UtilTest(context.Context, *UtilTestRequest) (*CheckStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UtilTest not implemented")

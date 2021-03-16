@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/gunk/gunk/generate"
-	"github.com/rogpeppe/go-internal/goproxytest"
 	"github.com/rogpeppe/go-internal/gotooltest"
 	"github.com/rogpeppe/go-internal/testscript"
 )
@@ -19,7 +18,7 @@ import (
 var write = flag.Bool("w", false, "overwrite testdata output files")
 
 func TestMain(m *testing.M) {
-	if os.Getenv("TESTSCRIPT_COMMAND") == "" {
+	if os.Getenv("TESTSCRIPT_ON") == "" {
 		flag.Parse()
 		// Don't put the binaries in a temporary directory to delete, as that
 		// means we have to re-link them every single time. That's quite
@@ -37,21 +36,15 @@ func TestMain(m *testing.M) {
 		)
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
+			fmt.Printf("%+v\n", os.Environ())
+
 			panic(err)
 		}
-		// Start the Go proxy server running for all tests.
-		srv, err := goproxytest.NewServer("testdata/mod", "")
-		if err != nil {
-			log.Fatalf("cannot start proxy: %v", err)
-		}
-		proxyURL = srv.URL
 	}
 	os.Exit(testscript.RunMain(m, map[string]func() int{
 		"gunk": main1,
 	}))
 }
-
-var proxyURL string
 
 func TestGenerate(t *testing.T) {
 	t.Parallel()
@@ -132,13 +125,26 @@ func TestScripts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	goCache := filepath.Join(os.TempDir(), "gunk-test-go-cache")
+
 	p := testscript.Params{
 		Dir: filepath.Join("testdata", "scripts"),
 		Setup: func(e *testscript.Env) error {
-			e.Vars = append(e.Vars, "GOPROXY="+proxyURL+",https://proxy.golang.org,direct")
+			cmd := exec.Command("cp",
+				"testdata/prepare-go-sum/go.mod",
+				"testdata/prepare-go-sum/go.sum",
+				e.WorkDir)
+			cmd.Stderr = os.Stderr
+			if _, err := cmd.Output(); err != nil {
+				return fmt.Errorf("failed to copy go.sum: %w", err)
+			}
+
 			e.Vars = append(e.Vars, "GONOSUMDB=*")
 			e.Vars = append(e.Vars, "GUNK_CACHE_DIR="+cacheDir)
-			e.Vars = append(e.Vars, "HOME=$WORK/home") // go install needs this...
+			e.Vars = append(e.Vars, "TESTSCRIPT_ON=on")
+
+			e.Vars = append(e.Vars, "HOME="+goCache)
 			return nil
 		},
 	}

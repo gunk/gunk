@@ -2,15 +2,8 @@
 ! gunk generate transactions.gunk
 stderr 'the URL /v1/foo/{Unexpected} field Unexpected cannot be matched in FooRequest'
 
--- go.mod --
-module testdata.tld/util
 
-require (
-	github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8
-)
--- go.sum --
-github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8 h1:PhTyXTMyebFm+ti5Wk4+Zam9D0OjVDPPlmfQicRuF8k=
-github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8/go.mod h1:Nn3H/M7L2O6MpSAlo2bW57c8QvPiV6LHYd3nhYGYkRI=
+
 -- .gunkconfig --
 [generate]
 command=docgen
@@ -24,7 +17,7 @@ command=docgen
 //         },
 //         Host:     "openbank.com",
 //         BasePath: "/path",
-//         Schemes: []openapiv2.SwaggerScheme{
+//         Schemes: []openapiv2.Scheme{
 //                 openapiv2.HTTPS,
 //         },
 // }

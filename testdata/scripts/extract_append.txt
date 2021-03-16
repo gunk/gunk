@@ -3,15 +3,8 @@ gunk generate second.gunk
 cmp messages.pot messages.pot.golden
 cmp all.md all.md.golden
 
--- go.mod --
-module testdata.tld/util
 
-require (
-	github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8
-)
--- go.sum --
-github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8 h1:PhTyXTMyebFm+ti5Wk4+Zam9D0OjVDPPlmfQicRuF8k=
-github.com/gunk/opt v0.0.0-20210314081614-a3a255ac0fd8/go.mod h1:Nn3H/M7L2O6MpSAlo2bW57c8QvPiV6LHYd3nhYGYkRI=
+
 -- .gunkconfig --
 [generate]
 command=docgen
@@ -25,7 +18,7 @@ mode=append
 //         },
 //         Host: "openbank.com",
 //         BasePath: "/path",
-//         Schemes: []openapiv2.SwaggerScheme{
+//         Schemes: []openapiv2.Scheme{
 //                 openapiv2.HTTPS,
 //         },
 // }
@@ -68,7 +61,7 @@ type FooService interface {
 //         },
 //         Host: "openbank.com",
 //         BasePath: "/path",
-//         Schemes: []openapiv2.SwaggerScheme{
+//         Schemes: []openapiv2.Scheme{
 //                 openapiv2.HTTPS,
 //         },
 // }

@@ -106,7 +106,7 @@ func (l *Loader) addTempGoFiles() (undo func(), _ error) {
 			return nil
 		}
 		tmpPath := filepath.Join(path, "gunkpkg-"+hexRand(8)+".go")
-		if err := ioutil.WriteFile(tmpPath, []byte("package "+pkgName), 0666); err != nil {
+		if err := ioutil.WriteFile(tmpPath, []byte("package "+pkgName), 0o666); err != nil {
 			return err
 		}
 		toDelete = append(toDelete, tmpPath)

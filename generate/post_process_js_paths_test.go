@@ -1,5 +1,7 @@
 package generate
+
 import "testing"
+
 func TestPathFromTo(t *testing.T) {
 	tests := []struct {
 		from     string

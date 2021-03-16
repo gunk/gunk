@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
 	"github.com/gunk/gunk/config"
 	"github.com/gunk/gunk/generate/downloader"
 	"github.com/gunk/gunk/loader"
@@ -885,7 +885,7 @@ func (g *Generator) methodOptions(method *ast.Field) (*descriptorpb.MethodOption
 			op := &options.Operation{}
 			reflectutil.UnmarshalAST(op, tag.Expr)
 			proto.SetExtension(o, options.E_Openapiv2Operation, op)
-			g.addProtoDep("protoc-gen-swagger/options/annotations.proto")
+			g.addProtoDep("protoc-gen-openapiv2/options/annotations.proto")
 		default:
 			return nil, fmt.Errorf("gunk method option %q not supported", s)
 		}

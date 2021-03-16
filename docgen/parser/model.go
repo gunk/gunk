@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
@@ -28,21 +28,21 @@ func (f *File) SwaggerScheme() string {
 	if len(f.Swagger.Schemes) == 0 {
 		return ""
 	}
-	hasScheme := map[options.Swagger_SwaggerScheme]bool{}
+	hasScheme := map[options.Scheme]bool{}
 	for _, scheme := range f.Swagger.Schemes {
 		hasScheme[scheme] = true
 	}
-	if hasScheme[options.Swagger_HTTPS] {
+	if hasScheme[options.Scheme_HTTPS] {
 		return "https://"
 	}
-	if hasScheme[options.Swagger_HTTP] {
+	if hasScheme[options.Scheme_HTTP] {
 		return "http://"
 	}
 	// TODO - should we include websocket at all? CURL won't work anyway
-	if hasScheme[options.Swagger_WSS] {
+	if hasScheme[options.Scheme_WSS] {
 		return "wss://"
 	}
-	if hasScheme[options.Swagger_WS] {
+	if hasScheme[options.Scheme_WS] {
 		return "ws://"
 	}
 	return ""

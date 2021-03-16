@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway/httprule"
-	"github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
+	"github.com/gunk/gunk/httprule"
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -495,8 +495,7 @@ func parseQuery(uri string, message *Message) ([]*Field, error) {
 	res := make([]*Field, len(tmpl.Fields))
 	for i, tf := range tmpl.Fields {
 		if message == nil {
-			return nil, fmt.Errorf(
-				"the URL %s has no request type, field %s cannot be matched", uri, tf)
+			return nil, fmt.Errorf("the URL %s has no request type, field %s cannot be matched", uri, tf)
 		}
 		for _, mf := range message.Fields {
 			if tf == mf.Name {
@@ -504,8 +503,7 @@ func parseQuery(uri string, message *Message) ([]*Field, error) {
 			}
 		}
 		if res[i] == nil {
-			return nil, fmt.Errorf(
-				"the URL %s field %s cannot be matched in %s", uri, tf, message.Name)
+			return nil, fmt.Errorf("the URL %s field %s cannot be matched in %s", uri, tf, message.Name)
 		}
 	}
 	return res, nil

@@ -437,15 +437,14 @@ generate` tool:
   from github/maven, built in cache and used. It is *not* installed in $PATH.
   This currently works with the following plugins:
 
-  - protoc-gen-go
-  - protoc-gen-grpc-java
-  - protoc-gen-grpc-gateway
-  - protoc-gen-swagger
-  - protoc-gen-openapiv2
-  - protoc-gen-swift (installing swift itself first is necessary)
-  - protoc-gen-grpc-swift (installing swift itself first is necessary)
-  - ts (installing node and npm first is necessary)
-  - protoc-gen-grpc-python (cmake, gcc is necessary; takes ~10 minutes to clone build)
+  - `protoc-gen-go`
+  - `protoc-gen-grpc-java`
+  - `protoc-gen-grpc-gateway`
+  - `protoc-gen-openapiv2` (`protoc-gen-swagger` support is deprecated)
+  - `protoc-gen-swift` (installing swift itself first is necessary)
+  - `protoc-gen-grpc-swift` (installing swift itself first is necessary)
+  - `protoc-gen-ts` (installing node and npm first is necessary)
+  - `protoc-gen-grpc-python` (cmake, gcc is necessary; takes ~10 minutes to clone build)
 
   It is recommended to use this function everywhere, for reproducible builds,
   together with `version` for protoc.

@@ -75,7 +75,6 @@ func main2() (code int) {
 	downloadSubcommands := []func() error{
 		downloadProtoc,
 	}
-	vet.Flag("strip", "recommend stripping enums").Short('s').BoolVar(&vetconfig.RecommendStrip)
 	command, err := app.Parse(os.Args[1:])
 	if code != 0 {
 		// simulate the os.Exit that would have happened

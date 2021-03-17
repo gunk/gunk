@@ -92,13 +92,12 @@ func (g Generator) OutPath(packageDir string) string {
 }
 
 type Config struct {
-	Dir                string
-	Out                string
-	ImportPath         string
-	ProtocPath         string
-	ProtocVersion      string
-	Generators         []Generator
-	StripEnumTypeNames bool
+	Dir           string
+	Out           string
+	ImportPath    string
+	ProtocPath    string
+	ProtocVersion string
+	Generators    []Generator
 }
 
 // Load will attempt to find the .gunkconfig in the 'dir', working
@@ -320,12 +319,6 @@ func handleGlobal(config *Config, section *parser.Section) error {
 			config.Out = v
 		case "import_path":
 			config.ImportPath = v
-		case "strip_enum_type_names":
-			p, err := strconv.ParseBool(v)
-			if err != nil {
-				return fmt.Errorf("cannot parse strip_enum_type_names: %w", err)
-			}
-			config.StripEnumTypeNames = p
 		default:
 			return fmt.Errorf("unexpected key %q in global section", k)
 		}

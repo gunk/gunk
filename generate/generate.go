@@ -53,7 +53,7 @@ func Run(dir string, args ...string) error {
 			return fmt.Errorf("unable to load gunkconfig: %w", err)
 		}
 		pkgConfigs[pkg.Dir] = cfg
-		if err := g.translatePkg(pkg.PkgPath, cfg.StripEnumTypeNames); err != nil {
+		if err := g.translatePkg(pkg.PkgPath); err != nil {
 			return fmt.Errorf("unable to translate pkg: %w", err)
 		}
 	}
@@ -113,7 +113,7 @@ func FileDescriptorSet(dir string, args ...string) (*descriptorpb.FileDescriptor
 	g.recordPkgs(pkgs...)
 	// Translate the packages from Gunk to Proto.
 	for _, pkg := range pkgs {
-		if err := g.translatePkg(pkg.PkgPath, false); err != nil {
+		if err := g.translatePkg(pkg.PkgPath); err != nil {
 			return nil, err
 		}
 	}
@@ -448,7 +448,7 @@ _addLoop:
 // translatePkg translates all the gunk files in a gunk package to the
 // proto language. All the files within the package, including all the
 // files for its transitive dependencies, must already be loaded.
-func (g *Generator) translatePkg(pkgPath string, stripEnumTypeNames bool) error {
+func (g *Generator) translatePkg(pkgPath string) error {
 	gpkg, ok := g.gunkPkgs[pkgPath]
 	if !ok {
 		return fmt.Errorf("failed to get package %s to translate", pkgPath)
@@ -483,7 +483,7 @@ func (g *Generator) translatePkg(pkgPath string, stripEnumTypeNames bool) error 
 	g.serviceIndex = 0
 	g.enumIndex = 0
 	for i, fpath := range gpkg.GunkNames {
-		if err := g.appendFile(fpath, gpkg.GunkSyntax[i], stripEnumTypeNames); err != nil {
+		if err := g.appendFile(fpath, gpkg.GunkSyntax[i]); err != nil {
 			return fmt.Errorf("%s: %v", g.Loader.Fset.Position(g.curPos), err)
 		}
 	}
@@ -515,8 +515,7 @@ func (g *Generator) translatePkg(pkgPath string, stripEnumTypeNames bool) error 
 	// Do the recursive translatePkg calls at the end, since the generator
 	// holds the state for the current package.
 	for _, pkgPath := range leftToTranslate {
-		// TODO: does this break anything?
-		if err := g.translatePkg(pkgPath, stripEnumTypeNames); err != nil {
+		if err := g.translatePkg(pkgPath); err != nil {
 			return err
 		}
 	}
@@ -585,7 +584,7 @@ func fileOptions(pkg *loader.GunkPackage) (*descriptorpb.FileOptions, error) {
 
 // appendFile translates a single gunk file to protobuf, appending its contents
 // to the package's proto file.
-func (g *Generator) appendFile(fpath string, file *ast.File, stripEnumTypeNames bool) error {
+func (g *Generator) appendFile(fpath string, file *ast.File) error {
 	if _, ok := g.allProto[fpath]; ok {
 		// already translated
 		return nil
@@ -599,7 +598,7 @@ func (g *Generator) appendFile(fpath string, file *ast.File, stripEnumTypeNames 
 	g.addDoc(file.Doc.Text(), packagePath)
 	for _, decl := range file.Decls {
 		g.curPos = decl.Pos()
-		if err := g.translateDecl(decl, stripEnumTypeNames); err != nil {
+		if err := g.translateDecl(decl); err != nil {
 			return err
 		}
 	}
@@ -609,7 +608,7 @@ func (g *Generator) appendFile(fpath string, file *ast.File, stripEnumTypeNames 
 // translateDecl translates a top-level declaration in a gunk file. It
 // only acts on type declarations; struct types become proto messages,
 // interfaces become services, and basic integer types become enums.
-func (g *Generator) translateDecl(decl ast.Decl, stripEnumTypeNames bool) error {
+func (g *Generator) translateDecl(decl ast.Decl) error {
 	gd, ok := decl.(*ast.GenDecl)
 	if !ok {
 		return fmt.Errorf("invalid declaration %T", decl)
@@ -641,7 +640,7 @@ func (g *Generator) translateDecl(decl ast.Decl, stripEnumTypeNames bool) error 
 			}
 			g.pfile.Service = append(g.pfile.Service, srv)
 		case *ast.Ident:
-			enum, err := g.convertEnum(ts, stripEnumTypeNames)
+			enum, err := g.convertEnum(ts)
 			if err != nil {
 				return err
 			}
@@ -1052,7 +1051,7 @@ func (g *Generator) enumValueOptions(vspec *ast.ValueSpec) (*descriptorpb.EnumVa
 	return o, nil
 }
 
-func (g *Generator) convertEnum(tspec *ast.TypeSpec, stripTypeName bool) (*descriptorpb.EnumDescriptorProto, error) {
+func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*descriptorpb.EnumDescriptorProto, error) {
 	g.addDoc(tspec.Doc.Text(), enumPath, g.enumIndex)
 	enum := &descriptorpb.EnumDescriptorProto{
 		Name: proto.String(tspec.Name.Name),
@@ -1099,14 +1098,7 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec, stripTypeName bool) (*descr
 			if err != nil {
 				return nil, fmt.Errorf("error getting enum value options: %v", err)
 			}
-			// To avoid duplicate prefix,
-			// we remove the enum type name if present.
-			// Note that if there are duplicates without prefixes, it causes invalid protobuf
-			// (that is still buildable with 1.3.* protoc-gen-go, but not 1.4.*)
-			if stripTypeName {
-				prefix := *enum.Name + "_"
-				name.Name = strings.Replace(name.Name, prefix, "", 1)
-			}
+
 			enum.Value = append(enum.Value, &descriptorpb.EnumValueDescriptorProto{
 				Name:    proto.String(name.Name),
 				Number:  proto.Int32(int32(ival)),

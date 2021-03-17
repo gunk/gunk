@@ -10,8 +10,6 @@ import (
 	"github.com/gunk/gunk/generate/downloader"
 )
 
-var RecommendStrip = false
-
 func Run(dir string) error {
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -41,11 +39,7 @@ func vetCfg(dir string, cfg *config.Config) {
 	if cfg.ProtocVersion == "" {
 		fmt.Printf("%s: specify protoc version\n", dir)
 	}
-	if RecommendStrip {
-		if cfg.StripEnumTypeNames == false {
-			fmt.Printf("%s: use strip_enum_type_names = true\n", dir)
-		}
-	}
+
 	for _, g := range cfg.Generators {
 		code := g.Code()
 		if code == "ts" || code == "js" {

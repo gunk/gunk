@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/gunk/gunk/config"
@@ -46,6 +47,59 @@ func vetCfg(dir string, cfg *config.Config) {
 			if !g.FixPaths {
 				fmt.Printf(
 					"%s: add fix_paths_postproc=true [generate %s]\n",
+					dir,
+					code)
+			}
+		}
+		if code == "grpc-gateway" {
+			version := g.PluginVersion
+			if version != "" {
+				s := strings.Split(version, ".")
+				s[0] = strings.TrimPrefix(s[0], "v")
+				major, err := strconv.Atoi(s[0])
+				if err != nil {
+					panic(err)
+				}
+				if major < 2 {
+					fmt.Printf(
+						"%s: use new version - plugin_version=v2.3.0 [generate %s]\n",
+						dir,
+						code)
+				}
+			}
+		}
+		if code == "swagger" {
+			fmt.Printf(
+				"%s: do not use swagger. [generate %s] Use:\n[generate openapiv2]\njson_names_for_fields=true\nplugin_version=v2.3.0\n\n",
+				dir,
+				code)
+		}
+		if code == "openapiv2" {
+			if _, ok := g.GetParam("json_names_for_fields"); !ok {
+				fmt.Printf(
+					"%s: specify json_names_for_fields=false (or true) [generate %s]\n",
+					dir,
+					code)
+			}
+		}
+		if code == "go" {
+			version := g.PluginVersion
+			if version != "" {
+				s := strings.Split(version, ".")
+				minor, err := strconv.Atoi(s[1])
+				if err != nil {
+					panic(err)
+				}
+				if minor < 20 {
+					fmt.Printf(
+						"%s: use new version - plugin_version=v1.25.0 [generate %s]\n",
+						dir,
+						code)
+				}
+			}
+			if _, ok := g.GetParam("plugins"); ok {
+				fmt.Printf(
+					"%s: do not use grpc plugin. [generate %s] Use:\n[generate grpc-go]\nplugin_version=v1.1.0\n\n",
 					dir,
 					code)
 			}

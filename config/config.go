@@ -54,6 +54,15 @@ func (g Generator) HasPostproc() bool {
 	return g.JSONPostProc || g.FixPaths
 }
 
+func (g Generator) GetParam(key string) (string, bool) {
+	for _, p := range g.Params {
+		if p.Key == key {
+			return p.Value, true
+		}
+	}
+	return "", false
+}
+
 func (g Generator) ParamString() string {
 	params := make([]string, len(g.Params))
 	for i, p := range g.Params {

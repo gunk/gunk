@@ -372,6 +372,9 @@ func parseMethods(pkgName string, messages map[string]*Message, methods []*descr
 			continue
 		}
 		operation := extOp.(*options.Operation)
+		if operation == nil {
+			continue
+		}
 		if onlyExternal == OnlyExternalEnabled && !hasExternalTag(operation.Tags) {
 			continue
 		}

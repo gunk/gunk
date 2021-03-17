@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	_ "github.com/golang/protobuf/protoc-gen-go/grpc"
 	"github.com/gunk/gunk/scopegen/parser"
 )
 

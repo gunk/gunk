@@ -10,9 +10,9 @@ import (
 
 	"github.com/gunk/gunk/protoutil"
 
-	"github.com/golang/protobuf/proto"
-	desc "github.com/golang/protobuf/protoc-gen-go/descriptor"
-	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/pluginpb"
 )
 
 func main() {
@@ -20,14 +20,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	var req plugin.CodeGeneratorRequest
+	var req pluginpb.CodeGeneratorRequest
 	if err := proto.Unmarshal(input, &req); err != nil {
 		panic(err)
 	}
 	if err := check(&req); err != nil {
 		panic(err)
 	}
-	var resp plugin.CodeGeneratorResponse
+	var resp pluginpb.CodeGeneratorResponse
 	output, err := protoutil.MarshalDeterministic(&resp)
 	if err != nil {
 		panic(err)
@@ -37,8 +37,8 @@ func main() {
 	}
 }
 
-func check(req *plugin.CodeGeneratorRequest) error {
-	seenFiles := make(map[string]*desc.FileDescriptorProto)
+func check(req *pluginpb.CodeGeneratorRequest) error {
+	seenFiles := make(map[string]*descriptorpb.FileDescriptorProto)
 	for _, pfile := range req.ProtoFile {
 		for _, dep := range pfile.Dependency {
 			if seenFiles[dep] == nil {

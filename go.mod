@@ -8,7 +8,6 @@ require (
 	github.com/alecthomas/units v0.0.0-20210208195552-ff826a37aa15 // indirect
 	github.com/bmatcuk/doublestar v1.3.4
 	github.com/emicklei/proto v1.9.0
-	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.5 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.3.0
 	github.com/gunk/opt v0.0.0-20210316130228-5b8610162890

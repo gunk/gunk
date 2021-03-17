@@ -86,15 +86,16 @@ func vetCfg(dir string, cfg *config.Config) {
 			version := g.PluginVersion
 			if version != "" {
 				s := strings.Split(version, ".")
-				minor, err := strconv.Atoi(s[1])
-				if err != nil {
-					panic(err)
-				}
-				if minor < 20 {
-					fmt.Printf(
-						"%s: use new version - plugin_version=v1.25.0 [generate %s]\n",
-						dir,
-						code)
+				if len(s) > 1 {
+					minor, err := strconv.Atoi(s[1])
+					if err == nil {
+						if minor < 20 {
+							fmt.Printf(
+								"%s: use new version - plugin_version=e471641 [generate %s]\n",
+								dir,
+								code)
+						}
+					}
 				}
 			}
 			if _, ok := g.GetParam("plugins"); ok {

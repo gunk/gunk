@@ -6,7 +6,7 @@ stderr '.*could not import github.com/gunk/opt/http.*'
 -- .gunkconfig --
 [generate]
 command=protoc-gen-go
-plugin_version=v1.25.0
+plugin_version=e471641
 -- echo.gunk --
 package util
 

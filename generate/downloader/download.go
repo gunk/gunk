@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/gunk/gunk/log"
 	"github.com/rogpeppe/go-internal/lockedfile"
@@ -20,9 +19,7 @@ func getPaths(name, version string) (*Paths, func(error), error) {
 		// require version. this is used only with version explicitly set.
 		return nil, nil, fmt.Errorf("must provide protoc-gen-go version")
 	}
-	if !strings.HasPrefix(version, "v") {
-		return nil, nil, fmt.Errorf("invalid version: %s", version)
-	}
+
 	// Get the OS-specific cache directory.
 	cachePath, err := os.UserCacheDir()
 	if err != nil {

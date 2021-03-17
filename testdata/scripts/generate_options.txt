@@ -20,7 +20,7 @@ grep '// Deprecated: Do not use.\n\t*Msg' deprecated/all.pb.go
 -- .gunkconfig --
 [generate]
 command=protoc-gen-go
-plugin_version=v1.25.0
+plugin_version=e471641
 
 [generate java]
 [generate python]

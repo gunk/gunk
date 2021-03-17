@@ -9,7 +9,7 @@ module testdata.tld/util
 
 -- .gunkconfig --
 [generate go]
-plugin_version=v1.25.0
+plugin_version=e471641
 
 [generate grpc-go]
 plugin_version=v1.1.0

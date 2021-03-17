@@ -109,6 +109,9 @@ func generatedFiles(dir string) (map[string]string, error) {
 		if !rxGeneratedFile.MatchString(info.Name()) {
 			return nil
 		}
+		if info.Name() == "tools.go" {
+			return nil
+		}
 		bs, err := ioutil.ReadFile(path)
 		if err != nil {
 			return err

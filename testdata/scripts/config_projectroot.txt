@@ -28,7 +28,7 @@ module root
 -- gitfolder/.git/config --
 -- gitfolder/.gunkconfig --
 [generate go]
-plugin_version=v1.25.0
+plugin_version=e471641
 json_tag_postproc=true
 
 [generate grpc-go]
@@ -48,7 +48,7 @@ type Util interface {
 -- gitfile/.git --
 -- gitfile/.gunkconfig --
 [generate go]
-plugin_version=v1.25.0
+plugin_version=e471641
 json_tag_postproc=true
 
 [generate grpc-go]
@@ -69,7 +69,7 @@ type Util interface {
 module testdata.tld/util
 -- gomod/.gunkconfig --
 [generate go]
-plugin_version=v1.25.0
+plugin_version=e471641
 json_tag_postproc=true
 
 [generate grpc-go]

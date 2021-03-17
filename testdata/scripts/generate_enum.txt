@@ -11,7 +11,7 @@ grep '// this comment does not contain' all.pb.go
 -- .gunkconfig --
 [generate]
 command=protoc-gen-go
-plugin_version=v1.25.0
+plugin_version=e471641
 -- echo.gunk --
 package util
 

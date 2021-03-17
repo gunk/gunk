@@ -14,7 +14,7 @@ gunk generate ./util -v -x
 -- .gunkconfig --
 [generate go]
 out=v1/go
-plugin_version=v1.25.0
+plugin_version=e471641
 
 [generate python]
 out=v1/python

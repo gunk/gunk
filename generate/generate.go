@@ -383,10 +383,15 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 			}
 		}
 		dir := gen.OutPath(gpkg.Dir)
+
 		outPath := filepath.Join(dir, basename)
 		if isNotPkg {
 			outPath = filepath.Join(dir, *rf.Name)
 		}
+
+		// remove fake path
+		outPath = strings.TrimPrefix(outPath, "fake-path.com/command-line-arguments/")
+
 		if err := ioutil.WriteFile(outPath, data, 0o644); err != nil {
 			return fmt.Errorf("unable to write to file %q: %w", outPath, err)
 		}
@@ -465,8 +470,16 @@ func (g *Generator) translatePkg(pkgPath string) error {
 	if err != nil {
 		return fmt.Errorf("unable to get file options: %v", err)
 	}
+
+	protoGoPkgPath := pkgPath
+	if pkgPath == "command-line-arguments" {
+		// go compiler complains about missing slash in package path
+		protoGoPkgPath = "fake-path.com/command-line-arguments"
+	}
+
 	// Set the GoPackage file option to be the gunk package name.
-	fo.GoPackage = proto.String(pkgPath + ";" + gpkg.Name)
+	fo.GoPackage = proto.String(protoGoPkgPath + ";" + gpkg.Name)
+
 	// note - do not set above to gpkg.PkgPath or basename of that;
 	// gunk files can have different names than path
 	// (package github.com/foo/bar can be "package foobar").

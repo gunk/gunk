@@ -35,7 +35,7 @@ module testdata.tld/util
 
 -- .gunkconfig --
 [generate go]
-plugin_version=e471641
+plugin_version=v1.26.0
 json_tag_postproc=true
 
 [generate grpc-go]

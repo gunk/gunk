@@ -5,7 +5,7 @@ version=v3.9.1
 plugin_version=v1.1.0
 
 [generate go]
-plugin_version=e471641
+plugin_version=v1.26.0
 json_tag_postproc=true
 
 [generate grpc-gateway]

@@ -9,7 +9,7 @@ module testdata.tld/util
 -- .gunkconfig --
 [generate]
 command=protoc-gen-go
-plugin_version=e471641
+plugin_version=v1.26.0
 -- echo.gunk --
 package util // proto "testdata.v1.util"
 

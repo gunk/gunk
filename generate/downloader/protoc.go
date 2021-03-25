@@ -192,6 +192,9 @@ func protocDownloadURL(os, arch, version string) (string, error) {
 		platform = "osx-x86_32"
 	case os == "darwin" && arch == "amd64":
 		platform = "osx-x86_64"
+	case os == "darwin" && arch == "arm64":
+		// for now, protoc has only amd64, let's use rosetta
+		platform = "osx-x86_64"
 	case os == "linux" && arch == "386":
 		platform = "linux-x86_32"
 	case os == "linux" && arch == "amd64":

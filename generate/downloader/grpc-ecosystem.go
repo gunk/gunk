@@ -54,7 +54,10 @@ func (ged GrpcEcosystem) Download(version string, p Paths) (string, error) {
 
 func (ged GrpcEcosystem) downloadURL(os, arch, version string) (string, error) {
 	if arch != "amd64" {
-		return "", fmt.Errorf("only 64bit supported")
+		if os != "darwin" {
+			// can use rosetta
+			return "", fmt.Errorf("only 64bit supported")
+		}
 	}
 	const repo = "grpc-ecosystem/grpc-gateway"
 	if os == "windows" {

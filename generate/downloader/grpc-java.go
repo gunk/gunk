@@ -61,6 +61,9 @@ func (GrpcJava) downloadURL(os, arch, version string) (string, error) {
 		return "", fmt.Errorf("macOS 386 not supported")
 	case os == "darwin" && arch == "amd64":
 		platform = "osx-x86_64"
+	case os == "darwin" && arch == "arm64":
+		// use rosetta
+		platform = "osx-x86_64"
 	case os == "linux" && arch == "386":
 		platform = "linux-x86_32"
 	case os == "linux" && arch == "amd64":

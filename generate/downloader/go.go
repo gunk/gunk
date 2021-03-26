@@ -29,6 +29,8 @@ func (pd Go) Download(version string, p Paths) (string, error) {
 		"GOBIN="+p.buildDir,
 		"GOPATH="+os.Getenv("GOPATH"),
 		"HOME="+os.Getenv("HOME"),
+		"PATH="+os.Getenv("PATH"),
+		"GOPROXY=https://proxy.golang.org,direct",
 	)
 	err := buildCmd.Run()
 	if err != nil {

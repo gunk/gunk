@@ -88,6 +88,7 @@ type Message struct {
 	Fields         []*Field
 	NestedMessages []*Message
 	Enums          []*Enum
+	FixedExample   string
 }
 
 // Response describes a response of a service.

@@ -231,14 +231,25 @@ func parseMessages(
 ) map[string]*Message {
 	// convert each proto message to our Message representation
 	for i, m := range messages {
+
+		fixedExample := ""
+		schemaI := proto.GetExtension(m.GetOptions(), options.E_Openapiv2Schema)
+		if schemaI != nil {
+			schema := schemaI.(*options.Schema)
+			if schema != nil {
+				fixedExample = schema.Example
+			}
+		}
+
 		p := fmt.Sprintf("%d.%d", messageFlag, i)
 		mapFields := extractMapFields(m, p, comments)
 		fields := parseFields(p, comments, m.GetField())
 		fields = append(fields, mapFields...)
 		merge[getQualifiedName(pkgName, m.GetName())] = &Message{
-			Name:    m.GetName(),
-			Comment: nonNilComment(comments[p]),
-			Fields:  fields,
+			Name:         m.GetName(),
+			Comment:      nonNilComment(comments[p]),
+			Fields:       fields,
+			FixedExample: fixedExample,
 		}
 	}
 	// once we've defined all Messages, populate the NestedMessages
@@ -413,8 +424,7 @@ func generateResponseExample(messages map[string]*Message, name string) (string,
 	if !ok {
 		return "", nil
 	}
-	p := genJSONExample(messages, name)
-	b, err := p.MarshalJSON()
+	b, err := genJSONExample(messages, name)
 	if err != nil {
 		return "", err
 	}
@@ -465,8 +475,7 @@ func parseRequest(rule *annotations.HttpRule, messages map[string]*Message, name
 		// message has the request body.
 		normalizeRequestFields(messages)
 		body = messages[name]
-		p := genJSONExample(messages, name)
-		b, err := p.MarshalJSON()
+		b, err := genJSONExample(messages, name)
 		if err != nil {
 			return nil, err
 		}
@@ -539,7 +548,20 @@ func getQualifiedName(pkgName, name string) string {
 	return fmt.Sprintf(".%s.%s", pkgName, name)
 }
 
-func genJSONExample(messages map[string]*Message, path string) properties {
+func genJSONExample(messages map[string]*Message, path string) ([]byte, error) {
+	m := messages[path]
+	if m.FixedExample != "" {
+		return []byte(m.FixedExample), nil
+	}
+	p := genJSONExampleIn(messages, path)
+	b, err := p.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return (b), nil
+}
+
+func genJSONExampleIn(messages map[string]*Message, path string) properties {
 	m := messages[path]
 	op := properties{}
 	for _, f := range m.Fields {
@@ -550,7 +572,7 @@ func genJSONExample(messages map[string]*Message, path string) properties {
 			continue
 		}
 		if f.JSONName != "-" {
-			var v interface{} = genJSONExample(messages, f.Type.QualifiedName)
+			var v interface{} = genJSONExampleIn(messages, f.Type.QualifiedName)
 			if f.Type.IsArray {
 				// Create an slice of type v and append v to it as an example.
 				b := reflect.New(reflect.SliceOf(reflect.TypeOf(v)))

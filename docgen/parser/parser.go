@@ -232,12 +232,18 @@ func parseMessages(
 	// convert each proto message to our Message representation
 	for i, m := range messages {
 
-		fixedExample := ""
-		schemaI := proto.GetExtension(m.GetOptions(), options.E_Openapiv2Schema)
-		if schemaI != nil {
-			schema := schemaI.(*options.Schema)
-			if schema != nil {
-				fixedExample = schema.Example
+		var fixedExample map[string]interface{}
+		if proto.HasExtension(m.GetOptions(), options.E_Openapiv2Schema) {
+			ext := proto.GetExtension(m.GetOptions(), options.E_Openapiv2Schema)
+			if ext != nil {
+				if schema, ok := ext.(*options.Schema); ok &&
+					schema.Example != "" {
+
+					fixedExample = map[string]interface{}{}
+					if err := json.Unmarshal([]byte(schema.Example), &fixedExample); err != nil {
+						panic(fmt.Sprintf("Invalid message example value, value should be a json object: %v", err))
+					}
+				}
 			}
 		}
 
@@ -319,11 +325,25 @@ func parseFields(path string, comments map[string]*Comment, fields []*descriptor
 		if strings.Contains(f.GetTypeName(), f.GetName()+"Entry") {
 			continue
 		}
+
+		var fixedExample json.RawMessage
+		if proto.HasExtension(f.GetOptions(), options.E_Openapiv2Field) {
+			ext := proto.GetExtension(f.GetOptions(), options.E_Openapiv2Field)
+			if ext != nil {
+				if jsonSchema, ok := ext.(*options.JSONSchema); ok &&
+					jsonSchema.Example != "" {
+
+					fixedExample = json.RawMessage(jsonSchema.Example)
+				}
+			}
+		}
+
 		field := &Field{
-			Name:     f.GetName(),
-			Comment:  nonNilComment(comments[fmt.Sprintf("%s.%d.%d", path, fieldFlag, i)]),
-			Type:     getType(f),
-			JSONName: f.GetJsonName(),
+			Name:         f.GetName(),
+			Comment:      nonNilComment(comments[fmt.Sprintf("%s.%d.%d", path, fieldFlag, i)]),
+			Type:         getType(f),
+			JSONName:     f.GetJsonName(),
+			FixedExample: fixedExample,
 		}
 		res = append(res, field)
 	}
@@ -549,10 +569,6 @@ func getQualifiedName(pkgName, name string) string {
 }
 
 func genJSONExample(messages map[string]*Message, path string) ([]byte, error) {
-	m := messages[path]
-	if m.FixedExample != "" {
-		return []byte(m.FixedExample), nil
-	}
 	p := genJSONExampleIn(messages, path)
 	b, err := p.MarshalJSON()
 	if err != nil {
@@ -562,16 +578,34 @@ func genJSONExample(messages map[string]*Message, path string) ([]byte, error) {
 }
 
 func genJSONExampleIn(messages map[string]*Message, path string) properties {
-	m := messages[path]
 	op := properties{}
+
+	m := messages[path]
+	if len(m.FixedExample) > 0 {
+		for k, v := range m.FixedExample {
+			op = append(op, keyVal{Key: k, Value: v})
+		}
+		return op
+	}
+
 	for _, f := range m.Fields {
 		if f.Type.QualifiedName == "" || f.Type.IsEnum {
 			if f.JSONName != "-" {
-				op = append(op, keyVal{Key: f.JSONName, Value: f.Type.Name})
+				var value interface{} = f.Type.Name
+				if len(f.FixedExample) > 0 {
+					value = f.FixedExample
+				}
+				op = append(op, keyVal{Key: f.JSONName, Value: value})
 			}
 			continue
 		}
+
 		if f.JSONName != "-" {
+			if len(f.FixedExample) > 0 {
+				op = append(op, keyVal{Key: f.JSONName, Value: f.FixedExample})
+				continue
+			}
+
 			var v interface{} = genJSONExampleIn(messages, f.Type.QualifiedName)
 			if f.Type.IsArray {
 				// Create an slice of type v and append v to it as an example.

@@ -72,8 +72,16 @@ type Account struct {
 	AccountID string `pb:"1" json:"account_id"`
 	// TODO: add comment.
 	Branch string `pb:"2" json:"branch"`
+
 	// TODO: add comment.
+	//
+	// +gunk openapiv2.Schema{
+	//         JSONSchema: openapiv2.JSONSchema{
+	//             Example: `"Main Branch"`,
+	//         },
+	// }
 	BranchName string `pb:"3" json:"branch_name"`
+
 	// Status is the status of the account.
 	Status string `pb:"4" json:"status"`
 	// TODO: add comment.
@@ -98,8 +106,16 @@ type Account struct {
 	MaturityDate string `pb:"19" json:"maturity_date"`
 	// TODO: add comment.
 	NextPaymentDueDate string `pb:"20" json:"next_payment_due_date"`
+
 	// OwnerName is the name of the account's owner.
+	//
+	// +gunk openapiv2.Schema{
+	//         JSONSchema: openapiv2.JSONSchema{
+	//             Example: `"John Doe"`,
+	//         },
+	// }
 	OwnerName string `pb:"21" json:"owner_name"`
+
 	// TODO: add comment.
 	StartDate string `pb:"22" json:"start_date"`
 }
@@ -140,12 +156,24 @@ type AccountRole struct {
 	// TODO: add comment.
 	EntityNumber string `pb:"1" json:"entity_number"`
 	// TODO: add comment.
+	//
+	// +gunk openapiv2.Schema{
+	//         JSONSchema: openapiv2.JSONSchema{
+	//             Example: `"Pers"`,
+	//         },
+	// }
 	EntityType EntityType `pb:"2" json:"entity_type"`
 	// TODO: add comment.
 	Role string `pb:"3" json:"role"`
 }
 
 // TODO: add comment.
+//
+// +gunk openapiv2.Schema{
+//         Example: `{
+//             "amount": "10000"
+//         }`,
+// }
 type DebitTransaction struct {
 	// TODO: add comment.
 	Amount string `pb:"1" json:"amount"`
@@ -158,12 +186,6 @@ type DebitTransaction struct {
 }
 
 // CreateAccountRequest wraps all required fields for an account creation.
-//
-// +gunk openapiv2.Schema{
-//         Example: `{
-//             "foo": "bar"
-//         }`,
-// }
 type CreateAccountRequest struct {
 	// AccountID is the identifier of the account.
 	AccountID string `pb:"1" json:"account_id"`
@@ -198,6 +220,12 @@ type CreateAccountResponse struct {
 }
 
 // UpdateAccountRequest wraps all fields available for update.
+//
+// +gunk openapiv2.Schema{
+//         Example: `{
+//             "foo": "bar"
+//         }`,
+// }
 type UpdateAccountRequest struct {
 	// AccountID is the unique identifier of the account to update.
 	AccountID string `pb:"1" json:"account_id"`
@@ -571,7 +599,23 @@ curl -X POST \
 	https://openbank.com/path/v1/accounts \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN' \
 	-d '{
-		"foo": "bar"
+		"account_id": "string",
+		"description": "string",
+		"account_roles": [
+			{
+				"entity_number": "string",
+				"entity_type": "Pers",
+				"role": "string"
+			}
+		],
+		"branch": "string",
+		"customer": "string",
+		"debit_transaction": {
+			"amount": "10000"
+		},
+		"interest_rate": "string",
+		"maturity_date": "string",
+		"minor": "string"
 	}'
 ```
 
@@ -737,7 +781,7 @@ Example:
 {
   "account_id": "string",
   "branch": "string",
-  "branch_name": "string",
+  "branch_name": "Main Branch",
   "status": "string",
   "accrued_interest_at_maturity_date": "string",
   "available_credit_limit": "string",
@@ -750,7 +794,7 @@ Example:
   "interest_rate": "string",
   "maturity_date": "string",
   "next_payment_due_date": "string",
-  "owner_name": "string",
+  "owner_name": "John Doe",
   "start_date": "string"
 }
 ```
@@ -821,7 +865,7 @@ Example:
     {
       "account_id": "string",
       "branch": "string",
-      "branch_name": "string",
+      "branch_name": "Main Branch",
       "status": "string",
       "accrued_interest_at_maturity_date": "string",
       "available_credit_limit": "string",
@@ -834,7 +878,7 @@ Example:
       "interest_rate": "string",
       "maturity_date": "string",
       "next_payment_due_date": "string",
-      "owner_name": "string",
+      "owner_name": "John Doe",
       "start_date": "string"
     }
   ],
@@ -861,8 +905,7 @@ curl -X PUT \
 	https://openbank.com/path/v1/accounts/{AccountID} \
 	-H 'Authorization: Bearer USE_YOUR_TOKEN' \
 	-d '{
-		"account_id": "string",
-		"description": "string"
+		"foo": "bar"
 	}'
 ```
 

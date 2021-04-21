@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -88,7 +89,7 @@ type Message struct {
 	Fields         []*Field
 	NestedMessages []*Message
 	Enums          []*Enum
-	FixedExample   string
+	FixedExample   map[string]interface{}
 }
 
 // Response describes a response of a service.
@@ -99,10 +100,11 @@ type Response struct {
 
 // Field describes a proto field.
 type Field struct {
-	Name     string
-	Comment  *Comment
-	Type     *Type
-	JSONName string
+	Name         string
+	Comment      *Comment
+	Type         *Type
+	JSONName     string
+	FixedExample json.RawMessage
 }
 
 // Type describes a field type.

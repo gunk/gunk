@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -582,8 +583,8 @@ func genJSONExampleIn(messages map[string]*Message, path string) properties {
 
 	m := messages[path]
 	if len(m.FixedExample) > 0 {
-		for k, v := range m.FixedExample {
-			op = append(op, keyVal{Key: k, Value: v})
+		for _, k := range sortKeys(m.FixedExample) {
+			op = append(op, keyVal{Key: k, Value: m.FixedExample[k]})
 		}
 		return op
 	}
@@ -650,4 +651,17 @@ func (p properties) MarshalJSON() ([]byte, error) {
 	}
 	buf.WriteString("}")
 	return buf.Bytes(), nil
+}
+
+func sortKeys(m map[string]interface{}) []string {
+	ks := make([]string, len(m))
+
+	i := 0
+	for k := range m {
+		ks[i] = k
+		i++
+	}
+
+	sort.Strings(ks)
+	return ks
 }

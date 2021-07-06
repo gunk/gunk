@@ -393,17 +393,34 @@ func (l *Loader) validatePackage(pkg *GunkPackage) {
 			// The other validation should happen in format and generate
 			// as they both treat the same error cases differently.
 			usedSequences := make(map[int]bool, len(st.Fields.List))
+			jsonNamesSeen := map[string]bool{}
 			for _, f := range st.Fields.List {
 				if f.Tag == nil {
 					continue
 				}
 				fieldName := f.Names[0].Name
 				str, _ := strconv.Unquote(f.Tag.Value)
+				if err := validateStructTag(str); err != nil {
+					pkg.addError(ValidateError, st.Pos(), l.Fset, "error in struct tag on %s: %v", fieldName, err)
+					continue
+				}
 				stag := reflect.StructTag(str)
 				val, ok := stag.Lookup("pb")
 				if !ok || val == "" {
 					continue
 				}
+
+				valJson, ok := stag.Lookup("json")
+				if ok && valJson != "" {
+					if jsonNamesSeen[valJson] {
+						err := fmt.Errorf("json tag %q seen twice", valJson)
+						pkg.addError(ValidateError, st.Pos(), l.Fset, "error in struct tag on %s: %v", fieldName, err)
+						continue
+					}
+
+					jsonNamesSeen[valJson] = true
+				}
+
 				sequence, err := strconv.Atoi(val)
 				if err != nil {
 					pkg.addError(ValidateError, st.Pos(), l.Fset, "unable to convert tag to number on %s: %v", fieldName, err)

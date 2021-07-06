@@ -1,0 +1,45 @@
+! gunk generate ./message_invalid
+stderr 'message_invalid/foo.gunk:3:14: error in struct tag on InValid: bad syntax for struct tag value'
+
+! gunk generate ./message_invalid_2
+stderr 'message_invalid_2/foo.gunk:3:14: unable to convert tag to number on InValid: strconv.Atoi: parsing "gogo": invalid syntax'
+
+! gunk generate ./message_invalid_4
+stderr 'message_invalid_4/foo.gunk:3:14: error in struct tag on Second: json tag "foo" seen twice'
+
+! gunk generate ./message_invalid_5
+stderr 'message_invalid_5/foo.gunk:3:14: sequence "1" on Second has already been used in this struct'
+
+-- go.mod --
+module testdata.tld/util
+-- .gunkconfig --
+[generate go]
+-- message_invalid/foo.gunk --
+package util
+
+type Message struct {
+    InValid bool `pb:"1" json:"foo`
+}
+
+-- message_invalid_2/foo.gunk --
+package util
+
+type Message struct {
+    InValid bool `pb:"gogo"`
+}
+
+-- message_invalid_4/foo.gunk --
+package util
+
+type Message struct {
+    First bool `pb:"1" json:"foo"`
+    Second bool `pb:"2" json:"foo"`
+}
+
+-- message_invalid_5/foo.gunk --
+package util
+
+type Message struct {
+    First bool `pb:"1" json:"foo"`
+    Second bool `pb:"1" json:"bar"`
+}

@@ -25,7 +25,7 @@ package package2
 import "testdata.tld/util/package1"
 
 type MyStruct struct {
-  SomeField package1.MyType `pb:"1" json:"number`
+  SomeField package1.MyType `pb:"1" json:"number"`
 }
 
 -- package2/struct2.gunk --
@@ -34,7 +34,7 @@ package package2
 import "testdata.tld/util/package1"
 
 type MyStructTwo struct {
-  SomeField package1.MyType `pb:"1" json:"number`
+  SomeField package1.MyType `pb:"1" json:"number"`
 }
 
 -- package2/all.pb.go.golden --

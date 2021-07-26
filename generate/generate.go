@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fatih/structtag"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
 	"github.com/gunk/gunk/config"
 	"github.com/gunk/gunk/generate/downloader"
@@ -811,6 +812,18 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*descriptorpb.Descripto
 		if err != nil {
 			return nil, fmt.Errorf("error getting field options: %v", err)
 		}
+
+		tags, err := structtag.Parse(string(tag))
+		if err != nil {
+			return nil, fmt.Errorf("could not parse tag: %q", string(tag))
+		}
+
+		for _, t := range tags.Tags() {
+			if !(t.Key == "pb" || t.Key == "json") {
+				return nil, fmt.Errorf("other tags than json and pb are not allowed, saw %q", t.Key)
+			}
+		}
+
 		msg.Field = append(msg.Field, &descriptorpb.FieldDescriptorProto{
 			Name:     proto.String(fieldName),
 			Number:   num,

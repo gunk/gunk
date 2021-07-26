@@ -1,0 +1,15 @@
+! gunk generate ./...
+stderr 'other tags than json and pb are not allowed, saw "db"'
+
+-- .gunkconfig --
+[generate]
+command=protoc-gen-go
+plugin_version=v1.26.0
+-- go.mod --
+module testdata.tld/util
+-- errors.gunk --
+package p1
+
+type Message struct {
+	Field string `pb:"1" json:"goo" db:"wrong"`
+}

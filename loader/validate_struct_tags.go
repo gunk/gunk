@@ -2,12 +2,14 @@ package loader
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 )
 
 // copied from go vet source code
 // https://github.com/golang/tools/blob/master/go/analysis/passes/structtag/structtag.go
+// with added check that only json and pb allowed
 
 var (
 	errTagSyntax      = errors.New("bad syntax for struct tag pair")
@@ -57,6 +59,12 @@ func validateStructTag(tag string) error {
 		if tag[i+1] != '"' {
 			return errTagValueSyntax
 		}
+
+		key := tag[:i]
+		if !(key == "pb" || key == "json") {
+			return fmt.Errorf("tag %q not allowed, only \"pb\" and \"json\"", key)
+		}
+
 		tag = tag[i+1:]
 
 		// Scan quoted string to find value.

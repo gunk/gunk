@@ -8,6 +8,8 @@ import (
 	"go/token"
 	"go/types"
 	"io/ioutil"
+	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -370,10 +372,33 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 		// on-disk file path.
 		pkgPath, basename := filepath.Split(*rf.Name)
 		pkgPath = filepath.Clean(pkgPath) // to remove trailing slashes
+
+		var dir string
+
 		gpkg, ok := g.gunkPkgs[pkgPath]
 		if !ok {
-			// for local relative path
-			gpkg = mainPkg
+			// for path where some prefix matches
+			// take longest matching
+			matching := ""
+			for path, pkg := range g.gunkPkgs {
+				if strings.HasPrefix(pkgPath, path) {
+					if len(path) > len(matching) {
+						ok = true
+						matching = path
+						gpkg = pkg
+						subdir := strings.TrimPrefix(pkgPath, path)
+						dir = gen.OutPath(gpkg.Dir) + subdir
+					}
+				}
+			}
+
+			if matching == "" {
+				// for local relative path
+				gpkg = mainPkg
+				dir = gen.OutPath(gpkg.Dir)
+			}
+		} else {
+			dir = gen.OutPath(gpkg.Dir)
 		}
 		isNotPkg := !ok
 		data := []byte(*rf.Content)
@@ -382,7 +407,6 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 				return fmt.Errorf("failed to execute post processing: %w", err)
 			}
 		}
-		dir := gen.OutPath(gpkg.Dir)
 
 		outPath := filepath.Join(dir, basename)
 		if isNotPkg {
@@ -391,6 +415,14 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 
 		// remove fake path
 		outPath = strings.TrimPrefix(outPath, "fake-path.com/command-line-arguments/")
+
+		// create path if not exists
+		outDir, _ := path.Split(outPath)
+		if outDir != "" {
+			if err := os.MkdirAll(outDir, os.ModePerm); err != nil {
+				return fmt.Errorf("unable to create directory %q: %w", outDir, err)
+			}
+		}
 
 		if err := ioutil.WriteFile(outPath, data, 0o644); err != nil {
 			return fmt.Errorf("unable to write to file %q: %w", outPath, err)

@@ -15,7 +15,7 @@
 ```sh
 curl -X {{$m.Request.Verb}} \
 	{{$.SwaggerScheme}}{{$.Swagger.Host}}{{$.Swagger.BasePath}}{{$m.Request.URI}} \
-	-H 'Authorization: Bearer {{GetText "USE_YOUR_TOKEN"}}'{{if $m.Request.Example}} \
+	-H 'x-api-key: {{GetText "USE_YOUR_API_KEY"}}'{{if $m.Request.Example}} \
 	-d '{{$m.Request.Example}}'{{end}}
 ```
 

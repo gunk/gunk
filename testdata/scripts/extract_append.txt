@@ -150,7 +150,7 @@ msgstr ""
 msgid "Second API"
 msgstr ""
 
-msgid "USE_YOUR_TOKEN"
+msgid "USE_YOUR_API_KEY"
 msgstr ""
 -- all.md.golden --
 # First API v1.0.0
@@ -164,7 +164,7 @@ msgstr ""
 ```sh
 curl -X GET \
 	https://openbank.com/path/v1/foo \
-	-H 'Authorization: Bearer USE_YOUR_TOKEN'
+	-H 'x-api-key: USE_YOUR_API_KEY'
 ```
 
 ### HTTP Request
@@ -204,7 +204,7 @@ Example:
 ```sh
 curl -X GET \
 	https://openbank.com/path/v1/baz \
-	-H 'Authorization: Bearer USE_YOUR_TOKEN'
+	-H 'x-api-key: USE_YOUR_API_KEY'
 ```
 
 ### HTTP Request

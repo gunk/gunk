@@ -146,7 +146,7 @@ Creates a new transaction record
 ```sh
 curl -X POST \
 	https://openbank.com/path/v1/transactions \
-	-H 'Authorization: Bearer USE_YOUR_TOKEN' \
+	-H 'x-api-key: USE_YOUR_API_KEY' \
 	-d '{
 		"id": "string",
 		"amount": {
@@ -232,7 +232,7 @@ Retrieves all data from a transaction, selected by the `transaction_id` you supp
 ```sh
 curl -X GET \
 	https://openbank.com/path/v1/transactions/{TransactionID} \
-	-H 'Authorization: Bearer USE_YOUR_TOKEN'
+	-H 'x-api-key: USE_YOUR_API_KEY'
 ```
 
 ### HTTP Request
@@ -417,5 +417,5 @@ msgstr ""
 msgid "Transactions API"
 msgstr ""
 
-msgid "USE_YOUR_TOKEN"
+msgid "USE_YOUR_API_KEY"
 msgstr ""

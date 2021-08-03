@@ -573,7 +573,7 @@ msgstr ""
 msgid "TODO: add comment."
 msgstr ""
 
-msgid "USE_YOUR_TOKEN"
+msgid "USE_YOUR_API_KEY"
 msgstr ""
 
 msgid "Update an account"
@@ -597,7 +597,7 @@ Creates a new account
 ```sh
 curl -X POST \
 	https://openbank.com/path/v1/accounts \
-	-H 'Authorization: Bearer USE_YOUR_TOKEN' \
+	-H 'x-api-key: USE_YOUR_API_KEY' \
 	-d '{
 		"account_id": "string",
 		"description": "string",
@@ -706,7 +706,7 @@ Permanently delete an account.
 ```sh
 curl -X DELETE \
 	https://openbank.com/path/v1/accounts/{AccountID} \
-	-H 'Authorization: Bearer USE_YOUR_TOKEN'
+	-H 'x-api-key: USE_YOUR_API_KEY'
 ```
 
 ### HTTP Request
@@ -738,7 +738,7 @@ Retrieves all data from an account, selected by the account_id you supplied.
 ```sh
 curl -X GET \
 	https://openbank.com/path/v1/accounts/{AccountID} \
-	-H 'Authorization: Bearer USE_YOUR_TOKEN'
+	-H 'x-api-key: USE_YOUR_API_KEY'
 ```
 
 ### HTTP Request
@@ -817,7 +817,7 @@ Returns a list containing up to 20 accounts. You can paginate through account by
 ```sh
 curl -X GET \
 	https://openbank.com/path/v1/accounts \
-	-H 'Authorization: Bearer USE_YOUR_TOKEN'
+	-H 'x-api-key: USE_YOUR_API_KEY'
 ```
 
 ### HTTP Request
@@ -903,7 +903,7 @@ Updates an account with all the fields supplied.
 ```sh
 curl -X PUT \
 	https://openbank.com/path/v1/accounts/{AccountID} \
-	-H 'Authorization: Bearer USE_YOUR_TOKEN' \
+	-H 'x-api-key: USE_YOUR_API_KEY' \
 	-d '{
 		"foo": "bar"
 	}'

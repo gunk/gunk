@@ -79,7 +79,7 @@ type Amount struct {
 ```sh
 curl -X GET \
 	https://openbank.com/path/v1/account \
-	-H 'Authorization: Bearer USE_YOUR_TOKEN'
+	-H 'x-api-key: USE_YOUR_API_KEY'
 ```
 
 ### HTTP Request
@@ -174,5 +174,5 @@ msgstr ""
 msgid "Retrieve an account"
 msgstr ""
 
-msgid "USE_YOUR_TOKEN"
+msgid "USE_YOUR_API_KEY"
 msgstr ""

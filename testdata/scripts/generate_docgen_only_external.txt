@@ -141,7 +141,7 @@ type SampleService interface {
 ```sh
 curl -X GET \
 	https://openbank.com/path/v1/external-sample \
-	-H 'Authorization: Bearer USE_YOUR_TOKEN'
+	-H 'x-api-key: USE_YOUR_API_KEY'
 ```
 
 ### HTTP Request
@@ -181,7 +181,7 @@ something
 ```sh
 curl -X POST \
 	https://openbank.com/path/v1/external-sample-2 \
-	-H 'Authorization: Bearer USE_YOUR_TOKEN' \
+	-H 'x-api-key: USE_YOUR_API_KEY' \
 	-d '{
 		"fooName": "string",
 		"fooStructInstance": {
@@ -320,7 +320,7 @@ msgstr ""
 msgid "Sample API"
 msgstr ""
 
-msgid "USE_YOUR_TOKEN"
+msgid "USE_YOUR_API_KEY"
 msgstr ""
 
 msgid "something"

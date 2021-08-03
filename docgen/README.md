@@ -48,8 +48,3 @@ DeleteAccount(DeleteAccountRequest)
 ```
 
 You should have `update_account.go` and `delete_account.go`.
-
-## Contributing
-
-After any changes on `templates/api.md`, make sure to perform `go generate` in
-`assets` folder to embed your changes.

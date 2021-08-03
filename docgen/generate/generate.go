@@ -6,9 +6,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/gunk/gunk/assets"
 	"github.com/gunk/gunk/docgen/parser"
 	"github.com/gunk/gunk/docgen/pot"
+	"github.com/gunk/gunk/docgen/templates"
 )
 
 var ErrNoServices = fmt.Errorf("file has no services")
@@ -39,10 +39,7 @@ func Run(w io.Writer, f *parser.FileDescWrapper, lang []string,
 		}
 		return nil, fmt.Errorf("swagger error in file %s: %w", name, err)
 	}
-	buf, err := assets.ReadFile("api.md")
-	if err != nil {
-		return nil, err
-	}
+
 	tpl := template.Must(template.New("doc").
 		Funcs(template.FuncMap{
 			"CustomHeaderId": func(txt ...string) string {
@@ -63,7 +60,7 @@ func Run(w io.Writer, f *parser.FileDescWrapper, lang []string,
 			"mdType": func(txt string) string {
 				return strings.ReplaceAll(txt, "[", "\\[")
 			},
-		}).Parse(string(buf)))
+		}).Parse(templates.API))
 	if err := tpl.Execute(w, api); err != nil {
 		return nil, err
 	}

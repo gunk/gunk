@@ -1,3 +1,5 @@
+// Plugin provides a helper methods to build custom protoc code generators.
+// It is used for gunk-related repos, but can be used outside of gunk.
 package plugin
 
 import (
@@ -6,7 +8,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/gunk/gunk/protoutil"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/pluginpb"
 )
@@ -49,7 +50,7 @@ func readRequest(r io.Reader) (*pluginpb.CodeGeneratorRequest, error) {
 }
 
 func writeResponse(w io.Writer, resp *pluginpb.CodeGeneratorResponse) error {
-	data, err := protoutil.MarshalDeterministic(resp)
+	data, err := proto.Marshal(resp)
 	if err != nil {
 		return err
 	}

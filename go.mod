@@ -10,6 +10,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/proto v1.9.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.5.0
+	github.com/gunk/gunk/plugin v0.0.0
 	github.com/gunk/opt v0.1.0
 	github.com/karelbilek/dirchanges v0.0.0-20210218071031-880a92f1a313
 	github.com/kenshaw/ini v0.5.1
@@ -28,3 +29,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 	mvdan.cc/gofumpt v0.1.1
 )
+
+replace github.com/gunk/gunk/plugin => ./plugin

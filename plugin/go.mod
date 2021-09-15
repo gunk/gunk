@@ -1,4 +1,4 @@
-module github.com/gunk/plugin
+module github.com/gunk/gunk/plugin
 
 go 1.16
 

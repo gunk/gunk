@@ -30,7 +30,6 @@ func TestMain(m *testing.M) {
 		os.Setenv("GOBIN", binDir)
 		os.Setenv("PATH", binDir+string(filepath.ListSeparator)+os.Getenv("PATH"))
 		cmd := exec.Command("go", "install", "-ldflags=-w -s",
-			"./docgen/",
 			"./scopegen/",
 			"./testdata/protoc-gen-strict",
 		)

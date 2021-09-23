@@ -1,0 +1,13 @@
+! gunk generate ./message_invalid
+stderr 'message_invalid/foo.gunk:3:14: error in struct tag on InValid: JSON tags cannot use comma'
+
+-- go.mod --
+module testdata.tld/util
+-- .gunkconfig --
+[generate go]
+-- message_invalid/foo.gunk --
+package util
+
+type Message struct {
+    InValid bool `pb:"1" json:"foo,omitempty"`
+}

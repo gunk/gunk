@@ -15,7 +15,7 @@ var (
 	errTagSyntax      = errors.New("bad syntax for struct tag pair")
 	errTagKeySyntax   = errors.New("bad syntax for struct tag key")
 	errTagValueSyntax = errors.New("bad syntax for struct tag value")
-	errTagValueSpace  = errors.New("suspicious space in struct tag value")
+	errTagValueComma  = errors.New("JSON tags cannot use comma")
 	errTagSpace       = errors.New("key:\"value\" pairs not separated by spaces")
 )
 
@@ -86,8 +86,10 @@ func validateStructTag(tag string) error {
 			return errTagValueSyntax
 		}
 
-		if strings.IndexByte(value, ' ') >= 0 {
-			return errTagValueSpace
+		if key == "json" {
+			if strings.IndexByte(value, ',') >= 0 {
+				return errTagValueComma
+			}
 		}
 	}
 	return nil

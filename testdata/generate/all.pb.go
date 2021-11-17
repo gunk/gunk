@@ -9,16 +9,14 @@
 package util
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-
+	reflect "reflect"
+	sync "sync"
 	imported "testdata.tld/util/imported"
 )
 
@@ -345,22 +343,19 @@ func file_testdata_tld_util_all_proto_rawDescGZIP() []byte {
 	return file_testdata_tld_util_all_proto_rawDescData
 }
 
-var (
-	file_testdata_tld_util_all_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-	file_testdata_tld_util_all_proto_msgTypes  = make([]protoimpl.MessageInfo, 4)
-	file_testdata_tld_util_all_proto_goTypes   = []interface{}{
-		(Status)(0),                   // 0: testdata.v1.util.Status
-		(*CheckStatusResponse)(nil),   // 1: testdata.v1.util.CheckStatusResponse
-		(*UtilTestRequest)(nil),       // 2: testdata.v1.util.UtilTestRequest
-		nil,                           // 3: testdata.v1.util.UtilTestRequest.MapSimpleEntry
-		nil,                           // 4: testdata.v1.util.UtilTestRequest.MapComplexEntry
-		(*imported.Message)(nil),      // 5: testdata.v1.util.imported.Message
-		(*timestamppb.Timestamp)(nil), // 6: google.protobuf.Timestamp
-		(*durationpb.Duration)(nil),   // 7: google.protobuf.Duration
-		(*emptypb.Empty)(nil),         // 8: google.protobuf.Empty
-	}
-)
-
+var file_testdata_tld_util_all_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_testdata_tld_util_all_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_testdata_tld_util_all_proto_goTypes = []interface{}{
+	(Status)(0),                   // 0: testdata.v1.util.Status
+	(*CheckStatusResponse)(nil),   // 1: testdata.v1.util.CheckStatusResponse
+	(*UtilTestRequest)(nil),       // 2: testdata.v1.util.UtilTestRequest
+	nil,                           // 3: testdata.v1.util.UtilTestRequest.MapSimpleEntry
+	nil,                           // 4: testdata.v1.util.UtilTestRequest.MapComplexEntry
+	(*imported.Message)(nil),      // 5: testdata.v1.util.imported.Message
+	(*timestamppb.Timestamp)(nil), // 6: google.protobuf.Timestamp
+	(*durationpb.Duration)(nil),   // 7: google.protobuf.Duration
+	(*emptypb.Empty)(nil),         // 8: google.protobuf.Empty
+}
 var file_testdata_tld_util_all_proto_depIdxs = []int32{
 	0,  // 0: testdata.v1.util.CheckStatusResponse.Status:type_name -> testdata.v1.util.Status
 	5,  // 1: testdata.v1.util.UtilTestRequest.Structs:type_name -> testdata.v1.util.imported.Message

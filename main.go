@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/alecthomas/kingpin"
 	"github.com/gunk/gunk/convert"
 	"github.com/gunk/gunk/dump"
 	"github.com/gunk/gunk/format"
@@ -11,7 +12,6 @@ import (
 	"github.com/gunk/gunk/generate/downloader"
 	"github.com/gunk/gunk/log"
 	"github.com/gunk/gunk/vetconfig"
-	kingpin "gopkg.in/alecthomas/kingpin.v2"
 )
 
 var (

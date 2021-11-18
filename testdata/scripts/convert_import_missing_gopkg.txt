@@ -1,5 +1,5 @@
 ! gunk convert util.proto
-stderr 'error: imported file must contain go_package option imported/imported.proto'
+stderr 'Error: imported file must contain go_package option imported/imported.proto'
 
 -- .gunkconfig --
 

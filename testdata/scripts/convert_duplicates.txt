@@ -2,7 +2,7 @@ gunk convert util.proto
 cmp util.gunk util.gunk.golden
 
 ! gunk convert util2.proto
-stderr 'error: util2.proto:13:1: Event_Source redeclared in this block'
+stderr 'Error: util2.proto:13:1: Event_Source redeclared in this block'
 
 gunk convert util3.proto
 cmp util3.gunk util3.gunk.golden

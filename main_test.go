@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 		}
 	}
 	os.Exit(testscript.RunMain(m, map[string]func() int{
-		"gunk": main1,
+		"gunk": run,
 	}))
 }
 

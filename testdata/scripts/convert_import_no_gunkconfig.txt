@@ -1,5 +1,5 @@
 ! gunk convert util.proto
-stderr 'error: util.proto:9:2: imported.Type is undefined'
+stderr 'Error: util.proto:9:2: imported.Type is undefined'
 
 -- util.proto --
 syntax = "proto3";

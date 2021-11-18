@@ -1,5 +1,5 @@
 ! gunk convert util.proto
-stderr 'error: util.proto:5:1: "hello" is an unhandled proto file option'
+stderr 'Error: util.proto:5:1: "hello" is an unhandled proto file option'
 
 -- util.proto --
 syntax = "proto3";

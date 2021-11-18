@@ -1,43 +1,43 @@
 gunk
-stderr '^usage: gunk \['
-! stderr 'command not specified'
-! stdout .
+stdout 'Usage:\n  gunk \[command\]'
+! stdout 'command not specified'
+! stderr .
 
 gunk version
 stdout '^gunk v0.*'
 ! stderr .
 
 gunk -h
-stderr -count=1 '^usage: gunk \['
-! stdout .
+stdout 'Usage:\n  gunk \[command\]'
+! stderr .
 
 gunk --help
-stderr '^usage: gunk \['
-! stdout .
+stdout 'Usage:\n  gunk \[command\]'
+! stderr .
 
 gunk help
-stderr '^usage: gunk \['
-! stdout .
+stdout 'Usage:\n  gunk \[command\]'
+! stderr .
 
 gunk help generate
-stderr '^usage: gunk generate'
-! stdout .
+stdout 'Usage:\n  gunk generate \[patterns\] \[flags\]'
+! stderr .
 
-! gunk help missing
-stderr 'expected command'
+gunk help missing
+stderr 'Unknown help topic \[`missing`\]'
 
 ! gunk missing
-stderr 'expected command'
+stderr 'unknown command "missing"'
 
 gunk generate -h
-stderr '^usage: gunk generate'
-! stdout .
+stdout 'Usage:\n  gunk generate \[patterns\] \[flags\]'
+! stderr .
 
 gunk generate --help
-stderr '^usage: gunk generate'
-! stdout .
+stdout 'Usage:\n  gunk generate \[patterns\] \[flags\]'
+! stderr .
 
 ! gunk generate --missing
-stderr 'unknown long flag'
+stderr 'unknown flag: --missing'
 ! stdout .
 

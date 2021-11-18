@@ -9,43 +9,48 @@ import (
 	"os"
 
 	"github.com/gunk/gunk/protoutil"
-
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/pluginpb"
 )
 
 func main() {
-	input, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		panic(err)
-	}
-	var req pluginpb.CodeGeneratorRequest
-	if err := proto.Unmarshal(input, &req); err != nil {
-		panic(err)
-	}
-	if err := check(&req); err != nil {
-		panic(err)
-	}
-	var resp pluginpb.CodeGeneratorResponse
-	output, err := protoutil.MarshalDeterministic(&resp)
-	if err != nil {
-		panic(err)
-	}
-	if _, err := os.Stdout.Write(output); err != nil {
-		panic(err)
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
 	}
 }
 
+func run() error {
+	in, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		return err
+	}
+	var req pluginpb.CodeGeneratorRequest
+	if err := proto.Unmarshal(in, &req); err != nil {
+		return err
+	}
+	if err := check(&req); err != nil {
+		return err
+	}
+	var res pluginpb.CodeGeneratorResponse
+	out, err := protoutil.MarshalDeterministic(&res)
+	if err != nil {
+		return err
+	}
+	_, err = os.Stdout.Write(out)
+	return err
+}
+
 func check(req *pluginpb.CodeGeneratorRequest) error {
-	seenFiles := make(map[string]*descriptorpb.FileDescriptorProto)
-	for _, pfile := range req.ProtoFile {
-		for _, dep := range pfile.Dependency {
-			if seenFiles[dep] == nil {
-				return fmt.Errorf("%s has unknown dep %s", *pfile.Name, dep)
+	seen := make(map[string]*descriptorpb.FileDescriptorProto)
+	for _, f := range req.ProtoFile {
+		for _, dep := range f.Dependency {
+			if seen[dep] == nil {
+				return fmt.Errorf("%s has unknown dep %s", *f.Name, dep)
 			}
 		}
-		seenFiles[*pfile.Name] = pfile
+		seen[*f.Name] = f
 	}
 	return nil
 }

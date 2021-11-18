@@ -35,12 +35,16 @@ func TestMain(m *testing.M) {
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
 			fmt.Printf("%+v\n", os.Environ())
-
 			panic(err)
 		}
 	}
 	os.Exit(testscript.RunMain(m, map[string]func() int{
-		"gunk": run,
+		"gunk": func() int {
+			if err := run(); err != nil {
+				return 1
+			}
+			return 0
+		},
 	}))
 }
 
@@ -50,11 +54,11 @@ func TestGenerate(t *testing.T) {
 		".", "./imported",
 	}
 	dir := filepath.Join("testdata", "generate")
-	wantFiles, err := generatedFiles(dir)
+	generated, err := generatedFiles(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for path := range wantFiles {
+	for path := range generated {
 		// make sure we're writing the files
 		os.Remove(path)
 	}
@@ -65,18 +69,18 @@ func TestGenerate(t *testing.T) {
 		// don't check that the output files match
 		return
 	}
-	gotFiles, err := generatedFiles(dir)
+	files, err := generatedFiles(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for path, got := range gotFiles {
-		want := wantFiles[path]
-		if got != want {
+	for path, n := range files {
+		want := generated[path]
+		if n != want {
 			t.Errorf("%s was modified", path)
 		}
-		delete(wantFiles, path)
+		delete(generated, path)
 	}
-	for path := range wantFiles {
+	for path := range generated {
 		t.Errorf("%s was not generated", path)
 	}
 	if testing.Short() {
@@ -93,7 +97,7 @@ func TestGenerate(t *testing.T) {
 	}
 }
 
-var rxGeneratedFile = regexp.MustCompile(`\.go|\.json|\.java|\.js$`)
+var generatedFileRE = regexp.MustCompile(`\.go|\.json|\.java|\.js$`)
 
 func generatedFiles(dir string) (map[string]string, error) {
 	files := make(map[string]string)
@@ -104,7 +108,7 @@ func generatedFiles(dir string) (map[string]string, error) {
 		if info.IsDir() {
 			return nil
 		}
-		if !rxGeneratedFile.MatchString(info.Name()) {
+		if !generatedFileRE.MatchString(info.Name()) {
 			return nil
 		}
 		if info.Name() == "tools.go" {
@@ -126,9 +130,7 @@ func TestScripts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	goCache := filepath.Join(os.TempDir(), "gunk-test-go-cache")
-
 	p := testscript.Params{
 		Dir: filepath.Join("testdata", "scripts"),
 		Setup: func(e *testscript.Env) error {
@@ -140,12 +142,13 @@ func TestScripts(t *testing.T) {
 			if _, err := cmd.Output(); err != nil {
 				return fmt.Errorf("failed to copy go.sum: %w", err)
 			}
-
-			e.Vars = append(e.Vars, "GONOSUMDB=*")
-			e.Vars = append(e.Vars, "GUNK_CACHE_DIR="+cacheDir)
-			e.Vars = append(e.Vars, "TESTSCRIPT_ON=on")
-
-			e.Vars = append(e.Vars, "HOME="+goCache)
+			e.Vars = append(
+				e.Vars,
+				"GONOSUMDB=*",
+				"GUNK_CACHE_DIR="+cacheDir,
+				"TESTSCRIPT_ON=on",
+				"HOME="+goCache,
+			)
 			return nil
 		},
 	}

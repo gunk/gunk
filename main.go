@@ -17,104 +17,108 @@ import (
 var version = "v0.8.7"
 
 func main() {
-	os.Exit(run())
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+		os.Exit(1)
+	}
 }
 
-func run() int {
+func run() error {
 	app := cobra.Command{
 		Use:     "gunk",
 		Short:   "The modern frontend and syntax for Protocol Buffers.",
 		Version: version,
 	}
-	// version commmand
-	ver := &cobra.Command{
+	// versionCmd commmand
+	versionCmd := &cobra.Command{
 		Use:   "version",
 		Short: "Print the version number of gundk",
 		Run: func(cmd *cobra.Command, args []string) {
 			fmt.Fprintln(os.Stdout, "gunk", version)
 		},
 	}
-	app.AddCommand(ver)
+	app.AddCommand(versionCmd)
 	// generate command
-	gen := &cobra.Command{
+	generateCmd := &cobra.Command{
 		Use:   "generate [patterns]",
 		Short: "Generate code from Gunk packages",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return generate.Run("", args...)
 		},
 	}
-	gen.Flags().BoolVarP(&log.PrintCommands, "print-commands", "x", false, "Print the commands")
-	gen.Flags().BoolVarP(&log.Verbose, "verbose", "v", false, "Print the names of packages are they are generated")
-	app.AddCommand(gen)
+	generateCmd.Flags().BoolVarP(&log.PrintCommands, "print-commands", "x", false, "Print the commands")
+	generateCmd.Flags().BoolVarP(&log.Verbose, "verbose", "v", false, "Print the names of packages are they are generated")
+	app.AddCommand(generateCmd)
 	// convert command
 	var overwrite bool
-	conv := &cobra.Command{
+	convertCmd := &cobra.Command{
 		Use:   "convert [-overwrite] [file | directory]...",
 		Short: "Convert Proto file to Gunk file.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return convert.Run(args, overwrite)
 		},
 	}
-	conv.Flags().BoolVarP(&overwrite, "overwrite", "w", false, "Overwrite the converted Gunk file if it exists.")
+	convertCmd.Flags().BoolVarP(&overwrite, "overwrite", "w", false, "Overwrite the converted Gunk file if it exists.")
+	app.AddCommand(convertCmd)
 	// format command
-	app.AddCommand(conv)
-	frmt := &cobra.Command{
+	formatCmd := &cobra.Command{
 		Use:   "format [patterns]",
 		Short: "Format Gunk code",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return format.Run("", args...)
 		},
 	}
-	app.AddCommand(frmt)
+	app.AddCommand(formatCmd)
 	// dump command
-	var dmpFormat string
-	dmp := &cobra.Command{
+	var dumpFormat string
+	dump := &cobra.Command{
 		Use:   "dump [patterns]",
 		Short: "Write a FileDescriptorSet, defined in descriptor.proto",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return dump.Run(dmpFormat, "", args...)
+			return dump.Run(dumpFormat, "", args...)
 		},
 	}
-	dmp.Flags().StringVarP(&dmpFormat, "format", "f", "proto", "output format: [proto | json]")
-	app.AddCommand(dmp)
+	dump.Flags().StringVarP(&dumpFormat, "format", "f", "proto", "output format: [proto | json]")
+	app.AddCommand(dump)
 	// download list
 	// TODO(hhhapz): add protoc-java, and protoc-ts, etc.
-	downloadSubcommands := []func() error{
-		func() error { return downloadProtoc("", "") },
+	downloadSubcommands := []func(string, string) error{
+		downloadProtoc,
 	}
 	// download command
-	download := cobra.Command{
+	downloadCmd := cobra.Command{
 		Use:   "download [protoc | protoc]",
 		Short: "Download the necessary tools for Gunk",
 	}
-	download.Flags().BoolVarP(&log.Verbose, "verbose", "v", false, "Print details of downloaded tools")
-	dlAll := cobra.Command{
+	downloadCmd.Flags().BoolVarP(&log.Verbose, "verbose", "v", false, "Print details of downloaded tools")
+	downloadAllCmd := cobra.Command{
 		Use:   "all",
 		Short: "Download all required tools for Gunk, e.g., protoc",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			for _, f := range downloadSubcommands {
-				if err := f(); err != nil {
+				if err := f("", ""); err != nil {
 					return err
 				}
 			}
 			return nil
 		},
 	}
+	// download proto command
 	var dlProtocPath, dlProtocVer string
-	dlProtoc := cobra.Command{
+	downloadProtocCmd := cobra.Command{
 		Use:   "protoc",
 		Short: "Download protoc",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return downloadProtoc(dlProtocPath, dlProtocVer)
 		},
 	}
-	dlProtoc.Flags().StringVar(&dlProtocPath, "path", "", "Path to check for protoc binary, or where to download it to")
-	dlProtoc.Flags().BoolVarP(&log.Verbose, "verbose", "v", false, "Print details of download tools")
-	dlProtoc.Flags().StringVar(&dlProtocVer, "version", "", "Version of protoc to use")
-	download.AddCommand(&dlAll, &dlProtoc)
-	app.AddCommand(&download)
+	downloadProtocCmd.Flags().StringVar(&dlProtocPath, "path", "", "Path to check for protoc binary, or where to download it to")
+	downloadProtocCmd.Flags().BoolVarP(&log.Verbose, "verbose", "v", false, "Print details of download tools")
+	downloadProtocCmd.Flags().StringVar(&dlProtocVer, "version", "", "Version of protoc to use")
+	downloadCmd.AddCommand(&downloadAllCmd, &downloadProtocCmd)
+	app.AddCommand(&downloadCmd)
 	// vet command
-	vet := cobra.Command{
+	vetCmd := cobra.Command{
 		Use:   "vet [path]",
 		Short: "Vet gunk config files",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -125,12 +129,8 @@ func run() int {
 			return vetconfig.Run(path)
 		},
 	}
-	app.AddCommand(&vet)
-	// run app
-	if err := app.Execute(); err != nil {
-		return 1
-	}
-	return 0
+	app.AddCommand(&vetCmd)
+	return app.Execute()
 }
 
 func downloadProtoc(path, version string) error {

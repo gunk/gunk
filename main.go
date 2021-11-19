@@ -18,17 +18,20 @@ var version = "v0.8.7"
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
 func run() error {
 	app := cobra.Command{
-		Use:     "gunk",
-		Short:   "The modern frontend and syntax for Protocol Buffers.",
-		Version: version,
+		Use:          "gunk",
+		Short:        "The modern frontend and syntax for Protocol Buffers.",
+		Version:      version,
+		SilenceUsage: true,
 	}
+	app.SetFlagErrorFunc(func(c *cobra.Command, e error) error {
+		return fmt.Errorf("%v\nRun '%s --help' for usage.", e, c.CommandPath())
+	})
 	// versionCmd commmand
 	versionCmd := &cobra.Command{
 		Use:   "version",

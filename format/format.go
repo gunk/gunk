@@ -8,7 +8,9 @@ import (
 	"go/parser"
 	"go/printer"
 	"go/token"
+	"io"
 	"io/ioutil"
+	"os"
 	"reflect"
 	"strconv"
 
@@ -17,6 +19,21 @@ import (
 
 // Run formats Gunk files to be canonically formatted.
 func Run(dir string, args ...string) error {
+	if len(args) == 1 && args[0] == "-" {
+		buf, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return fmt.Errorf("error on loading: %w", err)
+		}
+		src, err := Source(buf)
+		if err != nil {
+			return fmt.Errorf("error on formatting: %w", err)
+		}
+		_, err = os.Stdout.Write(src)
+		if err != nil {
+			return fmt.Errorf("error on writing: %w", err)
+		}
+		return nil
+	}
 	fset := token.NewFileSet()
 	l := loader.Loader{Dir: dir, Fset: fset}
 	pkgs, err := l.Load(args...)

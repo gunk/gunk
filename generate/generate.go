@@ -574,6 +574,8 @@ func fileOptions(pkg *loader.GunkPackage) (*descriptorpb.FileOptions, error) {
 	for _, f := range pkg.GunkSyntax {
 		for _, tag := range pkg.GunkTags[f] {
 			switch s := tag.Type.String(); s {
+			case "github.com/gunk/opt/proto.Package":
+				pkg.ProtoName = constant.StringVal(tag.Value)
 			case "github.com/gunk/opt/file.OptimizeFor":
 				oValue := descriptorpb.FileOptions_OptimizeMode(protoEnumValue(tag.Value))
 				fo.OptimizeFor = &oValue

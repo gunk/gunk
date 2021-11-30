@@ -162,6 +162,15 @@ type Generator struct {
 
 func (g *Generator) recordPkgs(pkgs ...*loader.GunkPackage) {
 	for _, pkg := range pkgs {
+		// capture proto.Package annotation
+		for _, f := range pkg.GunkSyntax {
+			for _, tag := range pkg.GunkTags[f] {
+				switch s := tag.Type.String(); s {
+				case "github.com/gunk/opt/proto.Package":
+					pkg.ProtoName = constant.StringVal(tag.Value)
+				}
+			}
+		}
 		g.gunkPkgs[pkg.PkgPath] = pkg
 		for _, ipkg := range pkg.Imports {
 			g.recordPkgs(ipkg)
@@ -495,13 +504,13 @@ func (g *Generator) translatePkg(pkgPath string) error {
 		// Already translated, e.g. as a dependency.
 		return nil
 	}
-	g.curPkg = gpkg
-	g.usedImports = make(map[string]bool)
 	// Get file options for package
 	fo, err := fileOptions(gpkg)
 	if err != nil {
 		return fmt.Errorf("unable to get file options: %v", err)
 	}
+	g.curPkg = gpkg
+	g.usedImports = make(map[string]bool)
 
 	protoGoPkgPath := pkgPath
 	if pkgPath == "command-line-arguments" {
@@ -597,8 +606,7 @@ func fileOptions(pkg *loader.GunkPackage) (*descriptorpb.FileOptions, error) {
 				fo.SwiftPrefix = proto.String(constant.StringVal(tag.Value))
 			// Ruby package options.
 			case "github.com/gunk/opt/file/ruby.Package":
-				// TODO: This isn't currently in protoc-gen-go decriptor.pb.go
-				// fo.RubyPackage = proto.String(constant.StringVal(tag.Value))
+				fo.RubyPackage = proto.String(constant.StringVal(tag.Value))
 			// CSharp package options.
 			case "github.com/gunk/opt/file/csharp.Namespace":
 				fo.CsharpNamespace = proto.String(constant.StringVal(tag.Value))
@@ -611,8 +619,7 @@ func fileOptions(pkg *loader.GunkPackage) (*descriptorpb.FileOptions, error) {
 			case "github.com/gunk/opt/file/php.ClassPrefix":
 				fo.PhpClassPrefix = proto.String(constant.StringVal(tag.Value))
 			case "github.com/gunk/opt/file/php.MetadataNamespace":
-				// TODO: This isn't currently in protoc-gen-go decriptor.pb.go
-				// fo.PhpMetadataNamespace = proto.String(constant.StringVal(tag.Value))
+				fo.PhpMetadataNamespace = proto.String(constant.StringVal(tag.Value))
 			case "github.com/gunk/opt/file/php.GenericServices":
 				fo.PhpGenericServices = proto.Bool(constant.BoolVal(tag.Value))
 			case "github.com/gunk/opt/openapiv2.Swagger":
@@ -897,11 +904,11 @@ func (g *Generator) methodOptions(method *ast.Field) (*descriptorpb.MethodOption
 				case "Method":
 					method = val
 				case "Path":
-					path = val
 					// TODO: grpc-gateway doesn't allow paths with a trailing "/", should
 					// we return an error here, because the error from grpc-gateway is very
 					// cryptic and unhelpful?
 					// https://github.com/grpc-ecosystem/grpc-gateway/issues/472
+					path = val
 				case "Body":
 					body = val
 				default:

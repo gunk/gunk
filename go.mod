@@ -4,16 +4,16 @@ go 1.17
 
 require (
 	github.com/emicklei/proto v1.9.1
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.6.0
-	github.com/gunk/opt v0.1.0
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0
+	github.com/gunk/opt v0.2.0
 	github.com/karelbilek/dirchanges v0.0.0-20210218071031-880a92f1a313
 	github.com/kenshaw/ini v0.5.1
 	github.com/kenshaw/snaker v0.1.6
 	github.com/rogpeppe/go-internal v1.8.1-0.20211023094830-115ce09fd6b4
 	github.com/spf13/cobra v1.2.1
-	golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1
+	golang.org/x/sys v0.0.0-20211124211545-fe61309f8881
 	golang.org/x/tools v0.1.8-0.20211102182255-bb4add04ddef
-	google.golang.org/genproto v0.0.0-20211117155847-120650a500bb
+	google.golang.org/genproto v0.0.0-20211129164237-f09f9a12af12
 	google.golang.org/protobuf v1.27.1
 	mvdan.cc/gofumpt v0.2.0
 )

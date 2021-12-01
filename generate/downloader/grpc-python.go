@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -79,5 +78,5 @@ func (g GrpcPython) Download(version string, p Paths) (string, error) {
 		all := "make -j 2 grpc_python_plugin"
 		return "", log.ExecError(all, err)
 	}
-	return path.Join(cmakeDir, "grpc_python_plugin"), nil
+	return filepath.Join(cmakeDir, "grpc_python_plugin"), nil
 }

@@ -9,7 +9,6 @@ import (
 	"go/types"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"reflect"
 	"strconv"
@@ -255,10 +254,9 @@ func (g *Generator) generateProtoc(req pluginpb.CodeGeneratorRequest, gen config
 	// a formatted list of what is in req.FileToGenerate.
 	protoFilenames := []string{}
 	// Default location to output protoc generated files.
-	protocOutputPath := ""
 	ftgs := req.GetFileToGenerate()
 	if len(ftgs) != 1 {
-		return fmt.Errorf("unexpected lenght of fileToGenerate: %d (%+v)", len(ftgs), ftgs)
+		return fmt.Errorf("unexpected length of fileToGenerate: %d (%+v)", len(ftgs), ftgs)
 	}
 	// req.GetFileToGenerate() is always just 1 field, as we create the request
 	// and it has just the one proto file
@@ -286,10 +284,16 @@ func (g *Generator) generateProtoc(req pluginpb.CodeGeneratorRequest, gen config
 	if !ok {
 		return fmt.Errorf("failed to get package %s to protoc generate", pkgPath)
 	}
-	protocOutputPath = gpkg.Dir
 	bs, err := protoutil.MarshalDeterministic(fds)
 	if err != nil {
 		return fmt.Errorf("cannot marshal deterministically: %w", err)
+	}
+	// output dir
+	protocOutputPath := gpkg.Dir
+	if outDir := gen.OutPath(protocOutputPath); outDir != "" {
+		if err := os.MkdirAll(outDir, os.ModePerm); err != nil {
+			return fmt.Errorf("unable to create directory %q: %w", outDir, err)
+		}
 	}
 	// Build up the protoc command line arguments.
 	args := []string{
@@ -426,8 +430,7 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 		outPath = strings.TrimPrefix(outPath, "fake-path.com/command-line-arguments/")
 
 		// create path if not exists
-		outDir, _ := path.Split(outPath)
-		if outDir != "" {
+		if outDir, _ := filepath.Split(outPath); outDir != "" {
 			if err := os.MkdirAll(outDir, os.ModePerm); err != nil {
 				return fmt.Errorf("unable to create directory %q: %w", outDir, err)
 			}

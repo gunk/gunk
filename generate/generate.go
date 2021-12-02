@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
 	"github.com/gunk/gunk/config"
@@ -261,7 +262,12 @@ func (g *Generator) generateProtoc(req pluginpb.CodeGeneratorRequest, gen config
 	// req.GetFileToGenerate() is always just 1 field, as we create the request
 	// and it has just the one proto file
 	ftg := ftgs[0]
-	pkgPath, basename := filepath.Split(ftg)
+	mainPkgPath, basename := filepath.Split(ftg)
+	mainPkgPath = filepath.Clean(mainPkgPath)
+	mainPkg, ok := g.gunkPkgs[mainPkgPath]
+	if !ok {
+		return fmt.Errorf("failed to get main package: %s", mainPkg)
+	}
 	protoFilenames = append(protoFilenames, basename)
 	// protoc writes the output files directly, unlike the
 	// protoc-gen-* plugin generators.
@@ -279,25 +285,32 @@ func (g *Generator) generateProtoc(req pluginpb.CodeGeneratorRequest, gen config
 	// Because we merge all .gunk files into one 'all.proto' file,
 	// we can use that package path on disk as the default location
 	// to output generated files.
-	pkgPath = filepath.Clean(pkgPath)
-	gpkg, ok := g.findPkg(pkgPath)
+	gpkg, ok := g.findPkg(mainPkgPath)
 	if !ok {
-		return fmt.Errorf("failed to get package %s to protoc generate", pkgPath)
+		return fmt.Errorf("failed to get package %s to protoc generate", mainPkgPath)
 	}
-	bs, err := protoutil.MarshalDeterministic(fds)
+	buf, err := protoutil.MarshalDeterministic(fds)
 	if err != nil {
 		return fmt.Errorf("cannot marshal deterministically: %w", err)
 	}
 	// output dir
 	protocOutputPath := gpkg.Dir
-	if outDir := gen.OutPath(protocOutputPath); outDir != "" {
-		if err := os.MkdirAll(outDir, os.ModePerm); err != nil {
+	outDir, err := outPath(gen, protocOutputPath, mainPkg)
+	if err != nil {
+		return fmt.Errorf("unable to build output path for %q: %w", gpkg.Dir, err)
+	}
+	if outDir != "" {
+		if err := mkdirAll(outDir); err != nil {
 			return fmt.Errorf("unable to create directory %q: %w", outDir, err)
 		}
 	}
 	// Build up the protoc command line arguments.
+	param, err := paramStringWithOut(gen, protocOutputPath, mainPkg)
+	if err != nil {
+		return fmt.Errorf("unable to build param %q: %w", protocOutputPath, err)
+	}
 	args := []string{
-		fmt.Sprintf("--%s_out=%s", gen.ProtocGen, gen.ParamStringWithOut(protocOutputPath)),
+		fmt.Sprintf("--%s_out=%s", gen.ProtocGen, param),
 		"--descriptor_set_in=/dev/stdin",
 	}
 	args = append(args, protoFilenames...)
@@ -313,7 +326,7 @@ func (g *Generator) generateProtoc(req pluginpb.CodeGeneratorRequest, gen config
 		d.FilterOps(dirchanges.Write, dirchanges.Move, dirchanges.Rename, dirchanges.Create)
 	}
 	cmd := log.ExecCommand(protocCommandPath, args...)
-	cmd.Stdin = bytes.NewReader(bs)
+	cmd.Stdin = bytes.NewReader(buf)
 	if _, err := cmd.Output(); err != nil {
 		// TODO: For now, output the command name directly as
 		// we actually use the /path/to/protoc when executing
@@ -332,7 +345,7 @@ func (g *Generator) generateProtoc(req pluginpb.CodeGeneratorRequest, gen config
 			if !ev.IsDir() {
 				bs, err := ioutil.ReadFile(ev.Path)
 				var nbs []byte
-				if nbs, err = postProcess(bs, gen, pkgPath, g.gunkPkgs); err != nil {
+				if nbs, err = postProcess(bs, gen, mainPkgPath, g.gunkPkgs); err != nil {
 					return fmt.Errorf("failed to execute post processing: %w", err)
 				}
 				if err := ioutil.WriteFile(ev.Path, nbs, ev.Mode()); err != nil {
@@ -369,7 +382,7 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 	}
 	ftgs := req.GetFileToGenerate()
 	if len(ftgs) != 1 {
-		return fmt.Errorf("unexpected lenght of fileToGenerate: %d (%+v)", len(ftgs), ftgs)
+		return fmt.Errorf("unexpected length of fileToGenerate: %d (%+v)", len(ftgs), ftgs)
 	}
 	ftg := ftgs[0]
 	mainPkgPath, _ := filepath.Split(ftg)
@@ -400,7 +413,11 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 						matching = path
 						gpkg = pkg
 						subdir := strings.TrimPrefix(pkgPath, path)
-						dir = gen.OutPath(gpkg.Dir) + subdir
+						dir, err = outPath(gen.Generator, gpkg.Dir, mainPkg)
+						if err != nil {
+							return fmt.Errorf("unable to build dir %q: %w", gpkg.Dir, err)
+						}
+						dir += subdir
 					}
 				}
 			}
@@ -408,10 +425,16 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 			if matching == "" {
 				// for local relative path
 				gpkg = mainPkg
-				dir = gen.OutPath(gpkg.Dir)
+				dir, err = outPath(gen.Generator, gpkg.Dir, mainPkg)
+				if err != nil {
+					return fmt.Errorf("unable to build dir: %q: %w", gpkg.Dir, err)
+				}
 			}
 		} else {
-			dir = gen.OutPath(gpkg.Dir)
+			dir, err = outPath(gen.Generator, gpkg.Dir, mainPkg)
+			if err != nil {
+				return fmt.Errorf("unable to build dir %q: %w", gpkg.Dir, err)
+			}
 		}
 		isNotPkg := !ok
 		data := []byte(*rf.Content)
@@ -429,14 +452,19 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 		// remove fake path
 		outPath = strings.TrimPrefix(outPath, "fake-path.com/command-line-arguments/")
 
+		outPath, err = pkgTpl(outPath, mainPkg)
+		if err != nil {
+			return fmt.Errorf("unable to build output path for %q: %w", outPath, err)
+		}
+
 		// create path if not exists
 		if outDir, _ := filepath.Split(outPath); outDir != "" {
-			if err := os.MkdirAll(outDir, os.ModePerm); err != nil {
+			if err := mkdirAll(outDir); err != nil {
 				return fmt.Errorf("unable to create directory %q: %w", outDir, err)
 			}
 		}
 
-		if err := ioutil.WriteFile(outPath, data, 0o644); err != nil {
+		if err := writeFile(outPath, data); err != nil {
 			return fmt.Errorf("unable to write to file %q: %w", outPath, err)
 		}
 	}
@@ -1289,4 +1317,64 @@ func (g *Generator) loadProtoDeps() error {
 		g.allProto[*pfile.Name] = pfile
 	}
 	return nil
+}
+
+// writeFile writes a file.
+func writeFile(path string, buf []byte) error {
+	return ioutil.WriteFile(path, buf, 0o644)
+}
+
+// mkdirAll creates a directory.
+func mkdirAll(path string) error {
+	return os.MkdirAll(path, 0o755)
+}
+
+// pkgTpl creates template for the specified path and package.
+func pkgTpl(tmpl string, pkg *loader.GunkPackage) (string, error) {
+	if !strings.Contains(tmpl, "{{") {
+		return tmpl, nil
+	}
+	// templated path
+	tpl, err := template.New("path").Parse(tmpl)
+	if err != nil {
+		return "", err
+	}
+	buf := new(bytes.Buffer)
+	if err := tpl.Execute(buf, map[string]interface{}{
+		"Package": pkg.Name,
+	}); err != nil {
+		return "", err
+	}
+	return filepath.Clean(strings.TrimSpace(buf.String())), nil
+}
+
+// paramStringWithOut will return the generator paramaters formatted
+// for protoc, including where protoc should output the generated files.
+// It will use 'packageDir' if no 'out' key was set in the config.
+func paramStringWithOut(g config.Generator, packageDir string, pkg *loader.GunkPackage) (string, error) {
+	// If no out path was specified, use the package directory.
+	path, err := outPath(g, packageDir, pkg)
+	if err != nil {
+		return "", err
+	}
+	if params := g.ParamString(); params != "" {
+		return params + ":" + path, nil
+	}
+	return path, nil
+}
+
+// outPath determines the path for a generator to write generated files to. It
+// will use 'packageDir' if no 'out' key was set in the config.
+func outPath(g config.Generator, packageDir string, pkg *loader.GunkPackage) (string, error) {
+	if g.Out == "" {
+		return packageDir, nil
+	}
+	out, err := pkgTpl(g.Out, pkg)
+	if err != nil {
+		return "", err
+	}
+	if filepath.IsAbs(g.Out) {
+		return out, nil
+	}
+	return filepath.Join(g.ConfigDir, out), nil
 }

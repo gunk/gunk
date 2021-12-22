@@ -2,6 +2,32 @@ package generate
 
 import "testing"
 
+func TestPathToRoot(t *testing.T) {
+	tests := []struct {
+		path     string
+		expected string
+	}{
+		{
+			path:     "github.com/foo/bar",
+			expected: "../../..",
+		},
+		{
+			path:     "gitlab.com/foo/bar",
+			expected: "../../..",
+		},
+		{
+			path:     "github.com/foo/bar/baz",
+			expected: "../../../..",
+		},
+	}
+	for _, tc := range tests {
+		res := pathToRoot(tc.path)
+		if res != tc.expected {
+			t.Errorf("wrong path to root from %q, got %q expected %q", tc.path, res, tc.expected)
+		}
+	}
+}
+
 func TestPathFromTo(t *testing.T) {
 	tests := []struct {
 		from     string
@@ -32,6 +58,11 @@ func TestPathFromTo(t *testing.T) {
 			from:     "gitlab.com/serious/business",
 			to:       "gitlab.com/serious/business",
 			expected: ".",
+		},
+		{
+			from:     "github.com/foo/bar/baz",
+			to:       "gitlab.com/foo/bar/baz",
+			expected: "./../../../../gitlab.com/foo/bar/baz",
 		},
 	}
 	for _, tc := range tests {

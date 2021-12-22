@@ -83,24 +83,24 @@ LINES:
 		if bytes.Contains(l, []byte("annotations_pb")) {
 			continue LINES
 		}
-		if !(bytes.Contains(l, []byte("require(\"../")) || bytes.Contains(l, []byte(" from \".."))) {
+		if !(bytes.Contains(l, []byte(`require("../`)) || bytes.Contains(l, []byte(` from "..`))) {
 			fLines = append(fLines, l)
 			continue LINES
 		}
 		for pkgPath, pkg := range pkgs {
-			require := []byte(fmt.Sprintf("require(\"%s/%s/all_pb\")", pathToRoot(mainPkgPath), pkgPath))
+			require := []byte(fmt.Sprintf(`require("%s/%s/all_pb")`, pathToRoot(mainPkgPath), pkgPath))
 			if bytes.Contains(l, require) {
 				thisPkgDir := pkgs[mainPkgPath].Dir
 				otherPkgDir := pkg.Dir
-				replacement := []byte(fmt.Sprintf("require(\"%s/all_pb\")", pathFromTo(thisPkgDir, otherPkgDir)))
+				replacement := []byte(fmt.Sprintf(`require("%s/all_pb")`, pathFromTo(thisPkgDir, otherPkgDir)))
 				l = bytes.ReplaceAll(l, require, replacement)
 			}
-			impor := []byte(fmt.Sprintf(" from \"%s/%s/all_pb\"", pathToRoot(mainPkgPath), pkgPath))
-			if bytes.Contains(l, impor) {
+			importLoc := []byte(fmt.Sprintf(` from "%s/%s/all_pb"`, pathToRoot(mainPkgPath), pkgPath))
+			if bytes.Contains(l, importLoc) {
 				thisPkgDir := pkgs[mainPkgPath].Dir
 				otherPkgDir := pkg.Dir
-				replacement := []byte(fmt.Sprintf(" from \"%s/all_pb\"", pathFromTo(thisPkgDir, otherPkgDir)))
-				l = bytes.ReplaceAll(l, impor, replacement)
+				replacement := []byte(fmt.Sprintf(` from "%s/all_pb"`, pathFromTo(thisPkgDir, otherPkgDir)))
+				l = bytes.ReplaceAll(l, importLoc, replacement)
 			}
 		}
 		fLines = append(fLines, l)

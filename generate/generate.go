@@ -305,10 +305,7 @@ func (g *Generator) generateProtoc(req pluginpb.CodeGeneratorRequest, gen config
 		}
 	}
 	// Build up the protoc command line arguments.
-	param, err := paramStringWithOut(gen, protocOutputPath, mainPkg)
-	if err != nil {
-		return fmt.Errorf("unable to build param %q: %w", protocOutputPath, err)
-	}
+	param := paramStringWithOut(gen, outDir)
 	args := []string{
 		fmt.Sprintf("--%s_out=%s", gen.ProtocGen, param),
 		"--descriptor_set_in=/dev/stdin",
@@ -1353,17 +1350,12 @@ func pkgTpl(tmpl string, pkg *loader.GunkPackage) (string, error) {
 
 // paramStringWithOut will return the generator paramaters formatted
 // for protoc, including where protoc should output the generated files.
-// It will use 'packageDir' if no 'out' key was set in the config.
-func paramStringWithOut(g config.Generator, packageDir string, pkg *loader.GunkPackage) (string, error) {
+func paramStringWithOut(g config.Generator, outDir string) string {
 	// If no out path was specified, use the package directory.
-	path, err := outPath(g, packageDir, pkg)
-	if err != nil {
-		return "", err
-	}
 	if params := g.ParamString(); params != "" {
-		return params + ":" + path, nil
+		return params + ":" + outDir
 	}
-	return path, nil
+	return outDir
 }
 
 // outPath determines the path for a generator to write generated files to. It

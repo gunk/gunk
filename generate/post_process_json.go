@@ -10,9 +10,11 @@ import (
 	"strings"
 )
 
-// jsonNameFromProtobufTag parse json name from protobuf tag, returns empty string if no json name is defined.
-// example: protobuf:"bytes,1,opt,name=FirstName,json=first_name,proto3"
-// result: first_name
+// jsonNameFromProtobufTag retrieves JSON name from the provided value of the
+// protobuf tag. If no JSON names are defined, an empty string is returned.
+//
+//     Example: protobuf:"bytes,1,opt,name=FirstName,json=first_name,proto3"
+//     Result:  first_name
 func jsonNameFromProtobufTag(tag string) string {
 	const jsonPartName = "json="
 	if len(tag) == 0 {
@@ -27,7 +29,11 @@ func jsonNameFromProtobufTag(tag string) string {
 	return ""
 }
 
-// jsonNameFromJSONTag returns the json name from json tag, returns empty string if not defined.
+// jsonNameFromJSONTag returns the JSON name from the provided value of the
+// JSON tag. If no JSON names are defined, an empty string is returned.
+//
+//     Example: json:"sample,omitempty"
+//     Result:  sample
 func jsonNameFromJSONTag(tag string) string {
 	if len(tag) == 0 {
 		return ""
@@ -39,6 +45,8 @@ func jsonNameFromJSONTag(tag string) string {
 	return parts[0]
 }
 
+// jsonTagPostProcessor replaces all JSON names in struct tags with the JSON
+// names declared in the protobuf tag.
 func jsonTagPostProcessor(input []byte) ([]byte, error) {
 	const (
 		jsonTagName     = "json"

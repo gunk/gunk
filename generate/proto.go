@@ -19,6 +19,8 @@ const (
 	serviceMethodPath = 2 // ServiceDescriptorProto.Method
 )
 
+// protoNumber returns the protobuf number stored in the struct tag if
+// available.
 func protoNumber(tag reflect.StructTag) (*int32, error) {
 	pbTag := tag.Get("pb")
 	if pbTag == "" {
@@ -31,6 +33,8 @@ func protoNumber(tag reflect.StructTag) (*int32, error) {
 	return proto.Int32(int32(number)), nil
 }
 
+// protoNumber returns the JSON field name stored in the struct tag if
+// available.
 func jsonName(tag reflect.StructTag) *string {
 	jsonTag := tag.Get("json")
 	if jsonTag == "" {
@@ -39,6 +43,8 @@ func jsonName(tag reflect.StructTag) *string {
 	return proto.String(jsonTag)
 }
 
+// protoStringOrNil returns a proto string if the string is non-empty and a nil
+// if the string is empty.
 func protoStringOrNil(s string) *string {
 	if s == "" {
 		return nil
@@ -46,6 +52,8 @@ func protoStringOrNil(s string) *string {
 	return proto.String(s)
 }
 
+// protoEnumValue converts the provided constant.Value to an int32.
+// It panics if the value is not a number.
 func protoEnumValue(value constant.Value) int32 {
 	val, ok := constant.Int64Val(value)
 	if !ok {

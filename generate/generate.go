@@ -92,21 +92,13 @@ func Run(dir string, args ...string) error {
 // Currently, we only generate a FileDescriptorSet for one Gunk package.
 func FileDescriptorSet(dir string, args ...string) (*descriptorpb.FileDescriptorSet, error) {
 	// TODO: share code with Run; much of this function is identical.
-	g := &Generator{
-		Loader: loader.Loader{
-			Dir:   dir,
-			Fset:  token.NewFileSet(),
-			Types: true,
-		},
-		gunkPkgs: make(map[string]*loader.GunkPackage),
-		allProto: make(map[string]*descriptorpb.FileDescriptorProto),
-	}
+	g := NewGenerator(dir)
 	pkgs, err := g.Load(args...)
 	if err != nil {
 		return nil, err
 	}
 	if len(pkgs) != 1 {
-		return nil, fmt.Errorf("can only get filedescriptorset for a single Gunk package")
+		return nil, fmt.Errorf("can only get FileDescriptorSet for a single Gunk package")
 	}
 	if loader.PrintErrors(pkgs) > 0 {
 		return nil, fmt.Errorf("encountered package loading errors")
@@ -129,6 +121,7 @@ func FileDescriptorSet(dir string, args ...string) (*descriptorpb.FileDescriptor
 	return fds, nil
 }
 
+// NewGenerator returns an initialized Generator with the provided dir.
 func NewGenerator(dir string) *Generator {
 	return &Generator{
 		Loader: loader.Loader{
@@ -144,22 +137,28 @@ func NewGenerator(dir string) *Generator {
 
 type Generator struct {
 	loader.Loader
-	curPkg      *loader.GunkPackage // current package being translated or generated
-	curPos      token.Pos           // current position of the token being evaluated
-	gfile       *ast.File
-	pfile       *descriptorpb.FileDescriptorProto
+	curPkg *loader.GunkPackage               // current package being translated or generated
+	curPos token.Pos                         // current position of the token being evaluated
+	gfile  *ast.File                         // current Go file being translated
+	pfile  *descriptorpb.FileDescriptorProto // current protobuf file being translated into
+
 	usedImports map[string]bool // imports being used for the current package
 	// Maps from package import path to package information.
 	gunkPkgs map[string]*loader.GunkPackage
 	// imported proto files will be loaded using protoLoader
 	// holds the absolute path passed to -I flag from protoc
-	protoLoader  *loader.ProtoLoader
-	allProto     map[string]*descriptorpb.FileDescriptorProto
+	protoLoader *loader.ProtoLoader
+	// All protobuf that has been translated currently.
+	allProto map[string]*descriptorpb.FileDescriptorProto
+
+	// Next indexes to use for message, service and enum.
 	messageIndex int32
 	serviceIndex int32
 	enumIndex    int32
 }
 
+// recordPkgs records all provided packages and their imports in the gunkPkgs
+// field and resolve proto.Package tags.
 func (g *Generator) recordPkgs(pkgs ...*loader.GunkPackage) {
 	for _, pkg := range pkgs {
 		// capture proto.Package annotation
@@ -178,11 +177,14 @@ func (g *Generator) recordPkgs(pkgs ...*loader.GunkPackage) {
 	}
 }
 
+// configWithBinary contains the configuration passed in and the binary to use
+// for protoc.
 type configWithBinary struct {
 	config.Generator
 	binary *string
 }
 
+// actualCommand returns the command to invoke for protoc operations.
 func (c configWithBinary) actualCommand() string {
 	if c.binary == nil {
 		return c.Command
@@ -190,15 +192,16 @@ func (c configWithBinary) actualCommand() string {
 	return *c.binary
 }
 
-// findPkg resolves package names for languages with different naming requirements and restrictions.
-// Python does not allow '.' in package names.
-func (g *Generator) findPkg(path string) (*loader.GunkPackage, bool) {
+// findPkg resolves package names for languages with different naming
+// requirements and restrictions.
+func (g *Generator) findPkg(path string) (pkg *loader.GunkPackage, ok bool) {
 	if p, ok := g.gunkPkgs[path]; ok {
 		return p, true
 	}
 	for k, p := range g.gunkPkgs {
 		switch path {
 		case strings.Replace(k, ".", "/", -1):
+			// Python does not allow '.' in package names.
 			return p, true
 		}
 	}
@@ -210,11 +213,11 @@ func (g *Generator) findPkg(path string) (*loader.GunkPackage, bool) {
 //
 // Generated files are written to the same directory, next to the source gunk
 // files.
-//
-// It is fine to pass the pluginpb.CodeGeneratorRequest to every protoc generator
-// unaltered; this is what protoc does when calling out to the generators and
-// the generators should already handle the case where they have nothing to do.
 func (g *Generator) GeneratePkg(path string, gens []config.Generator, protocPath string) error {
+	// It is fine to pass the pluginpb.CodeGeneratorRequest to every protoc
+	// generator unaltered; this is what protoc does when calling out to the
+	// generators and the generators should already handle the case where they
+	// have nothing to do.
 	req := g.newCodeGenRequest(path)
 	for _, gen := range gens {
 		if gen.IsProtoc() {
@@ -245,15 +248,10 @@ func (g *Generator) GeneratePkg(path string, gens []config.Generator, protocPath
 	return nil
 }
 
+// generateProtoc invokes protoc to generate the package specified in the
+// CodeGeneratorRequest and applies post processing if applicable. It expects
+// exactly one file to be requested in CodeGeneratorRequest.
 func (g *Generator) generateProtoc(req pluginpb.CodeGeneratorRequest, gen config.Generator, protocCommandPath string) error {
-	fds := &descriptorpb.FileDescriptorSet{}
-	// Make a copy of the slice, as we may modify the elements within. See
-	// the pf2 copying below.
-	fds.File = make([]*descriptorpb.FileDescriptorProto, len(req.ProtoFile))
-	copy(fds.File, req.ProtoFile)
-	// The proto files we are asking protoc to generate. This should be
-	// a formatted list of what is in req.FileToGenerate.
-	protoFilenames := []string{}
 	// Default location to output protoc generated files.
 	ftgs := req.GetFileToGenerate()
 	if len(ftgs) != 1 {
@@ -266,9 +264,13 @@ func (g *Generator) generateProtoc(req pluginpb.CodeGeneratorRequest, gen config
 	mainPkgPath = filepath.Clean(mainPkgPath)
 	mainPkg, ok := g.gunkPkgs[mainPkgPath]
 	if !ok {
-		return fmt.Errorf("failed to get main package: %s", mainPkg)
+		return fmt.Errorf("failed to get main package: %s", mainPkgPath)
 	}
-	protoFilenames = append(protoFilenames, basename)
+	// Make a copy of the slice, as we may modify the elements within in the
+	// pf2 copying below.
+	fds := &descriptorpb.FileDescriptorSet{}
+	fds.File = make([]*descriptorpb.FileDescriptorProto, len(req.ProtoFile))
+	copy(fds.File, req.ProtoFile)
 	// protoc writes the output files directly, unlike the
 	// protoc-gen-* plugin generators.
 	// As such, we need to give it the right basenames and output
@@ -309,8 +311,8 @@ func (g *Generator) generateProtoc(req pluginpb.CodeGeneratorRequest, gen config
 	args := []string{
 		fmt.Sprintf("--%s_out=%s", gen.ProtocGen, param),
 		"--descriptor_set_in=/dev/stdin",
+		basename,
 	}
-	args = append(args, protoFilenames...)
 	var d *dirchanges.Watcher
 	// if we have postproc - try to watch for new files (ignore otherwise)
 	// unfortunately, protoc gives us no hint of what files it generated
@@ -354,6 +356,9 @@ func (g *Generator) generateProtoc(req pluginpb.CodeGeneratorRequest, gen config
 	return nil
 }
 
+// generatePlugin invokes the specified binary in the config with the package
+// requested in CodeGeneratorRequest. It expects exactly one file to be
+// requested in CodeGeneratorRequest.
 func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen configWithBinary) error {
 	// Due to problems with some generators (grpc-gateway),
 	// we need to ensure we either send a non-empty string or nil.
@@ -386,22 +391,21 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 	mainPkgPath = filepath.Clean(mainPkgPath)
 	mainPkg, ok := g.gunkPkgs[mainPkgPath]
 	if !ok {
-		return fmt.Errorf("failed to get main package: %s", mainPkg)
+		return fmt.Errorf("failed to get main package: %s", mainPkgPath)
 	}
 	for _, rf := range resp.File {
-		// some code generators (go) return path with the full package path,
-		// some (java-grpc) return just local path relative
 		// Turn the relative package file path to the absolute
 		// on-disk file path.
+		// some code generators (go) return path with the full package path,
+		// some (java-grpc) return just local path relative
 		pkgPath, basename := filepath.Split(*rf.Name)
 		pkgPath = filepath.Clean(pkgPath) // to remove trailing slashes
 
 		var dir string
 
-		gpkg, ok := g.gunkPkgs[pkgPath]
-		if !ok {
-			// for path where some prefix matches
-			// take longest matching
+		gpkg, isGunkPkg := g.gunkPkgs[pkgPath]
+		if !isGunkPkg {
+			// Use the longest prefix match if it's not found in gunkPkgs.
 			matching := ""
 			for path, pkg := range g.gunkPkgs {
 				if strings.HasPrefix(pkgPath, path) {
@@ -419,8 +423,8 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 				}
 			}
 
+			// If there is no prefix match, it's likely a local relative path.
 			if matching == "" {
-				// for local relative path
 				gpkg = mainPkg
 				dir, err = outPath(gen.Generator, gpkg.Dir, mainPkg)
 				if err != nil {
@@ -433,7 +437,6 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 				return fmt.Errorf("unable to build dir %q: %w", gpkg.Dir, err)
 			}
 		}
-		isNotPkg := !ok
 		data := []byte(*rf.Content)
 		if gen.HasPostproc() {
 			if data, err = postProcess(data, gen.Generator, mainPkgPath, g.gunkPkgs); err != nil {
@@ -442,7 +445,7 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 		}
 
 		outPath := filepath.Join(dir, basename)
-		if isNotPkg {
+		if !isGunkPkg {
 			outPath = filepath.Join(dir, *rf.Name)
 		}
 
@@ -740,6 +743,8 @@ func (g *Generator) translateDecl(decl ast.Decl) error {
 	return nil
 }
 
+// addDoc inserts the provided documentation text into protobuf with its path
+// after formatting it into the format proto requires.
 func (g *Generator) addDoc(text string, path ...int32) {
 	if text == "" {
 		return
@@ -762,6 +767,7 @@ func (g *Generator) addDoc(text string, path ...int32) {
 	)
 }
 
+// messageOptions returns the MessageOptions set using Gunk tags.
 func (g *Generator) messageOptions(tspec *ast.TypeSpec) (*descriptorpb.MessageOptions, error) {
 	o := &descriptorpb.MessageOptions{}
 	for _, tag := range g.curPkg.GunkTags[tspec] {
@@ -784,6 +790,7 @@ func (g *Generator) messageOptions(tspec *ast.TypeSpec) (*descriptorpb.MessageOp
 	return o, nil
 }
 
+// FieldOptions returns the FieldOptions set using Gunk tags.
 func (g *Generator) fieldOptions(field *ast.Field) (*descriptorpb.FieldOptions, error) {
 	o := &descriptorpb.FieldOptions{}
 	for _, tag := range g.curPkg.GunkTags[field] {
@@ -818,6 +825,8 @@ func (g *Generator) fieldOptions(field *ast.Field) (*descriptorpb.FieldOptions, 
 	return o, nil
 }
 
+// convertMessage converts the provided type spec of a struct into a descriptor
+// that describes a message.
 func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*descriptorpb.DescriptorProto, error) {
 	g.addDoc(tspec.Doc.Text(), messagePath, g.messageIndex)
 	msg := &descriptorpb.DescriptorProto{
@@ -831,7 +840,7 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*descriptorpb.Descripto
 	stype := tspec.Type.(*ast.StructType)
 	for i, field := range stype.Fields.List {
 		if len(field.Names) != 1 {
-			return nil, fmt.Errorf("need all fields to have one name")
+			return nil, fmt.Errorf("fields must have exactly one name")
 		}
 		fieldName := field.Names[0].Name
 		g.addDoc(field.Doc.Text(), messagePath, g.messageIndex, messageFieldPath, int32(i))
@@ -897,6 +906,7 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*descriptorpb.Descripto
 	return msg, nil
 }
 
+// serviceOptions returns the ServiceOptions set using Gunk tags.
 func (g *Generator) serviceOptions(tspec *ast.TypeSpec) (*descriptorpb.ServiceOptions, error) {
 	o := &descriptorpb.ServiceOptions{}
 	for _, tag := range g.curPkg.GunkTags[tspec] {
@@ -911,6 +921,7 @@ func (g *Generator) serviceOptions(tspec *ast.TypeSpec) (*descriptorpb.ServiceOp
 	return o, nil
 }
 
+// methodOptions returns the MethodOptions set using Gunk tags.
 func (g *Generator) methodOptions(method *ast.Field) (*descriptorpb.MethodOptions, error) {
 	o := &descriptorpb.MethodOptions{}
 	var httpRule *annotations.HttpRule
@@ -997,7 +1008,7 @@ func (g *Generator) convertService(tspec *ast.TypeSpec) (*descriptorpb.ServiceDe
 	itype := tspec.Type.(*ast.InterfaceType)
 	for i, method := range itype.Methods.List {
 		if len(method.Names) != 1 {
-			return nil, fmt.Errorf("need all methods to have one name")
+			return nil, fmt.Errorf("methods must have exactly one name")
 		}
 		g.addDoc(method.Doc.Text(), servicePath, g.serviceIndex, serviceMethodPath, int32(i))
 		g.curPos = method.Pos()
@@ -1078,6 +1089,8 @@ func (g *Generator) convertMap(parentName, fieldName string, mapTyp *types.Map) 
 	return typeName, nestedType, nil
 }
 
+// convertParameter converts the provided parameters to their corresponding
+// types and returns if the parameter is a stream (channel).
 func (g *Generator) convertParameter(tuple *types.Tuple) (*string, *bool, error) {
 	switch tuple.Len() {
 	case 0:
@@ -1106,6 +1119,7 @@ func (g *Generator) convertParameter(tuple *types.Tuple) (*string, *bool, error)
 	return &tname, isStream, nil
 }
 
+// enumOptions returns the EnumOptions set using Gunk tags.
 func (g *Generator) enumOptions(tspec *ast.TypeSpec) (*descriptorpb.EnumOptions, error) {
 	o := &descriptorpb.EnumOptions{}
 	for _, tag := range g.curPkg.GunkTags[tspec] {
@@ -1122,6 +1136,7 @@ func (g *Generator) enumOptions(tspec *ast.TypeSpec) (*descriptorpb.EnumOptions,
 	return o, nil
 }
 
+// enumValueOptions returns the EnumValueOptions set using Gunk tags.
 func (g *Generator) enumValueOptions(vspec *ast.ValueSpec) (*descriptorpb.EnumValueOptions, error) {
 	o := &descriptorpb.EnumValueOptions{}
 	for _, tag := range g.curPkg.GunkTags[vspec] {
@@ -1136,6 +1151,8 @@ func (g *Generator) enumValueOptions(vspec *ast.ValueSpec) (*descriptorpb.EnumVa
 	return o, nil
 }
 
+// convertEnum converts the provided const TypeSpec to an EnumDescriptorProto.
+// It returns (nil, nil) if there are no values for the enum type.
 func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*descriptorpb.EnumDescriptorProto, error) {
 	g.addDoc(tspec.Doc.Text(), enumPath, g.enumIndex)
 	enum := &descriptorpb.EnumDescriptorProto{
@@ -1157,7 +1174,7 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*descriptorpb.EnumDescript
 			// .proto files have the same limitation, and it
 			// allows per-value godocs
 			if len(vs.Names) != 1 {
-				return nil, fmt.Errorf("need all value specs to define one name")
+				return nil, fmt.Errorf("value specs must have exactly one name")
 			}
 			name := vs.Names[0]
 			if g.curPkg.TypesInfo.TypeOf(name) != enumType {
@@ -1329,7 +1346,8 @@ func mkdirAll(path string) error {
 	return os.MkdirAll(path, 0o755)
 }
 
-// pkgTpl creates template for the specified path and package.
+// pkgTpl processes the provided package path as a template, replacing Package
+// with the package name.
 func pkgTpl(tmpl string, pkg *loader.GunkPackage) (string, error) {
 	if !strings.Contains(tmpl, "{{") {
 		return tmpl, nil

@@ -25,6 +25,8 @@ func Run(paths []string, overwrite bool) error {
 	return nil
 }
 
+// run converts the proto file or all proto files in a folder to gunk files,
+// saving the file in the same directory as the proto file.
 func run(path string, overwrite bool) error {
 	fi, err := os.Stat(path)
 	if err != nil {
@@ -47,8 +49,9 @@ func run(path string, overwrite bool) error {
 	// If it is a file convert the file.
 	if !fi.IsDir() {
 		return convertFile(path, overwrite, importPath, protocPath)
-	} else if filepath.Ext(path) == ".proto" {
-		// If the path is a directory and has a .proto extension then error.
+	}
+	// If the path is a directory and has a .proto extension then error.
+	if filepath.Ext(path) == ".proto" {
 		return fmt.Errorf("%s is a directory, should be a proto file", path)
 	}
 	// Handle the case where it is a directory. Loop through
@@ -70,6 +73,8 @@ func run(path string, overwrite bool) error {
 	return nil
 }
 
+// convertFile reads the provided .proto file and writes a corresponding .gunk
+// file in the same directory.
 func convertFile(path string, overwrite bool, importPath string, protocPath string) error {
 	if filepath.Ext(path) != ".proto" {
 		return fmt.Errorf("convert requires a .proto file")

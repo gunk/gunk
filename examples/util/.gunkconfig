@@ -1,18 +1,20 @@
-[generate go]
-out=v1/
-plugins=grpc
+[protoc]
+version=v3.9.1
 
-[generate]
+[generate go]
+plugin_version=v1.27.1
 out=v1/
-protoc=grpc-gateway
+
+[generate grpc-gateway]
+plugin_version=v2.3.0
+out=v1/
 logtostderr=true
 
-[generate]
+[generate python]
 out=v1/
-protoc=python
 
-[generate]
+[generate js]
 out=v1/
-protoc=js
 import_style=commonjs
 binary
+fix_paths_postproc=true

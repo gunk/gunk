@@ -1,0 +1,59 @@
+gunk vet ./tests
+! stdout 'tests/perfect'
+stdout 'tests/no_pin/.gunkconfig: specify protoc version'
+stdout 'tests/no_pin/.gunkconfig: pin version of go.'
+stdout 'tests/no_pin/.gunkconfig: pin version of grpc-gateway.'
+stdout 'tests/shorten/.gunkconfig: using protoc builtin language, use shortened version'
+stdout 'tests/shorten/.gunkconfig: using protoc for external binary. Consider using shortened version'
+stdout 'tests/shorten/.gunkconfig: using command- where shortened version exists. Use shortened version'
+stdout 'tests/old_options/.gunkconfig: do not use swagger'
+stdout 'tests/old_options/.gunkconfig: use new version - plugin_version'
+stdout 'tests/old_options/.gunkconfig: do not use grpc plugin'
+stdout 'tests/missing_important_param/.gunkconfig: use new version'
+stdout 'tests/missing_important_param/.gunkconfig: add fix_paths_postproc=true'
+stdout 'tests/missing_important_param/.gunkconfig: specify json_names_for_fields'
+
+-- tests/perfect/.gunkconfig --
+out=./v1
+[protoc]
+version=v3.9.1
+[generate go]
+plugin_version=v1.27.1
+[generate grpc-gateway]
+plugin_version=v2.3.0
+logtostderr=true
+[generate python]
+[generate js]
+import_style=commonjs
+binary
+fix_paths_postproc=true
+
+-- tests/no_pin/.gunkconfig --
+out=v1/
+[generate go]
+[generate grpc-gateway]
+[generate python]
+
+-- tests/shorten/.gunkconfig --
+out=v1/
+[generate]
+protoc=cpp
+[generate]
+protoc=go
+version=v1.27.1
+[generate]
+command=protoc-gen-foobar
+
+-- tests/old_options/.gunkconfig --
+out=v1/
+[generate swagger]
+[generate go]
+plugin_version=v1.0.0
+plugins=grpc
+
+-- tests/missing_important_param/.gunkconfig --
+out=v1/
+[generate grpc-gateway]
+plugin_version=v1.0.0
+[generate js]
+[generate openapiv2]

@@ -124,7 +124,7 @@ func FileDescriptorSet(dir string, args ...string) (*descriptorpb.FileDescriptor
 		return nil, err
 	}
 	// Generate the filedescriptorset for the Gunk package.
-	req := g.requestForPkg(pkgs[0].PkgPath)
+	req := g.newCodeGenRequest(pkgs[0].PkgPath)
 	fds := &descriptorpb.FileDescriptorSet{File: req.ProtoFile}
 	return fds, nil
 }
@@ -215,7 +215,7 @@ func (g *Generator) findPkg(path string) (*loader.GunkPackage, bool) {
 // unaltered; this is what protoc does when calling out to the generators and
 // the generators should already handle the case where they have nothing to do.
 func (g *Generator) GeneratePkg(path string, gens []config.Generator, protocPath string) error {
-	req := g.requestForPkg(path)
+	req := g.newCodeGenRequest(path)
 	for _, gen := range gens {
 		if gen.IsProtoc() {
 			if gen.PluginVersion != "" {
@@ -471,7 +471,10 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 	return nil
 }
 
-func (g *Generator) requestForPkg(pkgPath string) *pluginpb.CodeGeneratorRequest {
+// newCodeGenRequest returns a CodeGeneratorRequest for the specified package
+// which requests generation for the package and specifies the dependencies of
+// the package.
+func (g *Generator) newCodeGenRequest(pkgPath string) *pluginpb.CodeGeneratorRequest {
 	req := &pluginpb.CodeGeneratorRequest{}
 	req.FileToGenerate = append(req.FileToGenerate, unifiedProtoFile(pkgPath))
 	for _, pfile := range g.allProto {

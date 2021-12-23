@@ -16,6 +16,10 @@ exists version/all.pb.go
 stderr 'downloading protoc: invalid version: invalid'
 ! exists badversion/all.pb.go
 
+! gunk generate ./badversion2
+stderr 'downloading protoc: invalid version: 1.2.3'
+! exists badversion2/all.pb.go
+
 # Don't specify a path or version
 gunk generate ./noversion
 exists $GUNK_CACHE_DIR/gunk/protoc-v3.9.1 # default version
@@ -27,8 +31,13 @@ exists noversion/all.pb.go
 # pathversion/.gunkconfig work correctly across OSes
 cp $GUNK_CACHE_DIR/gunk/protoc-v3.8.0 protoc-v3.8.0
 ! gunk generate ./pathversion
-stderr 'want protoc version "3.7.0" got "3.8.0"'
+stderr 'want protoc version "v3.7.0" got "v3.8.0"'
 ! exists pathversion/all.pb.go
+
+# Specify the correct version but without the 'v' prefix
+! gunk generate ./pathversion2
+stderr 'want protoc version "3.8.0" got "v3.8.0"'
+! exists pathversion2/all.pb.go
 
 -- go.mod --
 module testdata.tld/util
@@ -49,12 +58,21 @@ version=v3.8.0
 [protoc]
 version=invalid
 
+-- badversion2/.gunkconfig --
+[protoc]
+version=1.2.3
+
 -- noversion/.gunkconfig --
 
 -- pathversion/.gunkconfig --
 [protoc]
 path=./protoc-v3.8.0
 version=v3.7.0
+
+-- pathversion2/.gunkconfig --
+[protoc]
+path=./protoc-v3.8.0
+version=3.8.0
 
 -- version/version.gunk --
 package version
@@ -70,6 +88,13 @@ type Message struct {
 	Msg string `pb:"1"`
 }
 
+-- badversion2/badversion.gunk --
+package badversion2
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
 -- noversion/noversion.gunk --
 package noversion
 
@@ -79,6 +104,13 @@ type Message struct {
 
 -- pathversion/pathversion.gunk --
 package pathversion
+
+type Message struct {
+	Msg string `pb:"1"`
+}
+
+-- pathversion2/pathversion.gunk --
+package pathversion2
 
 type Message struct {
 	Msg string `pb:"1"`

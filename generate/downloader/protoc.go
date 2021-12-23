@@ -156,9 +156,9 @@ func verifyProtocBinary(path, version string) error {
 	// NOTE: the output of protoc --version doesn't include a 'v',
 	// but the release tags do
 	gotVersion := strings.TrimSpace(versionOutput[10:])
-	short := version[1:]
+	gotVersion = "v" + gotVersion
 	// split "-rc"
-	split := strings.Split(short, "-")
+	split := strings.Split(version, "-")
 	if gotVersion != split[0] {
 		return fmt.Errorf("want protoc version %q got %q", split[0], gotVersion)
 	}

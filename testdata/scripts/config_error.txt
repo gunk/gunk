@@ -1,0 +1,18 @@
+! gunk generate ./shorthand-command
+stderr 'may not be specified in generate shorthand'
+! gunk generate ./shorthand-protoc
+stderr 'may not be specified in generate shorthand'
+
+-- shorthand-command/.gunkconfig --
+[generate go]
+command=abc
+
+-- shorthand-command/empty.gunk --
+package empty
+
+-- shorthand-protoc/.gunkconfig --
+[generate go]
+protoc=abc
+
+-- shorthand-protoc/empty.gunk --
+package empty

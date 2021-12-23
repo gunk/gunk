@@ -198,34 +198,19 @@ func LoadSingle(reader io.Reader) (*Config, error) {
 		switch {
 		case name == "":
 			// This is the global section (unnamed section)
-			if err := handleGlobal(config, s); err != nil {
-				return nil, err
-			}
-			continue
+			err = handleGlobal(config, s)
 		case name == "protoc":
 			err = handleProtoc(config, s)
 		case name == "generate":
-			gen, err = handleGenerate(s)
-		case strings.HasPrefix(name, "generate"):
+			gen, err = handleGenerate(s, nil)
+		case strings.HasPrefix(name, "generate "):
 			// Check to see if we have the shorten version of a generate config:
 			// [generate js].
 			sParts := strings.Split(name, " ")
 			if len(sParts) != 2 {
 				return nil, fmt.Errorf("generate section name should have 2 values, not %d", len(sParts))
 			}
-			gen, err = handleGenerate(s)
-			generator := strings.Trim(sParts[1], "\"")
-			// Is this shortened generator a protoc-gen-* binary, or
-			// should it be passed to protoc.
-			// We ignore the binary path since we don't do the same for the
-			// normal generate section. If we start using the binary path here
-			// we should also use it for the normal generate section.
-			if !ProtocBuiltinLanguages[generator] {
-				gen.Command = "protoc-gen-" + generator
-			} else {
-				gen.ProtocGen = generator
-			}
-			gen.Shortened = true // for vetting
+			gen, err = handleGenerate(s, &sParts[1])
 		default:
 			return nil, fmt.Errorf("unknown section %q", s.Name())
 		}
@@ -254,20 +239,42 @@ func handleProtoc(config *Config, section *parser.Section) error {
 	return nil
 }
 
-func handleGenerate(section *parser.Section) (*Generator, error) {
+func handleGenerate(section *parser.Section, shorthand *string) (*Generator, error) {
 	keys := section.RawKeys()
 	gen := &Generator{
 		Params: make([]KeyValue, 0, len(keys)),
 	}
+
+	if shorthand != nil {
+		generator := strings.Trim(*shorthand, "\"")
+		// Is this shortened generator a protoc-gen-* binary, or
+		// should it be passed to protoc.
+		// We ignore the binary path since we don't do the same for the
+		// normal generate section. If we start using the binary path here
+		// we should also use it for the normal generate section.
+		if !ProtocBuiltinLanguages[generator] {
+			gen.Command = "protoc-gen-" + generator
+		} else {
+			gen.ProtocGen = generator
+		}
+		gen.Shortened = true // for vetting
+	}
+
 	for _, k := range keys {
 		v := strings.TrimSpace(section.GetRaw(k))
 		switch k {
 		case "command":
+			if shorthand != nil {
+				return nil, fmt.Errorf("'command' or 'protoc' may not be specified in generate shorthand")
+			}
 			if gen.ProtocGen != "" {
 				return nil, fmt.Errorf("only one 'command' or 'protoc' allowed")
 			}
 			gen.Command = v
 		case "protoc":
+			if shorthand != nil {
+				return nil, fmt.Errorf("'command' or 'protoc' may not be specified in generate shorthand")
+			}
 			if gen.Command != "" {
 				return nil, fmt.Errorf("only one 'command' or 'protoc' allowed")
 			}
@@ -292,6 +299,21 @@ func handleGenerate(section *parser.Section) (*Generator, error) {
 			gen.Params = append(gen.Params, KeyValue{k, v})
 		}
 	}
+
+	if gen.Command == "" && gen.ProtocGen == "" {
+		return nil, fmt.Errorf("either 'command' or 'protoc' must be specified")
+	}
+
+	// Validate language-specific options now that we are done as we should
+	// have figured out language by now.
+	lang := gen.Code()
+	if gen.FixPaths && lang != "js" && lang != "ts" {
+		return nil, fmt.Errorf("fix_paths_postproc can only be set for js and ts. Enabled on %q", lang)
+	}
+	if gen.JSONPostProc && lang != "go" {
+		return nil, fmt.Errorf("json_tag_postproc can only be set for go. Enabled on %q", lang)
+	}
+
 	return gen, nil
 }
 

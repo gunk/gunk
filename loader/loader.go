@@ -1,7 +1,6 @@
 package loader
 
 import (
-	"encoding/hex"
 	"fmt"
 	"go/ast"
 	"go/constant"
@@ -11,14 +10,12 @@ import (
 	"go/types"
 	"html/template"
 	"io/ioutil"
-	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gunk/gunk/assets"
 	"github.com/gunk/gunk/log"
@@ -35,97 +32,76 @@ type Loader struct {
 	// parse the given packages.
 	Types bool
 	cache map[string]*GunkPackage // map from import path to pkg
+
+	// fakeFiles is a list of fake Go files added to make the Go compiler pick
+	// up gunk files in packages without Go files.
+	fakeFiles map[string][]byte
 }
 
-var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
-
-func hexRand(enclen int) string {
-	p := make([]byte, hex.DecodedLen(enclen))
-	// math/rand's Read can't error
-	_, _ = seededRand.Read(p)
-	return hex.EncodeToString(p)
-}
-
-// addTempGoFiles adds a temporary empty Go file with a random name to all Gunk
-// packages with no Go files, so that packages.Load can find them via patterns
-// like "./...". Check all directories within the current module, falling back
-// to all directories under the current directory.
-func (l *Loader) addTempGoFiles() (undo func(), _ error) {
-	// TODO(mvdan): Use go/packages.Config.Overlay once it supports adding
-	// new Go packages, as that removes the need for writing to disk and
-	// cleaning up after ourselves.
-	// See https://github.com/golang/go/issues/29047.
-	root := "."
-	cmd := exec.Command("go", "list", "-m", "-f={{.Dir}}")
-	cmd.Dir = l.Dir
+// addFakeFiles iterate over all module dependencies of the specified directory
+// and adds a fake Go file for all directories inside the dependencies that
+// only has Gunk files and no Go files.
+// This allows the loader to process Gunk packages using regular Go package
+// parsing code when fakeFiles is used as an overlay.
+func (l *Loader) addFakeFiles() error {
+	l.fakeFiles = make(map[string][]byte)
 	// use "." if we encountered an error, for e.g. GOPATH mode
+	roots := []string{"."}
+	cmd := exec.Command("go", "list", "-m", "-f={{.Dir}}", "all")
+	cmd.Dir = l.Dir
 	if out, err := cmd.Output(); err == nil {
-		root = strings.TrimSpace(string(out))
+		rootOutput := strings.Split(strings.TrimSpace(string(out)), "\n")
+		roots = make([]string, 0, len(rootOutput))
+		for _, v := range rootOutput {
+			roots = append(roots, strings.TrimSpace(v))
+		}
 	}
-	if root == "" {
-		return nil, fmt.Errorf("empty module root; missing module?")
-	}
-	var toDelete []string
-	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			return nil
-		}
-		if strings.Contains(path, "@v") {
-			// in the module cache; skip, as that's read-only anyway
-			return filepath.SkipDir
-		}
-		infos, err := ioutil.ReadDir(path)
-		if err != nil {
-			return err
-		}
-		pkgName := info.Name() // default to the directory basename
-		anyGunk := false
-		for _, info := range infos {
-			name := info.Name()
-			if strings.HasSuffix(name, ".go") {
-				// has Go files; nothing to do
+	// Walk through all directories and add fake files for all packages that
+	// only have gunk files.
+	for _, root := range roots {
+		if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if !info.IsDir() {
 				return nil
 			}
-			if strings.HasSuffix(name, ".gunk") {
-				f, err := parser.ParseFile(token.NewFileSet(),
-					filepath.Join(path, name), nil, parser.PackageClauseOnly)
-				// Ignore errors, since Gunk packages being
-				// walked but not being loaded might have
-				// invalid syntax.
-				if err == nil {
-					pkgName = f.Name.Name
-				}
-				anyGunk = true
-				break
+			infos, err := ioutil.ReadDir(path)
+			if err != nil {
+				return err
 			}
-		}
-		if !anyGunk {
+			pkgName := info.Name() // default to the directory basename
+			anyGunk := false
+			for _, info := range infos {
+				name := info.Name()
+				if strings.HasSuffix(name, ".go") {
+					// has Go files; nothing to do
+					return nil
+				}
+				if strings.HasSuffix(name, ".gunk") {
+					f, err := parser.ParseFile(token.NewFileSet(),
+						filepath.Join(path, name), nil, parser.PackageClauseOnly)
+					// Ignore errors, since Gunk packages being
+					// walked but not being loaded might have
+					// invalid syntax.
+					if err == nil {
+						pkgName = f.Name.Name
+					}
+					anyGunk = true
+					break
+				}
+			}
+			if !anyGunk {
+				return nil
+			}
+			tmpPath := filepath.Join(path, "gunkpkg.go")
+			l.fakeFiles[tmpPath] = []byte(`package ` + pkgName)
 			return nil
-		}
-		tmpPath := filepath.Join(path, "gunkpkg-"+hexRand(8)+".go")
-		if err := ioutil.WriteFile(tmpPath, []byte("package "+pkgName), 0o666); err != nil {
+		}); err != nil {
 			return err
 		}
-		toDelete = append(toDelete, tmpPath)
-		return nil
-	}); err != nil {
-		return nil, err
 	}
-	return func() {
-		anyErr := false
-		for _, path := range toDelete {
-			if err := os.Remove(path); err != nil {
-				anyErr = true
-				fmt.Fprintf(os.Stderr, "could not delete gunkpkg file: %v", err)
-			}
-		}
-		if anyErr {
-			panic("could not delete some of the gunkpkg files")
-		}
-	}, nil
+	return nil
 }
 
 // Load loads the Gunk packages on the provided patterns from the given dir and
@@ -155,16 +131,18 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 			GunkFiles: patterns,
 		})
 	} else {
-		// First, make sure that all Gunk packages have Go files.
-		undo, err := l.addTempGoFiles()
-		if err != nil {
-			return nil, err
+		// Generate fake files if it has not been initialized yet.
+		if l.fakeFiles == nil {
+			err := l.addFakeFiles()
+			if err != nil {
+				return nil, err
+			}
 		}
-		defer undo()
 		// Load the Gunk packages as Go packages.
 		cfg := &packages.Config{
-			Dir:  l.Dir,
-			Mode: packages.LoadFiles,
+			Dir:     l.Dir,
+			Mode:    packages.NeedName | packages.NeedFiles,
+			Overlay: l.fakeFiles,
 		}
 		lpkgs, err := packages.Load(cfg, patterns...)
 		if err != nil {

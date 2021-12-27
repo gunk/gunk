@@ -4,6 +4,10 @@ stderr 'message_invalid/foo.gunk:4:5: missing required tag on InValid'
 ! gunk generate ./service_invalid
 stderr 'service_invalid/foo.gunk:5:5: multiple parameters are not supported'
 
+! gunk generate ./import_cycle
+stderr 'import_cycle/foo.gunk:3:14: could not import testdata.tld/util/import_cycle'
+stderr 'import cycle not allowed:'
+
 -- go.mod --
 module testdata.tld/util
 -- .gunkconfig --
@@ -20,4 +24,13 @@ package util
 type FooService interface {
 
     Foo(int, string)
+}
+
+-- import_cycle/foo.gunk --
+package import_cycle
+
+import cycle "testdata.tld/util/import_cycle"
+
+type A struct {
+	Foo cycle.A `pb:"1"`
 }

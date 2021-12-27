@@ -200,7 +200,7 @@ func findGunkFiles(pkg *GunkPackage) {
 		if pkg.Dir == "" {
 			pkg.Dir = dir
 		} else if dir != pkg.Dir {
-			pkg.addError(ListError, 0, nil, "multiple dirs for %s: %s %s",
+			pkg.errorf(ListError, 0, nil, "multiple dirs for %s: %s %s",
 				pkg.PkgPath, pkg.Dir, dir)
 			return // we can't continue
 		}
@@ -269,14 +269,32 @@ type GunkPackage struct {
 	ProtoName string // protobuf package name
 }
 
-func (g *GunkPackage) addError(kind packages.ErrorKind, tokenPos token.Pos, fset *token.FileSet, format string, args ...interface{}) {
+func (g *GunkPackage) errorf(kind packages.ErrorKind, tokenPos token.Pos, fset *token.FileSet, format string, args ...interface{}) {
+	g.addError(kind, tokenPos, fset, fmt.Errorf(format, args...))
+}
+
+func (g *GunkPackage) addError(kind packages.ErrorKind, tokenPos token.Pos, fset *token.FileSet, err error) {
+	// errors.As is intentionally unused to prevent losing context.
+	if pkgErr, ok := err.(packages.Error); ok {
+		// Don't unnecessarily wrap the error if it is already the right type.
+		g.Errors = append(g.Errors, pkgErr)
+		return
+	}
+	// Create a packages.Error to add.
 	pos := ""
+	msg := err.Error()
 	if tokenPos > 0 && fset != nil {
 		pos = fset.Position(tokenPos).String()
 	}
+	if typeErr, ok := err.(types.Error); ok {
+		// Populate info if the error is a type-checking error from go/types.
+		// This prevents an unnecessary -: at the front of error messages.
+		pos = typeErr.Fset.Position(typeErr.Pos).String()
+		msg = typeErr.Msg
+	}
 	g.Errors = append(g.Errors, packages.Error{
 		Pos:  pos,
-		Msg:  fmt.Sprintf(format, args...),
+		Msg:  msg,
 		Kind: kind,
 	})
 }
@@ -294,7 +312,7 @@ func (l *Loader) parseGunkPackage(pkg *GunkPackage) {
 	for _, fpath := range pkg.GunkFiles {
 		file, err := parser.ParseFile(l.Fset, fpath, nil, parser.ParseComments)
 		if err != nil {
-			pkg.addError(ParseError, 0, nil, "%s", err)
+			pkg.addError(ParseError, 0, nil, err)
 			continue
 		}
 		// to make the generated code independent of the current
@@ -305,18 +323,18 @@ func (l *Loader) parseGunkPackage(pkg *GunkPackage) {
 		if name := file.Name.Name; pkg.Name == "" {
 			pkg.Name = name
 		} else if pkg.Name != name && l.Types {
-			pkg.addError(ValidateError, 0, nil, "gunk package name mismatch: %q %q",
+			pkg.errorf(ValidateError, 0, nil, "gunk package name mismatch: %q %q",
 				pkg.Name, name)
 		}
 		name, err := protoPackageName(l.Fset, file)
 		if err != nil {
-			pkg.addError(ParseError, 0, nil, "%s", err)
+			pkg.addError(ParseError, 0, nil, err)
 			continue
 		}
 		if pkg.ProtoName == "" {
 			pkg.ProtoName = name
 		} else if name != "" && l.Types {
-			pkg.addError(ValidateError, 0, nil, "proto package name mismatch: %q %q",
+			pkg.errorf(ValidateError, 0, nil, "proto package name mismatch: %q %q",
 				pkg.ProtoName, name)
 			continue
 		}
@@ -346,7 +364,7 @@ func (l *Loader) parseGunkPackage(pkg *GunkPackage) {
 	}
 	check := types.NewChecker(tconfig, l.Fset, pkg.Types, pkg.TypesInfo)
 	if err := check.Files(pkg.GunkSyntax); err != nil {
-		pkg.addError(TypeError, 0, nil, "%s", err)
+		pkg.addError(TypeError, 0, nil, err)
 		return
 	}
 	pkg.Imports = make(map[string]*GunkPackage)
@@ -379,7 +397,7 @@ func (l *Loader) validatePackage(pkg *GunkPackage) {
 			// Look through all fields for anonymous/unnamed types.
 			for _, field := range st.Fields.List {
 				if len(field.Names) < 1 {
-					pkg.addError(ParseError, st.Pos(), l.Fset, "anonymous struct fields are not supported")
+					pkg.errorf(ParseError, st.Pos(), l.Fset, "anonymous struct fields are not supported")
 					return false
 				}
 			}
@@ -396,7 +414,7 @@ func (l *Loader) validatePackage(pkg *GunkPackage) {
 				fieldName := f.Names[0].Name
 				str, _ := strconv.Unquote(f.Tag.Value)
 				if err := validateStructTag(str); err != nil {
-					pkg.addError(ValidateError, st.Pos(), l.Fset, "error in struct tag on %s: %v", fieldName, err)
+					pkg.errorf(ValidateError, st.Pos(), l.Fset, "error in struct tag on %s: %w", fieldName, err)
 					continue
 				}
 				stag := reflect.StructTag(str)
@@ -409,7 +427,7 @@ func (l *Loader) validatePackage(pkg *GunkPackage) {
 				if ok && valJson != "" {
 					if jsonNamesSeen[valJson] {
 						err := fmt.Errorf("json tag %q seen twice", valJson)
-						pkg.addError(ValidateError, st.Pos(), l.Fset, "error in struct tag on %s: %v", fieldName, err)
+						pkg.errorf(ValidateError, st.Pos(), l.Fset, "error in struct tag on %s: %w", fieldName, err)
 						continue
 					}
 
@@ -418,11 +436,11 @@ func (l *Loader) validatePackage(pkg *GunkPackage) {
 
 				sequence, err := strconv.Atoi(val)
 				if err != nil {
-					pkg.addError(ValidateError, st.Pos(), l.Fset, "unable to convert tag to number on %s: %v", fieldName, err)
+					pkg.errorf(ValidateError, st.Pos(), l.Fset, "unable to convert tag to number on %s: %w", fieldName, err)
 					continue
 				}
 				if usedSequences[sequence] {
-					pkg.addError(ValidateError, st.Pos(), l.Fset, "sequence %q on %s has already been used in this struct", val, fieldName)
+					pkg.errorf(ValidateError, st.Pos(), l.Fset, "sequence %q on %s has already been used in this struct", val, fieldName)
 					continue
 				}
 				usedSequences[sequence] = true
@@ -590,7 +608,7 @@ func (l *Loader) splitGunkTags(pkg *GunkPackage, file *ast.File) {
 		docText, exprs, err := SplitGunkTag(pkg, l.Fset, *doc)
 		if err != nil {
 			hadError = true
-			pkg.addError(ParseError, (*doc).Pos(), l.Fset, "%s", err)
+			pkg.addError(ParseError, (*doc).Pos(), l.Fset, err)
 			return false
 		}
 		if len(exprs) > 0 {
@@ -606,7 +624,7 @@ func (l *Loader) splitGunkTags(pkg *GunkPackage, file *ast.File) {
 		for _, cg := range file.Comments {
 			for _, c := range cg.List {
 				if strings.Contains(c.Text, "+gunk") {
-					pkg.addError(ParseError, c.Pos(), l.Fset, "gunk tag without declaration: %s", c.Text)
+					pkg.errorf(ParseError, c.Pos(), l.Fset, "gunk tag without declaration: %s", c.Text)
 				}
 			}
 		}

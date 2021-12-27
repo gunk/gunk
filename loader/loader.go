@@ -33,6 +33,8 @@ type Loader struct {
 	Types bool
 	cache map[string]*GunkPackage // map from import path to pkg
 
+	stack []string
+
 	// fakeFiles is a list of fake Go files added to make the Go compiler pick
 	// up gunk files in packages without Go files.
 	fakeFiles map[string][]byte
@@ -110,6 +112,9 @@ func (l *Loader) addFakeFiles() error {
 // Similar to Go, if a path begins with ".", it is interpreted as a file system
 // path where a package is located, and "..." patterns are supported.
 func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
+	if l.stack == nil {
+		l.stack = make([]string, 0, 1)
+	}
 	if len(patterns) == 1 {
 		pkgPath := patterns[0]
 		if pkg := l.cache[pkgPath]; pkg != nil {
@@ -160,8 +165,20 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 	}
 	// Add the Gunk files to each package.
 	for _, pkg := range pkgs {
+		for _, v := range l.stack {
+			if v == pkg.PkgPath {
+				// Add the current package to the stack to demonstrate the import cycle.
+				l.stack = append(l.stack, pkg.PkgPath)
+				importLoop := strings.Join(l.stack, "\n\t\timports ")
+				return nil, fmt.Errorf("import cycle not allowed:\n\t%s", importLoop)
+			}
+		}
+		// Add entry to stack.
+		l.stack = append(l.stack, pkg.PkgPath)
 		l.parseGunkPackage(pkg)
 		l.validatePackage(pkg)
+		// Pop entry from stack.
+		l.stack = l.stack[:len(l.stack)-1]
 		if l.cache == nil {
 			l.cache = make(map[string]*GunkPackage)
 		}

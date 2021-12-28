@@ -1,0 +1,28 @@
+! gunk lint --enable json ./no-json/
+! gunk lint --enable json ./not-snakecase/
+gunk lint --enable json ./correct/
+
+-- .gunkconfig --
+[generate go]
+
+-- no-json/test.gunk --
+package test
+
+type Foo struct {
+	Bar int `pb:"1"`
+}
+
+-- not-snakecase/test.gunk --
+package test
+
+type Foo struct {
+	BarQuz int `pb:"1" json:"barQuz"`
+}
+
+-- correct/test.gunk --
+package test
+
+type Foo struct {
+	BarQuz int `pb:"1" json:"bar_quz"`
+	FlippedOrder int `json:"flipped_order" pb:"2"`
+}

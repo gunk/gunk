@@ -34,6 +34,10 @@ type linter struct {
 }
 
 var linters = map[string]linter{
+	"json": {
+		Usage: "enforces JSON tags to be snake case versions of field name",
+		Run:   lintJSON,
+	},
 	"unused": {
 		Usage: "lists all enums and structs that are unused",
 		Run:   lintUnused,

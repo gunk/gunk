@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/gunk/gunk/loader"
@@ -27,10 +28,16 @@ func (l LintError) Unwrap() error {
 	return l.Msg
 }
 
-type linter func(*Linter, []*loader.GunkPackage)
+type linter struct {
+	Usage string
+	Run   func(*Linter, []*loader.GunkPackage)
+}
 
 var linters = map[string]linter{
-	"unused": lintUnused,
+	"unused": {
+		Usage: "lists all enums and structs that are unused",
+		Run:   lintUnused,
+	},
 }
 
 // Run starts the linter in the provided directory with the specified
@@ -75,7 +82,7 @@ func Run(dir string, enable string, disable string, args ...string) error {
 	}
 	// Run the linters
 	for _, v := range lintersToRun {
-		v(l, pkgs)
+		v.Run(l, pkgs)
 	}
 	if l.PrintErrors() > 0 {
 		return fmt.Errorf("encountered linting errors")
@@ -132,4 +139,20 @@ func (v visitor) Visit(n ast.Node) ast.Visitor {
 		return v
 	}
 	return nil
+}
+
+// PrintLinters prints out all linters to stdout.
+func PrintLinters() {
+	fmt.Println("Linters available:")
+	// Sort the name of the linters before displaying.
+	keys := make([]string, 0, len(linters))
+	for k := range linters {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	// Print the linter.
+	for _, k := range keys {
+		v := linters[k]
+		fmt.Printf("\t%-10s - %s\n", k, v.Usage)
+	}
 }

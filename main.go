@@ -136,16 +136,21 @@ func run() error {
 	app.AddCommand(&vetCmd)
 	// lint command
 	var enableLint, disableLint string
+	var listLinters bool
 	lintCmd := cobra.Command{
 		Use:   "lint [patterns]",
 		Short: "Lint a set of Gunk files",
-		Long:  "Lint a set of Gunk files.",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if listLinters {
+				lint.PrintLinters()
+				return nil
+			}
 			return lint.Run("", enableLint, disableLint, args...)
 		},
 	}
 	lintCmd.Flags().StringVar(&enableLint, "enable", "", "Linters to enable (all if empty) separated by comma")
 	lintCmd.Flags().StringVar(&disableLint, "disable", "", "Linters to disable separated by comma, overrides enable")
+	lintCmd.Flags().BoolVarP(&listLinters, "list", "l", false, "List all linters and exit")
 	app.AddCommand(&lintCmd)
 	return app.Execute()
 }

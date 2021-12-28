@@ -20,12 +20,17 @@ type UnusedEnum int
 
 type UsedEnum int
 
+type UsedInNested struct {
+	A int `pb:"1" json:"a"`
+}
+
 type UsedIndirectly struct {
 	A int `pb:"1" json:"a"`
 }
 
 type UsedParam struct {
-	A UsedIndirectly `pb:"1" json:"a"`
+	A UsedIndirectly            `pb:"1" json:"a"`
+	B []map[string]UsedInNested `pb:"2" json:"b"`
 }
 
 type UsedResponse struct {
@@ -38,7 +43,7 @@ type UsedImported struct {
 
 type FakeService interface {
 	Foo(UsedParam) UsedResponse
-	Bar(UsedEnum)
+	Bar(chan UsedEnum)
 }
 
 -- foo/test.gunk --

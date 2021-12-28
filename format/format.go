@@ -11,10 +11,11 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/gunk/gunk/loader"
+	"github.com/kenshaw/snaker"
 )
 
 // Run formats Gunk files to be canonically formatted.
@@ -148,73 +149,86 @@ func formatStruct(fset *token.FileSet, st *ast.StructType) error {
 	if st.Fields == nil {
 		return nil
 	}
-	// Find which struct fields require sequence numbers, and
-	// keep a record of which sequence numbers are already used.
-	usedSequences := []int{}
-	fieldsWithoutSequence := []*ast.Field{}
-	for _, f := range st.Fields.List {
-		tag := f.Tag
-		if tag == nil {
-			fieldsWithoutSequence = append(fieldsWithoutSequence, f)
-			continue
-		}
-		// Can skip the error here because we've already parsed the file.
-		str, _ := strconv.Unquote(tag.Value)
-		stag := reflect.StructTag(str)
-		val, ok := stag.Lookup("pb")
-		// If there isn't a 'pb' tag present.
-		if !ok {
-			fieldsWithoutSequence = append(fieldsWithoutSequence, f)
-			continue
-		}
-		// If there was a 'pb' tag, but it wasn't empty, return an error.
-		// It is a bit difficult to add in the sequence number if the 'pb'
-		// tag already exists.
-		if ok && val == "" {
-			errorPos := fset.Position(tag.Pos())
-			return fmt.Errorf("%s: struct field tag for pb was empty, please remove or add sequence number", errorPos)
-		}
-		// If there isn't a number in 'pb' then return an error.
-		i, err := strconv.Atoi(val)
-		if err != nil {
-			errorPos := fset.Position(tag.Pos())
-			// TODO: Add the same error checking in generate. Or, look at factoring
-			// this code with the code in generate, they do very similar things?
-			return fmt.Errorf("%s: struct field tag for pb contains a non-number %q", errorPos, val)
-		}
-		usedSequences = append(usedSequences, i)
-	}
-	// Determine missing sequences.
-	missingSequences := []int{}
-	for i := 1; i < len(st.Fields.List)+1; i++ {
-		found := false
-		for _, u := range usedSequences {
-			if u == i {
-				found = true
-				break
+	for i, f := range st.Fields.List {
+		var key []string
+		var value map[string]string
+		if f.Tag != nil {
+			tag, err := strconv.Unquote(f.Tag.Value)
+			if err != nil {
+				return err
+			}
+			key, value, err = parseTag(tag)
+			if err != nil {
+				// Don't touch tag if we can't read the tag.
+				continue
 			}
 		}
-		if !found {
-			missingSequences = append(missingSequences, i)
+		// Don't touch invalid code.
+		if len(f.Names) != 1 {
+			continue
 		}
-	}
-	// Add the sequence number to the field tag, creating a new
-	// tag if one doesn't exist, or prepend the sequence number
-	// to the tag that is already there.
-	for i, f := range fieldsWithoutSequence {
-		nextSequence := missingSequences[i]
-		if f.Tag == nil {
-			f.Tag = &ast.BasicLit{
-				ValuePos: f.Type.End() + 1,
-				Kind:     token.STRING,
-				Value:    fmt.Sprintf("`pb:\"%d\"`", nextSequence),
+		// Insert JSON and protobuf key.
+		entries := make([]string, 0, len(key))
+		entries = append(entries, fmt.Sprintf("pb:%q", strconv.Itoa(i+1)))
+		entries = append(entries, fmt.Sprintf("json:%q", snaker.CamelToSnake(f.Names[0].Name)))
+		// Maintain other keys.
+		for _, k := range key {
+			if k == "pb" || k == "json" {
+				// Skip pb and json as they have already been added to the start.
+				continue
 			}
-		} else {
-			// Remove the string quoting around so it is easier to prepend
-			// the sequence number.
-			tagValueStr, _ := strconv.Unquote(f.Tag.Value)
-			f.Tag.Value = fmt.Sprintf("`pb:\"%d\" %s`", nextSequence, tagValueStr)
+			entries = append(entries, fmt.Sprintf("%s:%q", k, value[k]))
+		}
+		f.Tag = &ast.BasicLit{
+			ValuePos: f.Type.End() + 1,
+			Kind:     token.STRING,
+			Value:    "`" + strings.Join(entries, " ") + "`",
 		}
 	}
 	return nil
+}
+
+func parseTag(tag string) ([]string, map[string]string, error) {
+	keys := make([]string, 0)
+	values := make(map[string]string)
+	for tag != "" {
+		// skip leading space
+		i := 0
+		for i < len(tag) && tag[i] == ' ' {
+			i++
+		}
+		tag = tag[i:]
+		if tag == "" {
+			break
+		}
+		// find colon separating key and value
+		for i < len(tag) && tag[i] != ':' {
+			i++
+		}
+		if i == len(tag) {
+			return nil, nil, fmt.Errorf("unterminated key")
+		}
+		key := tag[:i]
+		keys = append(keys, key)
+		tag = tag[i+1:]
+		// find end of value
+		i = 1
+		for i < len(tag) && tag[i] != '"' {
+			if tag[i] == '\\' {
+				i++
+			}
+			i++
+		}
+		if i == len(tag) {
+			return nil, nil, fmt.Errorf("unterminated value")
+		}
+		value, err := strconv.Unquote(tag[:i+1])
+		if err != nil {
+			return nil, nil, fmt.Errorf("invalid value")
+		}
+		values[key] = value
+		tag = tag[i+1:]
+	}
+
+	return keys, values, nil
 }

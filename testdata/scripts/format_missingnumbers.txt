@@ -1,17 +1,8 @@
 gunk format .
 cmp message.gunk message.gunk.golden
 
-! gunk format ./error
-stderr 'error/message.gunk:4:11: struct field tag for pb was empty, please remove or add sequence number'
-
 -- go.mod --
 module testdata.tld/message
--- error/message.gunk --
-package message
-
-type Message struct {
-	Code int `pb:""` // Currently we are unable to handle the case where pb is empty
-}
 -- message.gunk --
 package message
 
@@ -41,20 +32,20 @@ package message
 type EmptyMessage struct{}
 
 type MessageNoTags struct {
-	Text string `pb:"1"`
-	Code int    `pb:"2"`
+	Text string `pb:"1" json:"text"`
+	Code int    `pb:"2" json:"code"`
 }
 
 type MessageSomeTags struct {
 	Text  string `pb:"1" json:"text"`
-	Code  int    `pb:"2"`
-	URL   string `pb:"3"`
-	Error bool   `pb:"4"`
+	Code  int    `pb:"2" json:"code"`
+	URL   string `pb:"3" json:"url"`
+	Error bool   `pb:"4" json:"error"`
 }
 
 type MessageAllTags struct {
 	Text  string `pb:"1" json:"text"`
-	Code  int    `pb:"2"`
-	URL   string `pb:"3"`
-	Error bool   `pb:"4"`
+	Code  int    `pb:"2" json:"code"`
+	URL   string `pb:"3" json:"url"`
+	Error bool   `pb:"4" json:"error"`
 }

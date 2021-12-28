@@ -9,6 +9,7 @@ import (
 	"github.com/gunk/gunk/format"
 	"github.com/gunk/gunk/generate"
 	"github.com/gunk/gunk/generate/downloader"
+	"github.com/gunk/gunk/lint"
 	"github.com/gunk/gunk/log"
 	"github.com/gunk/gunk/vetconfig"
 	"github.com/spf13/cobra"
@@ -133,6 +134,19 @@ func run() error {
 		},
 	}
 	app.AddCommand(&vetCmd)
+	// lint command
+	var enableLint, disableLint string
+	lintCmd := cobra.Command{
+		Use:   "lint [patterns]",
+		Short: "Lint a set of Gunk files",
+		Long:  "Lint a set of Gunk files.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return lint.Run("", enableLint, disableLint, args...)
+		},
+	}
+	lintCmd.Flags().StringVar(&enableLint, "enable", "", "Linters to enable (all if empty) separated by comma")
+	lintCmd.Flags().StringVar(&disableLint, "disable", "", "Linters to disable separated by comma, overrides enable")
+	app.AddCommand(&lintCmd)
 	return app.Execute()
 }
 

@@ -1,9 +1,9 @@
 package util
 
 import (
+	"github.com/gunk/opt/field"
 	"github.com/gunk/opt/http"
 	"github.com/gunk/opt/service"
-	"github.com/gunk/opt/field"
 )
 
 // Message is a Echo message.
@@ -25,10 +25,10 @@ const (
 
 // CheckStatusResponse is the response for a check status.
 type CheckStatusResponse struct {
-	Status Status `pb:"1"`
+	Status Status `pb:"1" json:"status"`
 
 	// +gunk field.Deprecated(true)
-	OldField int `pb:"2"`
+	OldField int `pb:"2" json:"old_field"`
 }
 
 // Util is a utility service.
@@ -38,17 +38,17 @@ type Util interface {
 	// Echo echoes a message.
 	//
 	// +gunk http.Match{
-	//		Method:	"POST",
-	// 		Path:	"/v1/echo",
-	// 		Body:	"*",
-	//	}
+	//         Method: "POST",
+	//         Path:   "/v1/echo",
+	//         Body:   "*",
+	// }
 	Echo(Message) Message
 
 	// CheckStatus sends the server health status.
 	//
 	// +gunk http.Match{
-	//		Method:	"GET",
-	// 		Path:	"/v1/echo",
-	//	}
+	//         Method: "GET",
+	//         Path:   "/v1/echo",
+	// }
 	CheckStatus() CheckStatusResponse
 }

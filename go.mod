@@ -8,7 +8,7 @@ require (
 	github.com/gunk/opt v0.2.0
 	github.com/karelbilek/dirchanges v0.0.0-20210218071031-880a92f1a313
 	github.com/kenshaw/ini v0.5.1
-	github.com/kenshaw/snaker v0.1.6
+	github.com/kenshaw/snaker v0.2.0
 	github.com/rogpeppe/go-internal v1.8.1-0.20211023094830-115ce09fd6b4
 	github.com/spf13/cobra v1.2.1
 	golang.org/x/sys v0.0.0-20211124211545-fe61309f8881

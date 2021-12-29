@@ -38,6 +38,10 @@ var linters = map[string]linter{
 		Usage: "enforces JSON tags to be snake case versions of field name",
 		Run:   lintJSON,
 	},
+	"unimport": {
+		Usage: "lists all imports that are unused",
+		Run:   lintUnimport,
+	},
 	"unused": {
 		Usage: "lists all enums and structs that are unused",
 		Run:   lintUnused,

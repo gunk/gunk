@@ -27,26 +27,40 @@ type MessageAllTags struct {
 	URL string `pb:"3"`
 	Error bool `pb:"4"`
 }
+
+type MessageSomeTagWrongOrder struct {
+	Text string `pb:"3" json:"text"`
+	Code int `json:"code"`
+	URL string `pb:"2"`
+	Error bool
+}
 -- message.gunk.golden --
 package message
 
 type EmptyMessage struct{}
 
 type MessageNoTags struct {
-	Text string
-	Code int
+	Text string `pb:"1"`
+	Code int    `pb:"2"`
 }
 
 type MessageSomeTags struct {
-	Text  string `json:"text"`
+	Text  string `pb:"1" json:"text"`
 	Code  int    `pb:"2"`
-	URL   string
-	Error bool `pb:"4"`
+	URL   string `pb:"3"`
+	Error bool   `pb:"4"`
 }
 
 type MessageAllTags struct {
 	Text  string `pb:"1" json:"text"`
 	Code  int    `pb:"2" json:"code"`
 	URL   string `pb:"3"`
+	Error bool   `pb:"4"`
+}
+
+type MessageSomeTagWrongOrder struct {
+	Text  string `pb:"3" json:"text"`
+	Code  int    `pb:"1" json:"code"`
+	URL   string `pb:"2"`
 	Error bool   `pb:"4"`
 }

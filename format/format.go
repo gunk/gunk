@@ -11,6 +11,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -189,6 +191,40 @@ func (f *Formatter) formatStruct(fset *token.FileSet, st *ast.StructType) error 
 	if st.Fields == nil {
 		return nil
 	}
+	// Figure out list of missing protobuf numbers.
+	missingNum := make([]int, 0, len(st.Fields.List))
+	if !f.Config.Format.PB { // Skip this if we are not going to use it anyways.
+		// Find all unusedFields.
+		unusedFields := make(map[int]bool, len(st.Fields.List))
+		for i := 1; i <= len(st.Fields.List); i++ {
+			unusedFields[i] = true
+		}
+		for _, field := range st.Fields.List {
+			if field.Tag == nil {
+				continue
+			}
+			tag, err := strconv.Unquote(field.Tag.Value)
+			if err != nil {
+				return err
+			}
+			pb, ok := reflect.StructTag(tag).Lookup("pb")
+			if !ok {
+				continue
+			}
+			pbNum, err := strconv.Atoi(pb)
+			if err != nil {
+				errorPos := fset.Position(field.Tag.Pos())
+				// TODO: Add the same error checking in generate. Or, look at factoring
+				// this code with the code in generate, they do very similar things?
+				return fmt.Errorf("%s: struct field tag for pb contains a non-number %q", errorPos, pb)
+			}
+			delete(unusedFields, pbNum)
+		}
+		for k := range unusedFields {
+			missingNum = append(missingNum, k)
+		}
+		sort.Ints(missingNum)
+	}
 	for i, field := range st.Fields.List {
 		var key []string
 		var value map[string]string
@@ -213,6 +249,10 @@ func (f *Formatter) formatStruct(fset *token.FileSet, st *ast.StructType) error 
 			entries = append(entries, fmt.Sprintf("pb:%q", strconv.Itoa(i+1)))
 		} else if _, ok := value["pb"]; ok {
 			entries = append(entries, fmt.Sprintf("pb:%q", value["pb"]))
+		} else {
+			// Default behaviour: Add missing entries.
+			entries = append(entries, fmt.Sprintf("pb:%q", strconv.Itoa(missingNum[0])))
+			missingNum = missingNum[1:]
 		}
 		if f.Config.Format.JSON {
 			entries = append(entries, fmt.Sprintf("json:%q", f.snaker.CamelToSnake(field.Names[0].Name)))

@@ -82,6 +82,17 @@ type Config struct {
 	ProtocPath    string
 	ProtocVersion string
 	Generators    []Generator
+	Format        FormatConfig
+}
+
+// FormatConfig is configuration for the format command.
+type FormatConfig struct {
+	// Whether to set all JSON fields to their "correct" names.
+	JSON bool
+	// Whether to set all PB fields to be ordered.
+	PB bool
+	// List of initialisms to use when formatting JSON.
+	Initialisms []string
 }
 
 // Load will attempt to find the .gunkconfig in the 'dir', working
@@ -203,6 +214,8 @@ func LoadSingle(reader io.Reader) (*Config, error) {
 			err = handleProtoc(config, s)
 		case name == "generate":
 			gen, err = handleGenerate(s, nil)
+		case name == "format":
+			err = handleFormat(config, s)
 		case strings.HasPrefix(name, "generate "):
 			// Check to see if we have the shorten version of a generate config:
 			// [generate js].
@@ -327,6 +340,34 @@ func handleGlobal(config *Config, section *parser.Section) error {
 			config.ImportPath = v
 		default:
 			return fmt.Errorf("unexpected key %q in global section", k)
+		}
+	}
+	return nil
+}
+
+func handleFormat(config *Config, section *parser.Section) error {
+	for _, k := range section.RawKeys() {
+		v := strings.TrimSpace(section.GetRaw(k))
+		switch k {
+		case "snake_case_json":
+			enableJSON, err := strconv.ParseBool(v)
+			if err != nil {
+				return err
+			}
+			config.Format.JSON = enableJSON
+		case "initialisms":
+			if v == "" {
+				return fmt.Errorf("initialisms must be a comma-separated list of initialisms to add")
+			}
+			config.Format.Initialisms = strings.Split(v, ",")
+		case "reorder_pb":
+			reorder, err := strconv.ParseBool(v)
+			if err != nil {
+				return err
+			}
+			config.Format.PB = reorder
+		default:
+			return fmt.Errorf("unexpected key %q in format section", k)
 		}
 	}
 	return nil

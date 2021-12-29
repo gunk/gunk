@@ -14,9 +14,31 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gunk/gunk/config"
 	"github.com/gunk/gunk/loader"
 	"github.com/kenshaw/snaker"
 )
+
+// Formatter is a struct that holds the state of the formatter.
+// A new formatter should be initialized when using different config.
+type Formatter struct {
+	Config *config.Config
+
+	snaker *snaker.Initialisms
+}
+
+// New creates a new instance of Formatter.
+func New(cfg *config.Config) (*Formatter, error) {
+	s := snaker.NewDefaultInitialisms()
+	err := s.Add(cfg.Format.Initialisms...)
+	if err != nil {
+		return nil, err
+	}
+	return &Formatter{
+		Config: cfg,
+		snaker: s,
+	}, nil
+}
 
 // Run formats Gunk files to be canonically formatted.
 func Run(dir string, args ...string) error {
@@ -48,13 +70,21 @@ func Run(dir string, args ...string) error {
 		return fmt.Errorf("encountered package loading errors")
 	}
 	for _, pkg := range pkgs {
+		cfg, err := config.Load(pkg.Dir)
+		if err != nil {
+			return fmt.Errorf("unable to load gunkconfig: %w", err)
+		}
+		f, err := New(cfg)
+		if err != nil {
+			return fmt.Errorf("unable to initialize formatter: %w", err)
+		}
 		for i, file := range pkg.GunkSyntax {
 			path := pkg.GunkFiles[i]
 			orig, err := ioutil.ReadFile(path)
 			if err != nil {
 				return fmt.Errorf("error on reading: %w", err)
 			}
-			got, err := formatFile(fset, file)
+			got, err := f.formatFile(fset, file)
 			if err != nil {
 				return fmt.Errorf("error on formating: %w", err)
 			}
@@ -71,15 +101,25 @@ func Run(dir string, args ...string) error {
 // Source canonically formats a single Gunk file, returning the result and any
 // error encountered.
 func Source(src []byte) ([]byte, error) {
+	f, err := New(&config.Config{})
+	if err != nil {
+		return nil, err
+	}
+	return f.Source(src)
+}
+
+// Source canonically formats a single Gunk file using the formatter's config,
+// returning the result and any error encountered.
+func (f *Formatter) Source(src []byte) ([]byte, error) {
 	fset := token.NewFileSet()
 	file, err := parser.ParseFile(fset, "", src, parser.ParseComments)
 	if err != nil {
 		return nil, err
 	}
-	return formatFile(fset, file)
+	return f.formatFile(fset, file)
 }
 
-func formatFile(fset *token.FileSet, file *ast.File) (_ []byte, formatErr error) {
+func (f *Formatter) formatFile(fset *token.FileSet, file *ast.File) (_ []byte, formatErr error) {
 	// Use custom panic values to report errors from the inspect func,
 	// since that's the easiest way to immediately halt the process and
 	// return the error.
@@ -96,11 +136,11 @@ func formatFile(fset *token.FileSet, file *ast.File) (_ []byte, formatErr error)
 	ast.Inspect(file, func(node ast.Node) bool {
 		switch node := node.(type) {
 		case *ast.CommentGroup:
-			if err := formatComment(fset, node); err != nil {
+			if err := f.formatComment(fset, node); err != nil {
 				panic(inspectError{err})
 			}
 		case *ast.StructType:
-			if err := formatStruct(fset, node); err != nil {
+			if err := f.formatStruct(fset, node); err != nil {
 				panic(inspectError{err})
 			}
 		}
@@ -113,7 +153,7 @@ func formatFile(fset *token.FileSet, file *ast.File) (_ []byte, formatErr error)
 	return buf.Bytes(), nil
 }
 
-func formatComment(fset *token.FileSet, group *ast.CommentGroup) error {
+func (f *Formatter) formatComment(fset *token.FileSet, group *ast.CommentGroup) error {
 	// Split the gunk tag ourselves, so we can support Source.
 	doc, tags, err := loader.SplitGunkTag(nil, fset, group)
 	if err != nil {
@@ -145,15 +185,15 @@ func formatComment(fset *token.FileSet, group *ast.CommentGroup) error {
 	return nil
 }
 
-func formatStruct(fset *token.FileSet, st *ast.StructType) error {
+func (f *Formatter) formatStruct(fset *token.FileSet, st *ast.StructType) error {
 	if st.Fields == nil {
 		return nil
 	}
-	for i, f := range st.Fields.List {
+	for i, field := range st.Fields.List {
 		var key []string
 		var value map[string]string
-		if f.Tag != nil {
-			tag, err := strconv.Unquote(f.Tag.Value)
+		if field.Tag != nil {
+			tag, err := strconv.Unquote(field.Tag.Value)
 			if err != nil {
 				return err
 			}
@@ -164,13 +204,21 @@ func formatStruct(fset *token.FileSet, st *ast.StructType) error {
 			}
 		}
 		// Don't touch invalid code.
-		if len(f.Names) != 1 {
+		if len(field.Names) != 1 {
 			continue
 		}
 		// Insert JSON and protobuf key.
 		entries := make([]string, 0, len(key))
-		entries = append(entries, fmt.Sprintf("pb:%q", strconv.Itoa(i+1)))
-		entries = append(entries, fmt.Sprintf("json:%q", snaker.CamelToSnake(f.Names[0].Name)))
+		if f.Config.Format.PB {
+			entries = append(entries, fmt.Sprintf("pb:%q", strconv.Itoa(i+1)))
+		} else if _, ok := value["pb"]; ok {
+			entries = append(entries, fmt.Sprintf("pb:%q", value["pb"]))
+		}
+		if f.Config.Format.JSON {
+			entries = append(entries, fmt.Sprintf("json:%q", f.snaker.CamelToSnake(field.Names[0].Name)))
+		} else if _, ok := value["json"]; ok {
+			entries = append(entries, fmt.Sprintf("json:%q", value["json"]))
+		}
 		// Maintain other keys.
 		for _, k := range key {
 			if k == "pb" || k == "json" {
@@ -179,10 +227,12 @@ func formatStruct(fset *token.FileSet, st *ast.StructType) error {
 			}
 			entries = append(entries, fmt.Sprintf("%s:%q", k, value[k]))
 		}
-		f.Tag = &ast.BasicLit{
-			ValuePos: f.Type.End() + 1,
-			Kind:     token.STRING,
-			Value:    "`" + strings.Join(entries, " ") + "`",
+		if len(entries) > 0 {
+			field.Tag = &ast.BasicLit{
+				ValuePos: field.Type.End() + 1,
+				Kind:     token.STRING,
+				Value:    "`" + strings.Join(entries, " ") + "`",
+			}
 		}
 	}
 	return nil

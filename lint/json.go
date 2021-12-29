@@ -12,7 +12,7 @@ import (
 func lintJSON(l *Linter, pkgs []*loader.GunkPackage) {
 	for _, pkg := range pkgs {
 		for _, f := range pkg.GunkSyntax {
-			walk(f, func(n ast.Node) bool {
+			ast.Inspect(f, func(n ast.Node) bool {
 				switch v := n.(type) {
 				default:
 					return false

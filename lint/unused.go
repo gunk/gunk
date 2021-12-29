@@ -28,7 +28,7 @@ func lintUnused(l *Linter, pkgs []*loader.GunkPackage) {
 			}
 		}
 		for _, f := range pkg.GunkSyntax {
-			walk(f, func(n ast.Node) bool {
+			ast.Inspect(f, func(n ast.Node) bool {
 				switch v := n.(type) {
 				case *ast.Field:
 					addType(pkg.TypesInfo.Types[v.Type].Type)
@@ -40,7 +40,7 @@ func lintUnused(l *Linter, pkgs []*loader.GunkPackage) {
 	// Find all unused declarations.
 	for _, pkg := range pkgs {
 		for _, f := range pkg.GunkSyntax {
-			walk(f, func(n ast.Node) bool {
+			ast.Inspect(f, func(n ast.Node) bool {
 				switch v := n.(type) {
 				case *ast.TypeSpec:
 					if _, ok := v.Type.(*ast.InterfaceType); ok {

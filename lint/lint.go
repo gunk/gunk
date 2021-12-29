@@ -128,23 +128,6 @@ func (l *Linter) addError(n ast.Node, formatStr string, args ...interface{}) {
 	})
 }
 
-// walk is a helper function that creates a visitor to walk the AST tree and
-// recurses into the node if the function returns true for the node.
-func walk(root ast.Node, f func(ast.Node) bool) {
-	ast.Walk(visitor(f), root)
-}
-
-type visitor func(ast.Node) bool
-
-// Visit implements ast.Visitor.
-func (v visitor) Visit(n ast.Node) ast.Visitor {
-	if v(n) {
-		// Continue to recurse.
-		return v
-	}
-	return nil
-}
-
 // PrintLinters prints out all linters to stdout.
 func PrintLinters() {
 	fmt.Println("Linters available:")

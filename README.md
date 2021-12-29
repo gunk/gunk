@@ -393,6 +393,21 @@ protoc=js
   Note that this might produce invalid protobuf that stops compiling in 1.4.*
   protoc-gen-go, if the enum names clash.
 
+### Section `[format]`
+The configuration options for formatting Gunk files where formatting options
+that may break program behavior can be enabled.
+
+#### Parameters
+
+* `snake_case_json` - automatically sets all field tags of JSON to their snake
+  cased name if enabled
+
+* `initialisms` - comma-separated list of initialisms to be used when
+  formatting JSON names
+
+* `reorder_pb` - automatically sets pb according to the field's order,
+  overwriting previous pb fields
+
 ### Section `[protoc]`
 
 The path where to check for (or where to download) the `protoc` binary can be configured.

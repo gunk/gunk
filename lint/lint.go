@@ -34,6 +34,10 @@ type linter struct {
 }
 
 var linters = map[string]linter{
+	"commentstart": {
+		Usage: "enforces comments to start with the name of the described object",
+		Run:   lintCommentStart,
+	},
 	"json": {
 		Usage: "enforces JSON tags to be snake case versions of field name",
 		Run:   lintJSON,

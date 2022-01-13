@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/constant"
@@ -113,6 +114,9 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 	if len(patterns) == 1 {
 		pkgPath := patterns[0]
 		if pkg := l.cache[pkgPath]; pkg != nil {
+			if len(pkg.Errors) > 0 {
+				return nil, fmt.Errorf("error loading package %q", pkgPath)
+			}
 			return []*GunkPackage{pkg}, nil
 		}
 	}
@@ -151,8 +155,8 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 		for _, lpkg := range lpkgs {
 			pkg := &GunkPackage{Package: *lpkg}
 			findGunkFiles(pkg)
-			if len(pkg.GunkFiles) == 0 {
-				// A Go package that isn't a Gunk package - skip it.
+			if len(pkg.GunkFiles) == 0 && len(pkg.Errors) == 0 {
+				// Not a Gunk package. Skip.
 				continue
 			}
 			pkgs = append(pkgs, pkg)
@@ -166,6 +170,10 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 			l.cache = make(map[string]*GunkPackage)
 		}
 		l.cache[pkg.PkgPath] = pkg
+	}
+	if PrintErrors(pkgs) > 0 {
+		// FIXME: Return a more specific error message.
+		return nil, errors.New("error loading package")
 	}
 	return pkgs, nil
 }
@@ -231,6 +239,9 @@ func (l *Loader) Import(path string) (*types.Package, error) {
 	}
 	if len(pkgs) != 1 {
 		panic("expected Loader.Load to return exactly one package")
+	}
+	if pkgs[0].Types == nil {
+		panic("expected packages to have non-nil Types")
 	}
 	return pkgs[0].Types, nil
 }

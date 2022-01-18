@@ -161,7 +161,7 @@ func Load(dir string) (*Config, error) {
 	}
 	// If no configs were found, return an error.
 	if len(cfgs) == 0 {
-		return nil, fmt.Errorf("no .gunkconfig found")
+		return nil, fmt.Errorf("no .gunkconfig found for %q", dir)
 	}
 	// Merge the found configs.
 	config := cfgs[0]

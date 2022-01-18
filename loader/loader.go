@@ -156,8 +156,8 @@ func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
 		for _, lpkg := range lpkgs {
 			pkg := &GunkPackage{Package: *lpkg}
 			findGunkFiles(pkg)
-			if len(pkg.GunkFiles) == 0 {
-				// A Go package that isn't a Gunk package - skip it.
+			if len(pkg.GunkFiles) == 0 && len(pkg.Errors) == 0 {
+				// Not a Gunk package. Skip.
 				continue
 			}
 			pkgs = append(pkgs, pkg)
@@ -248,6 +248,12 @@ func (l *Loader) Import(path string) (*types.Package, error) {
 	}
 	if len(pkgs) != 1 {
 		panic("expected Loader.Load to return exactly one package")
+	}
+	if PrintErrors(pkgs) > 0 {
+		return nil, fmt.Errorf("error importing package %q", path)
+	}
+	if pkgs[0].Types == nil {
+		panic("expected packages to have non-nil Types")
 	}
 	return pkgs[0].Types, nil
 }

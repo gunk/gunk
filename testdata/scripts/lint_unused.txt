@@ -1,0 +1,56 @@
+! gunk lint --enable unused ./...
+stderr 'unused declared type: UnusedStruct'
+stderr 'unused declared type: UnusedEnum'
+! stderr 'unused declared type: Used'
+
+-- .gunkconfig --
+[generate go]
+
+-- go.mod --
+module testdata.tld/util
+
+-- test.gunk --
+package util
+
+type UnusedStruct struct {
+	A int `pb:"1" json:"a"`
+}
+
+type UnusedEnum int
+
+type UsedEnum int
+
+type UsedInNested struct {
+	A int `pb:"1" json:"a"`
+}
+
+type UsedIndirectly struct {
+	A int `pb:"1" json:"a"`
+}
+
+type UsedParam struct {
+	A UsedIndirectly            `pb:"1" json:"a"`
+	B []map[string]UsedInNested `pb:"2" json:"b"`
+}
+
+type UsedResponse struct {
+	A int `pb:"1" json:"a"`
+}
+
+type UsedImported struct {
+	A int `pb:"1" json:"a"`
+}
+
+type FakeService interface {
+	Foo(UsedParam) UsedResponse
+	Bar(chan UsedEnum)
+}
+
+-- foo/test.gunk --
+package foo
+
+import "testdata.tld/util"
+
+type FooService interface {
+	Bar(util.UsedImported)
+}

@@ -3,6 +3,7 @@ package lint
 import (
 	"fmt"
 	"go/ast"
+	"go/scanner"
 	"go/token"
 	"os"
 	"sort"
@@ -10,23 +11,6 @@ import (
 
 	"github.com/gunk/gunk/loader"
 )
-
-// LintError is an error a linter reported during linting.
-type LintError struct {
-	Pos string // "file:line:col" or "file:line" or "" or "-"
-	Msg error
-}
-
-func (l LintError) Error() string {
-	if l.Pos == "" {
-		return l.Msg.Error()
-	}
-	return l.Pos + ": " + l.Msg.Error()
-}
-
-func (l LintError) Unwrap() error {
-	return l.Msg
-}
 
 type linter struct {
 	Usage string
@@ -105,7 +89,7 @@ func Run(dir string, enable string, disable string, args ...string) error {
 // Linter is a struct that holds the state of the linter.
 type Linter struct {
 	*loader.Loader
-	Err []LintError
+	Err scanner.ErrorList
 }
 
 // New creates a new initialized linter instance.
@@ -116,7 +100,7 @@ func New(dir string) *Linter {
 			Fset:  token.NewFileSet(),
 			Types: true,
 		},
-		Err: make([]LintError, 0),
+		Err: make(scanner.ErrorList, 0),
 	}
 }
 
@@ -130,10 +114,7 @@ func (l Linter) PrintErrors() int {
 }
 
 func (l *Linter) addError(n ast.Node, formatStr string, args ...interface{}) {
-	l.Err = append(l.Err, LintError{
-		Pos: l.Fset.Position(n.Pos()).String(),
-		Msg: fmt.Errorf(formatStr, args...),
-	})
+	l.Err.Add(l.Fset.Position(n.Pos()), fmt.Sprintf(formatStr, args...))
 }
 
 // PrintLinters prints out all linters to stdout.

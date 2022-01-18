@@ -16,9 +16,7 @@ func lintCommentStart(l *Linter, pkgs []*loader.GunkPackage) {
 				switch v := n.(type) {
 				default:
 					return false
-				case *ast.GenDecl, *ast.StructType, *ast.InterfaceType, *ast.FieldList:
-					return true
-				case *ast.File:
+				case *ast.File, *ast.GenDecl, *ast.StructType, *ast.InterfaceType, *ast.FieldList:
 					return true
 				case *ast.TypeSpec:
 					checkCommentStart(l, n, v.Name.Name, v.Doc.Text())

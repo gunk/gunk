@@ -40,23 +40,15 @@ func lintUnimport(l *Linter, pkgs []*loader.GunkPackage) {
 					addType(v.Type)
 				}
 			}
-			ast.Inspect(f, func(n ast.Node) bool {
-				switch v := n.(type) {
-				default:
-					return false
-				case *ast.File, *ast.GenDecl:
-					return true
-				case *ast.ImportSpec:
-					importPath, err := strconv.Unquote(v.Path.Value)
-					if err != nil {
-						l.addError(n, "failed to parse import %q", v.Path.Value)
-					}
-					if !usedImports[importPath] {
-						l.addError(n, "unused import %s", importPath)
-					}
-					return false
+			for _, v := range f.Imports {
+				importPath, err := strconv.Unquote(v.Path.Value)
+				if err != nil {
+					l.addError(v, "failed to parse import %q", v.Path.Value)
 				}
-			})
+				if !usedImports[importPath] {
+					l.addError(v, "unused import %s", importPath)
+				}
+			}
 		}
 	}
 }

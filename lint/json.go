@@ -20,6 +20,10 @@ func lintJSON(l *Linter, pkgs []*loader.GunkPackage) {
 					// Continue walking down the tree for these types.
 					return true
 				case *ast.Field:
+					if v.Tag == nil {
+						l.addError(n, "expecting JSON tag, found none")
+						return false
+					}
 					tagValue, err := strconv.Unquote(v.Tag.Value)
 					if err != nil {
 						l.addError(n, "invalid struct tag")

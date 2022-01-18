@@ -42,6 +42,10 @@ func lintUnused(l *Linter, pkgs []*loader.GunkPackage) {
 		for _, f := range pkg.GunkSyntax {
 			ast.Inspect(f, func(n ast.Node) bool {
 				switch v := n.(type) {
+				default:
+					return false
+				case *ast.File, *ast.GenDecl:
+					return true
 				case *ast.TypeSpec:
 					if _, ok := v.Type.(*ast.InterfaceType); ok {
 						// Skip interface types, they define services and should
@@ -54,7 +58,6 @@ func lintUnused(l *Linter, pkgs []*loader.GunkPackage) {
 					}
 					return false
 				}
-				return true
 			})
 		}
 	}

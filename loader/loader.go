@@ -308,6 +308,9 @@ type GunkTag struct {
 // parseGunkPackage parses the package's GunkFiles, and type-checks the package
 // if l.Types is set.
 func (l *Loader) parseGunkPackage(pkg *GunkPackage) {
+	// Clear the name before parsing to avoid Go files from triggering package
+	// name mismatch
+	pkg.Name = ""
 	// parse the gunk files
 	for _, fpath := range pkg.GunkFiles {
 		file, err := parser.ParseFile(l.Fset, fpath, nil, parser.ParseComments)

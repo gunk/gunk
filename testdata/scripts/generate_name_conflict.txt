@@ -1,0 +1,23 @@
+gunk generate ./stale_generated
+exists 'stale_generated/all.pb.go'
+! gunk generate ./conflicting_package_name
+! exists 'conflicting_package_name/all.pb.go'
+
+-- .gunkconfig --
+[generate go]
+plugin_version=v1.26.0
+
+-- stale_generated/all.go --
+package stale_package_name
+
+-- stale_generated/foo.gunk --
+package diff // Different package name
+type Foo struct {
+	Bar int `pb:"1" json:"bar"`
+}
+
+-- conflicting_package_name/foo.gunk --
+package a
+
+-- conflicting_package_name/bar.gunk --
+package b

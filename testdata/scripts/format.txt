@@ -23,6 +23,7 @@ module testdata.tld/util
 package empty // no Gunk files
 -- broken/echo.gunk --
 package
+-- .gunkconfig --
 -- echo.gunk --
 // +gunk java.Package("com.testdata.v1")
 // +gunk file.Deprecated(true)

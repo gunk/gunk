@@ -1,0 +1,76 @@
+gunk format ./...
+cmp none/message.gunk none/message.gunk.golden
+cmp json/message.gunk json/message.gunk.golden
+cmp pb/message.gunk pb/message.gunk.golden
+cmp all/message.gunk all/message.gunk.golden
+
+-- none/.gunkconfig --
+-- none/message.gunk --
+// Should be left untouched because no options are enabled.
+package none
+
+type Foo struct {
+	Bar int `pb:"2"`
+	Baz int `pb:"1"`
+}
+-- none/message.gunk.golden --
+// Should be left untouched because no options are enabled.
+package none
+
+type Foo struct {
+	Bar int `pb:"2"`
+	Baz int `pb:"1"`
+}
+-- json/.gunkconfig --
+[format]
+snake_case_json=true
+-- json/message.gunk --
+package json
+
+type Foo struct {
+	Bar int `pb:"2"`
+	Baz int `pb:"1"`
+}
+-- json/message.gunk.golden --
+package json
+
+type Foo struct {
+	Bar int `pb:"2" json:"bar"`
+	Baz int `pb:"1" json:"baz"`
+}
+-- pb/.gunkconfig --
+[format]
+reorder_pb=true
+-- pb/message.gunk --
+package pb
+
+type Foo struct {
+	Bar int `pb:"2"`
+	Baz int `pb:"1"`
+}
+-- pb/message.gunk.golden --
+package pb
+
+type Foo struct {
+	Bar int `pb:"1"`
+	Baz int `pb:"2"`
+}
+-- all/.gunkconfig --
+[format]
+snake_case_json=true
+initialisms=DEF
+reorder_pb=true
+-- all/message.gunk --
+package all
+
+type Foo struct {
+	Bar int `pb:"2"`
+	DEFBaz int `pb:"1"`
+}
+-- all/message.gunk.golden --
+package all
+
+type Foo struct {
+	Bar    int `pb:"1" json:"bar"`
+	DEFBaz int `pb:"2" json:"def_baz"`
+}

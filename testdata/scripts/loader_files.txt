@@ -15,6 +15,7 @@ cmp p2/p2.gunk p2/p2.gunk.golden
 ! gunk generate p1/p1.gunk p2/p2.gunk
 stderr '-: gunk package name mismatch: "p1" "p2"'
 
+-- .gunkconfig --
 -- go.mod --
 module testdata.tld/util
 -- p1/p1.gunk --

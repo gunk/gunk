@@ -2,6 +2,7 @@ package generate
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"go/ast"
 	"go/constant"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
 	"github.com/gunk/gunk/config"
+	"github.com/gunk/gunk/generate/doc"
 	"github.com/gunk/gunk/generate/downloader"
 	"github.com/gunk/gunk/loader"
 	"github.com/gunk/gunk/log"
@@ -71,7 +73,7 @@ func Run(dir string, args ...string) error {
 	if err := g.loadProtoDeps(); err != nil {
 		return fmt.Errorf("unable to load protodeps: %w", err)
 	}
-	// Finally, run the code generators.
+	// Run the code generators.
 	for _, pkg := range pkgs {
 		cfg := pkgConfigs[pkg.Dir]
 		protocPath, err := downloader.CheckOrDownloadProtoc(cfg.ProtocPath, cfg.ProtocVersion)
@@ -82,6 +84,12 @@ func Run(dir string, args ...string) error {
 			return fmt.Errorf("unable to generate pkg %s: %w", pkg.PkgPath, err)
 		}
 		log.Verbosef("%s", pkg.PkgPath)
+	}
+	// Combine and convert the packages to doc output
+	if g.docGenerator != nil {
+		if err := g.generateDoc(cfg, g.docGenerator); err != nil {
+			return fmt.Errorf("unable to generate docs: %w", err)
+		}
 	}
 	return nil
 }
@@ -150,7 +158,12 @@ type Generator struct {
 	protoLoader *loader.ProtoLoader
 	// All protobuf that has been translated currently.
 	allProto map[string]*descriptorpb.FileDescriptorProto
-
+	// docGenerator is the generator used for doc generation.
+	// if it's nil, doc generation is disabled.
+	docGenerator *config.Generator
+	// docPkgs holds the packages by the doc generator.
+	// stored so that they can be tagged before generation
+	docPkgs []*doc.Package
 	// Next indexes to use for message, service and enum.
 	messageIndex int32
 	serviceIndex int32
@@ -220,14 +233,26 @@ func (g *Generator) GeneratePkg(path string, gens []config.Generator, protocPath
 	// have nothing to do.
 	req := g.newCodeGenRequest(path)
 	for _, gen := range gens {
-		if gen.IsProtoc() {
+		switch {
+		case gen.IsDoc():
+			// store the generator for output use
+			gen := gen
+			g.docGenerator = &gen
+			pkg := g.gunkPkgs[path]
+			log.Verbosef("generate-doc for %s", pkg.PkgPath)
+			docPkg, err := doc.Generate(pkg, gen)
+			if err != nil {
+				return fmt.Errorf("unable to generate documentation: %w", err)
+			}
+			g.docPkgs = append(g.docPkgs, docPkg)
+		case gen.IsProtoc():
 			if gen.PluginVersion != "" {
 				return fmt.Errorf("cannot use pinned version with protoc option")
 			}
 			if err := g.generateProtoc(*req, gen, protocPath); err != nil {
 				return fmt.Errorf("unable to generate protoc: %w", err)
 			}
-		} else {
+		default:
 			c := configWithBinary{Generator: gen}
 			if gen.PluginVersion != "" {
 				has := downloader.Has(gen.Code())
@@ -297,7 +322,7 @@ func (g *Generator) generateProtoc(req pluginpb.CodeGeneratorRequest, gen config
 	}
 	// output dir
 	protocOutputPath := gpkg.Dir
-	outDir, err := outPath(gen, protocOutputPath, mainPkg)
+	outDir, err := outPath(gen, protocOutputPath, mainPkg.Name)
 	if err != nil {
 		return fmt.Errorf("unable to build output path for %q: %w", gpkg.Dir, err)
 	}
@@ -414,7 +439,7 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 						matching = path
 						gpkg = pkg
 						subdir := strings.TrimPrefix(pkgPath, path)
-						dir, err = outPath(gen.Generator, gpkg.Dir, mainPkg)
+						dir, err = outPath(gen.Generator, gpkg.Dir, mainPkg.Name)
 						if err != nil {
 							return fmt.Errorf("unable to build dir %q: %w", gpkg.Dir, err)
 						}
@@ -426,13 +451,13 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 			// If there is no prefix match, it's likely a local relative path.
 			if matching == "" {
 				gpkg = mainPkg
-				dir, err = outPath(gen.Generator, gpkg.Dir, mainPkg)
+				dir, err = outPath(gen.Generator, gpkg.Dir, mainPkg.Name)
 				if err != nil {
 					return fmt.Errorf("unable to build dir: %q: %w", gpkg.Dir, err)
 				}
 			}
 		} else {
-			dir, err = outPath(gen.Generator, gpkg.Dir, mainPkg)
+			dir, err = outPath(gen.Generator, gpkg.Dir, mainPkg.Name)
 			if err != nil {
 				return fmt.Errorf("unable to build dir %q: %w", gpkg.Dir, err)
 			}
@@ -452,7 +477,7 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 		// remove fake path
 		outPath = strings.TrimPrefix(outPath, "fake-path.com/command-line-arguments/")
 
-		outPath, err = pkgTpl(outPath, mainPkg)
+		outPath, err = pkgTpl(outPath, mainPkg.Name)
 		if err != nil {
 			return fmt.Errorf("unable to build output path for %q: %w", outPath, err)
 		}
@@ -466,6 +491,93 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 
 		if err := writeFile(outPath, data); err != nil {
 			return fmt.Errorf("unable to write to file %q: %w", outPath, err)
+		}
+	}
+	return nil
+}
+
+func (g *Generator) generateDoc(cfg *config.Config, gen *config.Generator) error {
+	pkgs := g.docPkgs
+	used := make(map[string]string, len(pkgs))
+	tags := make(map[string]*doc.Tag)
+	// openPreamble opens the preamble file and returns its contents, otherwise
+	// an empty string.
+	openPreamble := func(path string) (string, error) {
+		if path == "" {
+			return "", nil
+		}
+		if !filepath.IsAbs(path) {
+			path = filepath.Join(cfg.Dir, path)
+		}
+		buf, err := os.ReadFile(path)
+		if err != nil {
+			return "", fmt.Errorf("unable to read file %q: %w", path, err)
+		}
+		return string(buf), nil
+	}
+	for name, dc := range cfg.DocsConfig {
+		// open preamble file
+		pre, err := openPreamble(dc.Preamble)
+		if err != nil {
+			return err
+		}
+		// create tag
+		tag := &doc.Tag{
+			Name:     dc.Name,
+			Preamble: pre,
+			Weight:   dc.Weight,
+		}
+		if name == config.DefaultTag && len(dc.Packages) > 0 {
+			return fmt.Errorf("packages cannot be specified for the default tag")
+		}
+		for _, pkg := range pkgs {
+			for _, pkgName := range dc.Packages {
+				if pkg.Name != pkgName && pkg.ID != pkgName {
+					continue
+				}
+				if old := used[pkg.Name]; old != "" {
+					return fmt.Errorf("package %s used in multiple tags (%q, %q)",
+						pkg.Name, name, old)
+				}
+				used[pkg.Name] = name
+				tag.Packages = append(tag.Packages, pkg)
+				break
+			}
+		}
+		tags[name] = tag
+	}
+	// add default package
+	if _, ok := tags[config.DefaultTag]; !ok {
+		tags[config.DefaultTag] = &doc.Tag{}
+	}
+	if tags[config.DefaultTag].Name == "" {
+		tags[config.DefaultTag].Name = config.DefaultTag
+	}
+	tags[config.DefaultTag].Packages = make([]*doc.Package, 0, len(pkgs)-len(used))
+	for _, pkg := range pkgs {
+		// already added
+		if used[pkg.Name] != "" {
+			continue
+		}
+		// add all unassigned packages to default
+		tags[config.DefaultTag].Packages = append(tags[config.DefaultTag].Packages, pkg)
+	}
+	// output tags
+	for name, tag := range tags {
+		if gen.Out == "" {
+			return fmt.Errorf("output path is required for doc generator")
+		}
+		out, err := outPath(*gen, "", tag.Name)
+		if err != nil {
+			return fmt.Errorf("unable to build output path for %q: %w", out, err)
+		}
+		f, err := os.Create(filepath.Join(out, name+".json"))
+		if err != nil {
+			return fmt.Errorf("unable to create file %q: %w", out, err)
+		}
+		defer f.Close()
+		if err := json.NewEncoder(f).Encode(tag); err != nil {
+			return fmt.Errorf("unable to write to file %q: %w", out, err)
 		}
 	}
 	return nil
@@ -1182,6 +1294,7 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*descriptorpb.EnumDescript
 			}
 			g.curPos = vs.Pos()
 			docText := vs.Doc.Text()
+
 			switch {
 			case docText == "":
 				// The original comment only had gunk tags, and
@@ -1348,7 +1461,7 @@ func mkdirAll(path string) error {
 
 // pkgTpl processes the provided package path as a template, replacing Package
 // with the package name.
-func pkgTpl(tmpl string, pkg *loader.GunkPackage) (string, error) {
+func pkgTpl(tmpl string, pkg string) (string, error) {
 	if !strings.Contains(tmpl, "{{") {
 		return tmpl, nil
 	}
@@ -1359,7 +1472,7 @@ func pkgTpl(tmpl string, pkg *loader.GunkPackage) (string, error) {
 	}
 	buf := new(bytes.Buffer)
 	if err := tpl.Execute(buf, map[string]interface{}{
-		"Package": pkg.Name,
+		"Package": pkg,
 	}); err != nil {
 		return "", err
 	}
@@ -1378,7 +1491,7 @@ func paramStringWithOut(g config.Generator, outDir string) string {
 
 // outPath determines the path for a generator to write generated files to. It
 // will use 'packageDir' if no 'out' key was set in the config.
-func outPath(g config.Generator, packageDir string, pkg *loader.GunkPackage) (string, error) {
+func outPath(g config.Generator, packageDir string, pkg string) (string, error) {
 	if g.Out == "" {
 		return packageDir, nil
 	}

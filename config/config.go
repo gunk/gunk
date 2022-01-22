@@ -14,6 +14,8 @@ import (
 )
 
 const (
+	DefaultTag = "default"
+
 	goModFilename = "go.mod"
 	gitFilename   = ".git"
 )
@@ -33,6 +35,10 @@ type Generator struct {
 	JSONPostProc  bool
 	FixPaths      bool
 	Shortened     bool // only for `gunk vet`
+}
+
+func (g Generator) IsDoc() bool {
+	return g.Command == "doc"
 }
 
 func (g Generator) IsProtoc() bool {
@@ -83,6 +89,7 @@ type Config struct {
 	ProtocVersion string
 	Generators    []Generator
 	Format        FormatConfig
+	DocsConfig    map[string]*DocConfig
 }
 
 // FormatConfig is configuration for the format command.
@@ -93,6 +100,19 @@ type FormatConfig struct {
 	PB bool
 	// List of initialisms to use when formatting JSON.
 	Initialisms []string
+}
+
+// DocConfig is configuration for the docs generation output
+type DocConfig struct {
+	// User-facing name of the tag.
+	Name string
+	// Path to a file that contains preamble markdown for section
+	Preamble string
+	// Weight is used when sorting the tags in the documentation.
+	Weight int
+	// List of packages part of this section. Can either just the full path to
+	// the package, or just the package name.
+	Packages []string
 }
 
 // Load will attempt to find the .gunkconfig in the 'dir', working
@@ -164,6 +184,7 @@ func Load(dir string) (*Config, error) {
 		return nil, fmt.Errorf("no .gunkconfig found for %q", dir)
 	}
 	// Merge the found configs.
+	// TODO(hhhapz): merge DocConfig and Format config.
 	config := cfgs[0]
 	for i := 1; i < len(cfgs); i++ {
 		c := cfgs[i]
@@ -201,7 +222,9 @@ func LoadSingle(reader io.Reader) (*Config, error) {
 	}
 	config := &Config{
 		Generators: make([]Generator, 0, len(f.AllSections())),
+		DocsConfig: make(map[string]*DocConfig),
 	}
+	config.DocsConfig[DefaultTag] = &DocConfig{}
 	for _, s := range f.AllSections() {
 		var err error
 		var gen *Generator
@@ -213,7 +236,7 @@ func LoadSingle(reader io.Reader) (*Config, error) {
 		case name == "protoc":
 			err = handleProtoc(config, s)
 		case name == "generate":
-			gen, err = handleGenerate(s, nil)
+			gen, err = handleGenerate(config, s, nil)
 		case name == "format":
 			err = handleFormat(config, s)
 		case strings.HasPrefix(name, "generate "):
@@ -223,7 +246,13 @@ func LoadSingle(reader io.Reader) (*Config, error) {
 			if len(sParts) != 2 {
 				return nil, fmt.Errorf("generate section name should have 2 values, not %d", len(sParts))
 			}
-			gen, err = handleGenerate(s, &sParts[1])
+			gen, err = handleGenerate(config, s, &sParts[1])
+		case strings.HasPrefix(name, "doc "):
+			sParts := strings.Split(name, " ")
+			if len(sParts) != 2 {
+				return nil, fmt.Errorf("doc section name should have 2 values, not %d", len(sParts))
+			}
+			err = handleDoc(config, s, sParts[1])
 		default:
 			return nil, fmt.Errorf("unknown section %q", s.Name())
 		}
@@ -252,7 +281,7 @@ func handleProtoc(config *Config, section *parser.Section) error {
 	return nil
 }
 
-func handleGenerate(section *parser.Section, shorthand *string) (*Generator, error) {
+func handleGenerate(config *Config, section *parser.Section, shorthand *string) (*Generator, error) {
 	keys := section.RawKeys()
 	gen := &Generator{
 		Params: make([]KeyValue, 0, len(keys)),
@@ -265,10 +294,13 @@ func handleGenerate(section *parser.Section, shorthand *string) (*Generator, err
 		// We ignore the binary path since we don't do the same for the
 		// normal generate section. If we start using the binary path here
 		// we should also use it for the normal generate section.
-		if !ProtocBuiltinLanguages[generator] {
-			gen.Command = "protoc-gen-" + generator
-		} else {
+		switch {
+		case generator == "doc":
+			gen.Command = generator
+		case ProtocBuiltinLanguages[generator]:
 			gen.ProtocGen = generator
+		default:
+			gen.Command = "protoc-gen-" + generator
 		}
 		gen.Shortened = true // for vetting
 	}
@@ -328,6 +360,38 @@ func handleGenerate(section *parser.Section, shorthand *string) (*Generator, err
 	}
 
 	return gen, nil
+}
+
+func handleDoc(config *Config, section *parser.Section, tag string) error {
+	docConfig := &DocConfig{}
+	for _, k := range section.RawKeys() {
+		switch k {
+		case "name":
+			docConfig.Name = section.Get(k)
+		case "preamble":
+			docConfig.Preamble = section.Get(k)
+		case "packages":
+			paths := strings.Split(section.Get(k), ",")
+			for _, p := range paths {
+				p = strings.TrimSpace(p)
+				if p == "" {
+					return fmt.Errorf("empty path in packages")
+				}
+				docConfig.Packages = append(docConfig.Packages, p)
+			}
+		case "weight":
+			w, err := strconv.Atoi(section.Get(k))
+			if err != nil {
+				return fmt.Errorf("cannot parse weight: %w", err)
+			}
+			docConfig.Weight = int(w)
+		default:
+			return fmt.Errorf("unknown key %q in doc section", k)
+		}
+	}
+	// add to docs config
+	config.DocsConfig[tag] = docConfig
+	return nil
 }
 
 func handleGlobal(config *Config, section *parser.Section) error {

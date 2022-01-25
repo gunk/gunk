@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/gunk/gunk/config"
 	"github.com/gunk/gunk/loader"
 )
 
@@ -76,6 +77,14 @@ func Run(dir string, enable string, disable string, args ...string) error {
 			delete(lintersToRun, name)
 		}
 	}
+	// Load package configs
+	for _, pkg := range pkgs {
+		cfg, err := config.Load(pkg.Dir)
+		if err != nil {
+			return fmt.Errorf("error loading config for %s: %w", dir, err)
+		}
+		l.cfg[pkg.ID] = cfg
+	}
 	// Run the linters
 	for _, v := range lintersToRun {
 		v.Run(l, pkgs)
@@ -90,6 +99,8 @@ func Run(dir string, enable string, disable string, args ...string) error {
 type Linter struct {
 	*loader.Loader
 	Err scanner.ErrorList
+
+	cfg map[string]*config.Config
 }
 
 // New creates a new initialized linter instance.
@@ -101,6 +112,7 @@ func New(dir string) *Linter {
 			Types: true,
 		},
 		Err: make(scanner.ErrorList, 0),
+		cfg: make(map[string]*config.Config),
 	}
 }
 

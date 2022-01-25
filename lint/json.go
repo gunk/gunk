@@ -11,6 +11,12 @@ import (
 
 func lintJSON(l *Linter, pkgs []*loader.GunkPackage) {
 	for _, pkg := range pkgs {
+		s := snaker.NewDefaultInitialisms()
+		err := s.Add(l.cfg[pkg.ID].Format.Initialisms...)
+		if err != nil {
+			l.addError(pkg.GunkSyntax[0], "error loading initialisms: %v", err)
+		}
+
 		for _, f := range pkg.GunkSyntax {
 			ast.Inspect(f, func(n ast.Node) bool {
 				switch v := n.(type) {
@@ -39,7 +45,7 @@ func lintJSON(l *Linter, pkgs []*loader.GunkPackage) {
 						l.addError(n, "expected exactly 1 name, got %d", len(v.Names))
 						return false
 					}
-					snakeCase := snaker.CamelToSnakeIdentifier(v.Names[0].Name)
+					snakeCase := s.CamelToSnakeIdentifier(v.Names[0].Name)
 					if json != snakeCase {
 						l.addError(n, "JSON name must be snake case of field name")
 						return false

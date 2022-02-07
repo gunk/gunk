@@ -94,6 +94,8 @@ func Generate(pkg *loader.GunkPackage, genCfg config.Generator) (p *Package, err
 						}
 					}
 				}
+				// fix path field names
+				s.Path = processPath(o, s.Path)
 			}
 			// replace response type
 			if res, ok := s.Response.(*Ref); ok && res.Name == k {
@@ -227,6 +229,38 @@ func (doc *Doc) addService(n *ast.TypeSpec, ifc *ast.InterfaceType) error {
 	}
 	doc.services[n.Name.Name] = service
 	return nil
+}
+
+// processPath processes the provided path by mapping the names in the path to
+// their JSON names based on the provided Object.
+func processPath(o *Object, val string) string {
+	formatted := ""
+	jsonName := make(map[string]string)
+	for _, f := range o.Fields {
+		jsonName[f.GunkName] = f.Name
+	}
+	for {
+		i := strings.Index(val, "{")
+		if i == -1 {
+			break
+		}
+		formatted += val[:i]
+		val = val[i:]
+		j := strings.Index(val, "}")
+		if j == -1 {
+			break
+		}
+		pathVar := val[1:j]
+		if v, ok := jsonName[pathVar]; ok {
+			formatted += "{" + v + "}"
+		} else {
+			// Leave unchanged if not found.
+			formatted += "{" + pathVar + "}"
+		}
+		val = val[j+1:]
+	}
+	formatted += val
+	return formatted
 }
 
 func (doc *Doc) convertParam(e *Endpoint, params *types.Tuple) (Type, bool, error) {

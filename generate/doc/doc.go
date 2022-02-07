@@ -72,7 +72,7 @@ func Generate(pkg *loader.GunkPackage, genCfg config.Generator) (p *Package, err
 	}
 	// cleanup
 	for k, v := range doc.types {
-		o, ok := v.(*Object)
+		m, ok := v.(*Message)
 		if !ok {
 			continue
 		}
@@ -80,24 +80,26 @@ func Generate(pkg *loader.GunkPackage, genCfg config.Generator) (p *Package, err
 			// Remove data types that are only part of a service.
 			delete(doc.types, k)
 		}
-		// replace ref types with the object itself
+		// replace ref types with the message itself
 		for _, s := range doc.inService[k] {
 			// replace request type
 			if req, ok := s.Request.(*Ref); ok && req.Name == k {
-				s.Request = o
+				s.Request = m
 				// fixup body field name
 				if s.BodyField != "" && s.BodyField != "*" {
-					for _, f := range o.Fields {
+					for _, f := range m.Fields {
 						if f.GunkName == s.BodyField {
 							s.BodyField = f.Name
 							break
 						}
 					}
 				}
+				// fix path field names
+				s.Path = processPath(m, s.Path)
 			}
 			// replace response type
 			if res, ok := s.Response.(*Ref); ok && res.Name == k {
-				s.Response = o
+				s.Response = m
 			}
 		}
 	}
@@ -143,7 +145,7 @@ func (doc *Doc) addType(n *ast.TypeSpec) error {
 }
 
 func (doc *Doc) addMessage(n *ast.TypeSpec, st *ast.StructType) error {
-	obj := &Object{
+	msg := &Message{
 		Name:        n.Name.Name,
 		Description: cleanDescription(n.Name.Name, n.Doc.Text()),
 	}
@@ -170,7 +172,7 @@ func (doc *Doc) addMessage(n *ast.TypeSpec, st *ast.StructType) error {
 		if json == "" {
 			json = snaker.DefaultInitialisms.CamelToSnake(name)
 		}
-		obj.Fields = append(obj.Fields, &Field{
+		msg.Fields = append(msg.Fields, &Field{
 			Name:        json,
 			GunkName:    name,
 			Description: cleanDescription(name, field.Doc.Text()),
@@ -178,7 +180,7 @@ func (doc *Doc) addMessage(n *ast.TypeSpec, st *ast.StructType) error {
 		})
 	}
 	qName := doc.qualifiedTypeName(n.Name.Name, doc.pkg.Types)
-	doc.types[qName] = obj
+	doc.types[qName] = msg
 	return nil
 }
 
@@ -227,6 +229,38 @@ func (doc *Doc) addService(n *ast.TypeSpec, ifc *ast.InterfaceType) error {
 	}
 	doc.services[n.Name.Name] = service
 	return nil
+}
+
+// processPath processes the provided path by mapping the names in the path to
+// their JSON names based on the provided Message.
+func processPath(m *Message, val string) string {
+	formatted := ""
+	jsonName := make(map[string]string)
+	for _, f := range m.Fields {
+		jsonName[f.GunkName] = f.Name
+	}
+	for {
+		i := strings.Index(val, "{")
+		if i == -1 {
+			break
+		}
+		formatted += val[:i]
+		val = val[i:]
+		j := strings.Index(val, "}")
+		if j == -1 {
+			break
+		}
+		pathVar := val[1:j]
+		if v, ok := jsonName[pathVar]; ok {
+			formatted += "{" + v + "}"
+		} else {
+			// Leave unchanged if not found.
+			formatted += "{" + pathVar + "}"
+		}
+		val = val[j+1:]
+	}
+	formatted += val
+	return formatted
 }
 
 func (doc *Doc) convertParam(e *Endpoint, params *types.Tuple) (Type, bool, error) {

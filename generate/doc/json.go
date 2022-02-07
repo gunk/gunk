@@ -67,8 +67,8 @@ type Type interface {
 	typ() string
 }
 
-// Object is the documentation for an object.
-type Object struct {
+// Message is the documentation for a message.
+type Message struct {
 	// Name is the name of the data type.
 	Name string `json:"name"`
 	// Description is the description of the data type.
@@ -77,7 +77,7 @@ type Object struct {
 	Fields []*Field `json:"fields"`
 }
 
-// Field is the documentation for a field in an object.
+// Field is the documentation for a field in a message.
 type Field struct {
 	// Name is the name of the field.
 	Name string `json:"name"`
@@ -106,7 +106,7 @@ type EnumVal struct {
 	Description string `json:"description"`
 }
 
-// Ref is a reference to an Object or Enum type.
+// Ref is a reference to a Message or Enum type.
 type Ref struct {
 	// Name is the fully qualified name of the referenced type.
 	Name string `json:"name"`
@@ -134,21 +134,21 @@ type Basic struct {
 	Example string `json:"example"`
 }
 
-func (*Object) typ() string { return "object" }
-func (*Enum) typ() string   { return "enum" }
-func (*Ref) typ() string    { return "ref" }
-func (*Map) typ() string    { return "map" }
-func (*Array) typ() string  { return "array" }
-func (*Basic) typ() string  { return "basic" }
+func (*Message) typ() string { return "message" }
+func (*Enum) typ() string    { return "enum" }
+func (*Ref) typ() string     { return "ref" }
+func (*Map) typ() string     { return "map" }
+func (*Array) typ() string   { return "array" }
+func (*Basic) typ() string   { return "basic" }
 
-// MarshalJSON marshals the object to JSON with a type field.
-func (o *Object) MarshalJSON() ([]byte, error) {
+// MarshalJSON marshals the message to JSON with a type field.
+func (m *Message) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Type string `json:"type"`
-		Object
+		Message
 	}{
-		Type:   "object",
-		Object: *o,
+		Type:    "message",
+		Message: *m,
 	})
 }
 

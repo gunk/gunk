@@ -112,6 +112,13 @@ func (l *Loader) addFakeFiles() error {
 // Similar to Go, if a path begins with ".", it is interpreted as a file system
 // path where a package is located, and "..." patterns are supported.
 func (l *Loader) Load(patterns ...string) ([]*GunkPackage, error) {
+	defer func() {
+		if x := recover(); x != nil {
+			fmt.Println("Panic on " + strings.Join(patterns, "\t"))
+			panic(x)
+		}
+	}()
+
 	if l.stack == nil {
 		l.stack = make([]string, 0, 1)
 	}

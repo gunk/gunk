@@ -14,6 +14,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"text/template"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
@@ -25,6 +26,7 @@ import (
 	"github.com/gunk/gunk/protoutil"
 	"github.com/gunk/gunk/reflectutil"
 	"github.com/karelbilek/dirchanges"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -74,20 +76,33 @@ func Run(dir string, args ...string) error {
 		return fmt.Errorf("unable to load protodeps: %w", err)
 	}
 	// Run the code generators.
+	var wg errgroup.Group
 	for _, pkg := range pkgs {
 		cfg := pkgConfigs[pkg.Dir]
 		protocPath, err := downloader.CheckOrDownloadProtoc(cfg.ProtocPath, cfg.ProtocVersion)
 		if err != nil {
 			return fmt.Errorf("unable to check or download protoc: %w", err)
 		}
-		if err := g.GeneratePkg(pkg.PkgPath, cfg.Generators, protocPath); err != nil {
-			return fmt.Errorf("unable to generate pkg %s: %w", pkg.PkgPath, err)
-		}
-		log.Verbosef("%s", pkg.PkgPath)
+		pkg := pkg
+		wg.Go(func() error {
+			if err := g.GeneratePkg(pkg.PkgPath, cfg.Generators, protocPath); err != nil {
+				return fmt.Errorf("unable to generate pkg %s: %w", pkg.PkgPath, err)
+			}
+			log.Verbosef("%s", pkg.PkgPath)
+			return nil
+		})
 	}
+	err = wg.Wait()
+	if err != nil {
+		return err
+	}
+	log.Verbosef("generating docs")
 	// Combine and convert the packages to doc output
-	if g.docGenerator != nil {
-		if err := g.generateDoc(cfg, g.docGenerator); err != nil {
+	for _, gen := range cfg.Generators {
+		if !gen.IsDoc() {
+			continue
+		}
+		if err := g.generateDoc(cfg, gen); err != nil {
 			return fmt.Errorf("unable to generate docs: %w", err)
 		}
 	}
@@ -140,6 +155,7 @@ func NewGenerator(dir string) *Generator {
 		gunkPkgs:    make(map[string]*loader.GunkPackage),
 		allProto:    make(map[string]*descriptorpb.FileDescriptorProto),
 		protoLoader: &loader.ProtoLoader{},
+		docMutex:    new(sync.Mutex),
 	}
 }
 
@@ -158,9 +174,9 @@ type Generator struct {
 	protoLoader *loader.ProtoLoader
 	// All protobuf that has been translated currently.
 	allProto map[string]*descriptorpb.FileDescriptorProto
-	// docGenerator is the generator used for doc generation.
-	// if it's nil, doc generation is disabled.
-	docGenerator *config.Generator
+	// docMutex is the mutex guarding doc generation as it is designed to be
+	// used in a single-threaded context.
+	docMutex *sync.Mutex
 	// docPkgs holds the packages by the doc generator.
 	// stored so that they can be tagged before generation
 	docPkgs []*doc.Package
@@ -236,15 +252,16 @@ func (g *Generator) GeneratePkg(path string, gens []config.Generator, protocPath
 		switch {
 		case gen.IsDoc():
 			// store the generator for output use
-			gen := gen
-			g.docGenerator = &gen
 			pkg := g.gunkPkgs[path]
 			log.Verbosef("generate-doc for %s", pkg.PkgPath)
 			docPkg, err := doc.Generate(pkg, gen)
 			if err != nil {
 				return fmt.Errorf("unable to generate documentation: %w", err)
 			}
+			g.docMutex.Lock()
 			g.docPkgs = append(g.docPkgs, docPkg)
+			// Unlock here instead of deferring because this is done in a loop.
+			g.docMutex.Unlock()
 		case gen.IsProtoc():
 			if gen.PluginVersion != "" {
 				return fmt.Errorf("cannot use pinned version with protoc option")
@@ -496,7 +513,7 @@ func (g *Generator) generatePlugin(req pluginpb.CodeGeneratorRequest, gen config
 	return nil
 }
 
-func (g *Generator) generateDoc(cfg *config.Config, gen *config.Generator) error {
+func (g *Generator) generateDoc(cfg *config.Config, gen config.Generator) error {
 	pkgs := g.docPkgs
 	used := make(map[string]string, len(pkgs))
 	tags := make(map[string]*doc.Tag)
@@ -567,7 +584,7 @@ func (g *Generator) generateDoc(cfg *config.Config, gen *config.Generator) error
 		if gen.Out == "" {
 			return fmt.Errorf("output path is required for doc generator")
 		}
-		out, err := outPath(*gen, "", tag.Name)
+		out, err := outPath(gen, "", tag.Name)
 		if err != nil {
 			return fmt.Errorf("unable to build output path for %q: %w", out, err)
 		}

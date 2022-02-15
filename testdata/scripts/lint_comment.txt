@@ -1,0 +1,50 @@
+! gunk lint --enable comment ./...
+! stderr 'Correct'
+stderr 'MissingCommentStruct'
+stderr 'MissingCommentEnum'
+stderr 'MissingCommentField'
+stderr 'IncorrectCommentStruct'
+stderr 'IncorrectCommentEnum'
+stderr 'IncorrectCommentField'
+stderr 'IncorrectNoPeriod'
+
+-- .gunkconfig --
+-- foo.gunk --
+package util
+
+// Correct is a struct that contains CorrectFieldA and CorrectFieldB.
+type Correct struct {
+	// CorrectFieldA is a field that contains something.
+	CorrectFieldA int
+	// CorrectFieldB is a field that contains another thing.
+	CorrectFieldB int
+	// CorrectFieldC is a field that contains multiple lines of comments but
+	// should still pass because it matches all criterias.
+	CorrectFieldC int
+	// CorrectFieldD are a field that starts with "are" instead of "is". It is
+	// valid at the time of test-writing.
+	CorrectFieldD int
+}
+
+type MissingCommentStruct struct{}
+
+type MissingCommentEnum int
+
+// IncorrectCommentStructa is a struct that has the wrong prefix.
+type IncorrectCommentStruct struct{}
+
+// IncorrectCommentEnuma is an enum that has the wrong prefix.
+type IncorrectCommentEnum int
+
+// IncorrectNoPeriod is a type that is missing a period in comment
+type IncorrectNoPeriod int
+
+// IncorrectNoIs does not contain is in the comment and should therefore fail.
+type IncorrectNoIs int
+
+// Container is a struct that contains test cases for fields.
+type Container struct {
+	MissingCommentField int
+	// IncorrectCommentFielda is a field that has the wrong prefix.
+	IncorrectCommentField int
+}

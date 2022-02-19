@@ -571,6 +571,9 @@ func (g *Generator) generateDoc(cfg *config.Config, gen *config.Generator) error
 		if err != nil {
 			return fmt.Errorf("unable to build output path for %q: %w", out, err)
 		}
+		if err := mkdirAll(out); err != nil {
+			return fmt.Errorf("unable to create output directory for %q: %w", gen.Out, err)
+		}
 		f, err := os.Create(filepath.Join(out, name+".json"))
 		if err != nil {
 			return fmt.Errorf("unable to create file %q: %w", out, err)

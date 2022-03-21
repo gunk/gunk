@@ -35,6 +35,7 @@ type Generator struct {
 	JSONPostProc  bool
 	FixPaths      bool
 	Shortened     bool // only for `gunk vet`
+	Single        bool
 }
 
 func (g Generator) IsDoc() bool {
@@ -137,16 +138,14 @@ func Load(dir string) (*Config, error) {
 		reader, err := os.Open(configPath)
 		if err == nil {
 			defer reader.Close()
-			cfg, err := LoadSingle(reader)
+			cfg, err := LoadSingle(reader, dir)
 			if err != nil {
 				return nil, fmt.Errorf("error loading %q: %v", configPath, err)
 			}
-			cfg.Dir = dir
 			// Patch in the directory of where to output the generated
 			// files. And patch in the 'out' path if it has been set globally,
 			// and not in the generate section.
 			for i, gen := range cfg.Generators {
-				cfg.Generators[i].ConfigDir = dir
 				if cfg.Out != "" && gen.Out == "" {
 					cfg.Generators[i].Out = cfg.Out
 				}
@@ -215,7 +214,7 @@ var ProtocBuiltinLanguages = map[string]bool{
 	"js":     true,
 }
 
-func LoadSingle(reader io.Reader) (*Config, error) {
+func LoadSingle(reader io.Reader, dir string) (*Config, error) {
 	f, err := ini.Load(reader)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse ini file: %v", err)
@@ -223,6 +222,7 @@ func LoadSingle(reader io.Reader) (*Config, error) {
 	config := &Config{
 		Generators: make([]Generator, 0, len(f.AllSections())),
 		DocsConfig: make(map[string]*DocConfig),
+		Dir:        dir,
 	}
 	config.DocsConfig[DefaultTag] = &DocConfig{}
 	for _, s := range f.AllSections() {
@@ -284,7 +284,8 @@ func handleProtoc(config *Config, section *parser.Section) error {
 func handleGenerate(config *Config, section *parser.Section, shorthand *string) (*Generator, error) {
 	keys := section.RawKeys()
 	gen := &Generator{
-		Params: make([]KeyValue, 0, len(keys)),
+		Params:    make([]KeyValue, 0, len(keys)),
+		ConfigDir: config.Dir,
 	}
 
 	if shorthand != nil {
@@ -340,7 +341,15 @@ func handleGenerate(config *Config, section *parser.Section, shorthand *string) 
 				return nil, fmt.Errorf("cannot parse json_tag_postproc: %w", err)
 			}
 			gen.JSONPostProc = p
+		case "generate_single":
+			single, err := strconv.ParseBool(v)
+			if err != nil {
+				return nil, fmt.Errorf("cannot parse generate_single: %w", err)
+			}
+			gen.Single = single
+
 		default:
+			v = replacePATH(v, config.Dir)
 			gen.Params = append(gen.Params, KeyValue{k, v})
 		}
 	}
@@ -435,4 +444,10 @@ func handleFormat(config *Config, section *parser.Section) error {
 		}
 	}
 	return nil
+}
+
+// replacePATH processes the provided value, and replaces $PATH with the config
+// directory.
+func replacePATH(value string, path string) string {
+	return strings.ReplaceAll(value, "$PATH", path)
 }

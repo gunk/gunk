@@ -25,7 +25,7 @@ func Run(dir string) error {
 				return fmt.Errorf("unable to open file: %w", err)
 			}
 			defer reader.Close()
-			cfg, err := config.LoadSingle(reader)
+			cfg, err := config.LoadSingle(reader, filepath.Dir(path))
 			if err != nil {
 				return fmt.Errorf("unable to load gunkconfig: %w", err)
 			}

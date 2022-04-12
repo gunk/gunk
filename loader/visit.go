@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 )
 
 // This file is an almost exact copy of go/packages/visit.go, but changed to
@@ -43,14 +44,22 @@ func Visit(pkgs []*GunkPackage, pre func(*GunkPackage) bool, post func(*GunkPack
 
 // PrintErrors prints to os.Stderr the accumulated errors of all
 // packages in the import graph rooted at pkgs, dependencies first.
-// PrintErrors returns the number of errors printed.
+// PrintErrors returns the number of errors present, including import errors
+// which aren't printed.
 func PrintErrors(pkgs []*GunkPackage) int {
 	var n int
 	Visit(pkgs, nil, func(pkg *GunkPackage) {
 		for _, err := range pkg.Errors {
-			fmt.Fprintln(os.Stderr, err)
 			n++
+			if strings.Contains(err.Error(), "error importing package") {
+				continue
+			}
+			if pkg.errorsPrinted {
+				continue
+			}
+			fmt.Fprintln(os.Stderr, err)
 		}
+		pkg.errorsPrinted = true
 	})
 	return n
 }

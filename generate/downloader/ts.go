@@ -12,10 +12,14 @@ import (
 	"github.com/gunk/gunk/log"
 )
 
-type Ts struct{}
+type Ts struct{
+	ID string;
+	ModuleName string;
+	BinaryName string;
+}
 
 func (g Ts) Name() string {
-	return "ts"
+	return g.ID
 }
 
 func (g Ts) Download(version string, p Paths) (string, error) {
@@ -33,11 +37,11 @@ func (g Ts) Download(version string, p Paths) (string, error) {
 		all := "npm init -y"
 		return "", log.ExecError(all, err)
 	}
-	npmCmd = log.ExecCommand("npm", "install", "ts-protoc-gen@"+version)
+	npmCmd = log.ExecCommand("npm", "install", g.ModuleName + "@" + version)
 	npmCmd.Dir = p.buildDir
 	err = npmCmd.Run()
 	if err != nil {
-		all := "npm install ts-protoc-gen@" + version
+		all := "npm install " + g.ModuleName + "@" + version
 		return "", log.ExecError(all, err)
 	}
 	// in order to be reproducible, install the *minimal* versions of everything
@@ -45,14 +49,14 @@ func (g Ts) Download(version string, p Paths) (string, error) {
 	type packageJSON struct {
 		Dependencies map[string]string `json:"dependencies"`
 	}
-	protocJSONBytes, err := ioutil.ReadFile(filepath.Join(p.buildDir, "node_modules", "ts-protoc-gen", "package.json"))
+	protocJSONBytes, err := ioutil.ReadFile(filepath.Join(p.buildDir, "node_modules", g.ModuleName, "package.json"))
 	if err != nil {
-		return "", fmt.Errorf("cannot read ts-protoc-gen package.json: %w", err)
+		return "", fmt.Errorf("cannot read " + g.ModuleName + " package.json: %w", err)
 	}
 	var protocJSON packageJSON
 	err = json.Unmarshal(protocJSONBytes, &protocJSON)
 	if err != nil {
-		return "", fmt.Errorf("cannot parse ts-protoc-gen package.json: %w", err)
+		return "", fmt.Errorf("cannot parse " + g.ModuleName + " package.json: %w", err)
 	}
 	for k, v := range protocJSON.Dependencies {
 		if strings.HasPrefix(v, "^") {
@@ -66,6 +70,6 @@ func (g Ts) Download(version string, p Paths) (string, error) {
 			}
 		}
 	}
-	binaryPath := filepath.Join(p.buildDir, "node_modules", ".bin", "protoc-gen-ts")
+	binaryPath := filepath.Join(p.buildDir, "node_modules", ".bin", g.BinaryName)
 	return binaryPath, nil
 }

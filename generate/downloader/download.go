@@ -71,7 +71,10 @@ var ds = []Downloader{
 	Swift{},
 	GrpcSwift{},
 	GrpcPython{},
-	Ts{},
+	//use npm ts-protoc-gen package
+	Ts{ID: "ts", ModuleName: "ts-protoc-gen", BinaryName : "protoc-gen-ts"},
+	//use npm ts-proto package
+	Ts{ID: "ts_proto", ModuleName: "ts-proto", BinaryName : "protoc-gen-ts_proto"},
 	GrpcGo{},
 }
 

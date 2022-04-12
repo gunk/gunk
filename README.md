@@ -342,7 +342,8 @@ Gunk uses a top-level `.gunkconfig` configuration file for managing the Gunk
 protocol definitons for a project:
 
 ```ini
-# Example .gunkconfig for Go, grpc-gateway, Python and JS
+# Example .gunkconfig for Go, grpc-gateway, Python and JS, TypeScript (CommonJS), TypeScript
+
 [generate go]
 out=v1/go
 plugins=grpc
@@ -359,6 +360,15 @@ out=v1/python
 out=v1/js
 import_style=commonjs
 binary
+
+[generate ts]
+service=true
+plugin_version=v0.12.0
+fix_paths_post_proc=true
+
+[generate ts_proto]
+service=true
+plugin_version=v1.110.4
 ```
 
 ### Project Search Path

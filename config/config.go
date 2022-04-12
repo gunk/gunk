@@ -196,7 +196,13 @@ func Load(dir string) (*Config, error) {
 		if protocPath := c.ProtocPath; config.ProtocPath == "" {
 			config.ProtocPath = protocPath
 		}
-		config.Generators = append(config.Generators, c.Generators...)
+		// Don't create duplicated generate single generators.
+		for _, g := range config.Generators {
+			if g.Single {
+				continue
+			}
+			config.Generators = append(config.Generators, g)
+		}
 	}
 	return config, nil
 }

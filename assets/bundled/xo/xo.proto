@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package xo.options;
+
+option go_package = "github.com/xo/ecosystem/proto/xo";
+
+import "google/protobuf/descriptor.proto";
+
+extend google.protobuf.MessageOptions {
+	MessageOverride msg_overrides = 1143;
+}
+
+extend google.protobuf.FieldOptions {
+	FieldOverride field_overrides = 1143;
+}
+
+// MessageOverride is an override of default marshalling behaviour of
+// protoc-gen-xo.
+message MessageOverride {
+	// Create the table without a default primary key.
+	bool manual = 1;
+	// Ignore the annotated message and not create a table for it.
+	bool ignore = 2;
+	// Embeds the message as a JSON instead of creating a new table, whenever
+	// referenced.
+	bool embed_as_json = 3;
+}
+
+// FieldOverride is an override of default marshalling behaviour of
+// protoc-gen-xo.
+message FieldOverride {
+	enum IndexType {
+		NONE = 0;
+		INDEX = 1;
+		UNIQUE = 2;
+	}
+	// Marks the index type for the field.
+	IndexType index = 1;
+	// Ignore the annotated field and not create a column and/or associated
+	// tables for it.
+	bool ignore = 2;
+	// Embeds the field as a JSON instead of creating a new table.
+	bool embed_as_json = 3;
+	// SQL Expression for the default value for the annotated field.
+	string default_value = 4;
+}

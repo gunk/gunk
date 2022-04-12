@@ -532,6 +532,8 @@ syntax = "proto3";
 			generatedFilesToLoad = append(generatedFilesToLoad, "google_protobuf_duration.fdp")
 		case "protoc-gen-openapiv2/options/annotations.proto":
 			generatedFilesToLoad = append(generatedFilesToLoad, "protoc-gen-openapiv2_options_annotations.fdp")
+		case "xo/xo.proto":
+			generatedFilesToLoad = append(generatedFilesToLoad, "xo_xo.fdp")
 		default:
 			filteredNames = append(filteredNames, n)
 		}

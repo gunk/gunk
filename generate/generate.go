@@ -17,6 +17,9 @@ import (
 	"text/template"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
+	"github.com/xo/ecosystem/proto/xo"
+	"google.golang.org/genproto/googleapis/api/annotations"
+
 	"github.com/gunk/gunk/config"
 	"github.com/gunk/gunk/generate/doc"
 	"github.com/gunk/gunk/generate/downloader"
@@ -25,7 +28,6 @@ import (
 	"github.com/gunk/gunk/protoutil"
 	"github.com/gunk/gunk/reflectutil"
 	"github.com/karelbilek/dirchanges"
-	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/pluginpb"
@@ -889,6 +891,8 @@ func fileOptions(pkg *loader.GunkPackage) (*descriptorpb.FileOptions, error) {
 				o := &options.Swagger{}
 				reflectutil.UnmarshalAST(o, tag.Expr)
 				proto.SetExtension(fo, options.E_Openapiv2Swagger, o)
+			case "github.com/gunk/opt/xo.SkipPrefix":
+				// TODO: Implement SkipPrefix.
 			default:
 				return nil, fmt.Errorf("gunk package option %q not supported", s)
 			}
@@ -999,6 +1003,9 @@ func (g *Generator) addDoc(text string, path ...int32) {
 // messageOptions returns the MessageOptions set using Gunk tags.
 func (g *Generator) messageOptions(tspec *ast.TypeSpec) (*descriptorpb.MessageOptions, error) {
 	o := &descriptorpb.MessageOptions{}
+	xoOpts := &xo.MessageOverride{}
+	var xoOk bool
+	// Check message tags
 	for _, tag := range g.curPkg.GunkTags[tspec] {
 		switch s := tag.Type.String(); s {
 		case "github.com/gunk/opt/message.MessageSetWireFormat":
@@ -1011,9 +1018,19 @@ func (g *Generator) messageOptions(tspec *ast.TypeSpec) (*descriptorpb.MessageOp
 			schema := &options.Schema{}
 			reflectutil.UnmarshalAST(schema, tag.Expr)
 			proto.SetExtension(o, options.E_Openapiv2Schema, schema)
+		case "github.com/gunk/opt/xo.Manual":
+			xoOpts.Manual, xoOk = constant.BoolVal(tag.Value), true
+		case "github.com/gunk/opt/xo.Ignore":
+			xoOpts.Ignore, xoOk = constant.BoolVal(tag.Value), true
+		case "github.com/gunk/opt/xo.Embed":
+			xoOpts.EmbedAsJson, xoOk = constant.BoolVal(tag.Value), true
 		default:
 			return nil, fmt.Errorf("gunk message option %q not supported", s)
 		}
+	}
+	if xoOk {
+		proto.SetExtension(o, xo.E_MsgOverrides, xoOpts)
+		g.addProtoDep("xo/xo.proto")
 	}
 	reflectutil.SetDefaults(o)
 	return o, nil
@@ -1022,6 +1039,9 @@ func (g *Generator) messageOptions(tspec *ast.TypeSpec) (*descriptorpb.MessageOp
 // FieldOptions returns the FieldOptions set using Gunk tags.
 func (g *Generator) fieldOptions(field *ast.Field) (*descriptorpb.FieldOptions, error) {
 	o := &descriptorpb.FieldOptions{}
+	xoOpts := &xo.FieldOverride{}
+	var xoOk bool
+	// Check field tags
 	for _, tag := range g.curPkg.GunkTags[field] {
 		switch s := tag.Type.String(); s {
 		case "github.com/gunk/opt/field.Packed":
@@ -1046,9 +1066,29 @@ func (g *Generator) fieldOptions(field *ast.Field) (*descriptorpb.FieldOptions, 
 					proto.SetExtension(o, options.E_Openapiv2Field, jsonSchema)
 				}
 			}
+		case "github.com/gunk/opt/xo.IndexType":
+			xoOk = true
+			switch v, _ := constant.Uint64Val(tag.Value); v {
+			case 0:
+				xoOpts.Index = xo.FieldOverride_INDEX
+			case 1:
+				xoOpts.Index = xo.FieldOverride_UNIQUE
+			default:
+				return nil, fmt.Errorf("unknown value for xo.IndexType: %d", v)
+			}
+		case "github.com/gunk/opt/xo.Ignore":
+			xoOpts.Ignore, xoOk = constant.BoolVal(tag.Value), true
+		case "github.com/gunk/opt/xo.Embed":
+			xoOpts.EmbedAsJson, xoOk = constant.BoolVal(tag.Value), true
+		case "github.com/gunk/opt/xo.Default":
+			xoOpts.DefaultValue, xoOk = constant.StringVal(tag.Value), true
 		default:
 			return nil, fmt.Errorf("gunk field option %q not supported", s)
 		}
+	}
+	if xoOk {
+		proto.SetExtension(o, xo.E_FieldOverrides, xoOpts)
+		g.addProtoDep("xo/xo.proto")
 	}
 	reflectutil.SetDefaults(o)
 	return o, nil

@@ -75,6 +75,7 @@ func Run(dir string, args ...string) error {
 	}
 	// Run the code generators.
 	protocPaths := make(map[string]string, len(pkgs))
+	pkgGens := make(map[string][]config.Generator, len(pkgs))
 	pkgPaths := make([]string, 0, len(pkgs))
 	for _, pkg := range pkgs {
 		cfg := pkgConfigs[pkg.Dir]
@@ -83,9 +84,10 @@ func Run(dir string, args ...string) error {
 			return fmt.Errorf("unable to check or download protoc: %w", err)
 		}
 		protocPaths[pkg.PkgPath] = protocPath
+		pkgGens[pkg.PkgPath] = cfg.Generators
 		pkgPaths = append(pkgPaths, pkg.PkgPath)
 	}
-	if err := g.GeneratePkgs(pkgPaths, cfg.Generators, protocPaths); err != nil {
+	if err := g.GeneratePkgs(pkgPaths, pkgGens, protocPaths); err != nil {
 		return err
 	}
 	// Combine and convert the packages to doc output
@@ -230,10 +232,13 @@ func (g *Generator) findPkg(path string) (pkg *loader.GunkPackage, ok bool) {
 // It is provided as a wrapper of GeneratePkgs.
 func (g *Generator) GeneratePkg(path string, gens []config.Generator, protocPath string) error {
 	paths := []string{path}
+	generators := map[string][]config.Generator{
+		path: gens,
+	}
 	protocPaths := map[string]string{
 		path: protocPath,
 	}
-	return g.GeneratePkgs(paths, gens, protocPaths)
+	return g.GeneratePkgs(paths, generators, protocPaths)
 }
 
 // GeneratePkgs runs the proto files resulting from translating gunk packages
@@ -241,20 +246,9 @@ func (g *Generator) GeneratePkg(path string, gens []config.Generator, protocPath
 //
 // Generated files are written to the same directory, next to the source gunk
 // files.
-func (g *Generator) GeneratePkgs(paths []string, gens []config.Generator, protocPath map[string]string) error {
-	run := func(path string, genAllFiles bool) error {
-		// It is fine to pass the pluginpb.CodeGeneratorRequest to every protoc
-		// generator unaltered; this is what protoc does when calling out to the
-		// generators and the generators should already handle the case where they
-		// have nothing to do.
-		req := g.newCodeGenRequest(path)
-		if genAllFiles {
-			req = g.newCodeGenRequest(paths...)
-		}
-		for _, gen := range gens {
-			if gen.Single != genAllFiles {
-				continue
-			}
+func (g *Generator) GeneratePkgs(paths []string, gens map[string][]config.Generator, protocPath map[string]string) error {
+	run := func(req *pluginpb.CodeGeneratorRequest, generators []config.Generator, path string) error {
+		for _, gen := range generators {
 			switch {
 			case gen.IsDoc():
 				// store the generator for output use
@@ -294,13 +288,78 @@ func (g *Generator) GeneratePkgs(paths []string, gens []config.Generator, protoc
 		}
 		return nil
 	}
-	err := run("", true)
-	if err != nil {
-		return err
+	type generatorWithFiles struct {
+		generator config.Generator
+		files     []string
+	}
+	singleFiles := []generatorWithFiles{}
+	for _, generators := range gens {
+	iterGen:
+		for _, gen := range generators {
+			if !gen.Single {
+				continue
+			}
+			for _, v := range singleFiles {
+				if reflect.DeepEqual(gen, v.generator) {
+					// Don't redo identical generations.
+					continue iterGen
+				}
+			}
+			singleFile := generatorWithFiles{
+				generator: gen,
+				files:     []string{},
+			}
+			if len(singleFile.files) != 0 {
+				continue
+			}
+			configAbs, err := filepath.Abs(gen.ConfigDir)
+			if err != nil {
+				return fmt.Errorf(
+					"unable to get absolute directory of config path %q: %w",
+					gen.ConfigDir, err,
+				)
+			}
+			for _, path := range paths {
+				pathAbs, err := filepath.Abs(g.gunkPkgs[path].Dir)
+				if err != nil {
+					return fmt.Errorf(
+						"unable to get absolute directory of file path %q: %w",
+						path, err,
+					)
+				}
+				if strings.HasPrefix(pathAbs, configAbs) {
+					singleFile.files = append(singleFile.files, path)
+				}
+			}
+			singleFiles = append(singleFiles, singleFile)
+		}
+	}
+	for _, v := range singleFiles {
+		log.Verbosef("generator %s", v.generator.Command)
+		req := g.newCodeGenRequest(v.files...)
+		generators := []config.Generator{v.generator}
+		if err := run(req, generators, ""); err != nil {
+			return fmt.Errorf(
+				"unable to generate_single on %s:\n\tFiles: %v\n\tError: %w",
+				v.generator.Command, v.files, err,
+			)
+		}
 	}
 	for _, path := range paths {
 		log.Verbosef("%s", path)
-		if err := run(path, false); err != nil {
+		// It is fine to pass the pluginpb.CodeGeneratorRequest to every protoc
+		// generator unaltered; this is what protoc does when calling out to the
+		// generators and the generators should already handle the case where they
+		// have nothing to do.
+		req := g.newCodeGenRequest(path)
+		generators := make([]config.Generator, 0, len(gens[path]))
+		for _, gen := range gens[path] {
+			if gen.Single {
+				continue
+			}
+			generators = append(generators, gen)
+		}
+		if err := run(req, generators, path); err != nil {
 			return fmt.Errorf("unable to generate pkg %s: %w", path, err)
 		}
 	}
@@ -429,7 +488,9 @@ func (g *Generator) generateProtoc(req *pluginpb.CodeGeneratorRequest, gen confi
 func (g *Generator) generatePlugin(req *pluginpb.CodeGeneratorRequest, gen configWithBinary) error {
 	// Due to problems with some generators (grpc-gateway),
 	// we need to ensure we either send a non-empty string or nil.
-	if ps := gen.ParamString(); ps != "" {
+	if ps := gen.ParamString(); ps == "" {
+		req.Parameter = nil
+	} else {
 		req.Parameter = proto.String(ps)
 	}
 	bs, err := protoutil.MarshalDeterministic(req)

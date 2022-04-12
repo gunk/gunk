@@ -19,3 +19,6 @@ mkdir -p $SRC/protoc-gen-openapiv2/options
 for i in annotations openapiv2; do
   wget -O $SRC/protoc-gen-openapiv2/options/$i.proto https://raw.githubusercontent.com/grpc-ecosystem/grpc-gateway/master/protoc-gen-openapiv2/options/$i.proto
 done
+
+# grab xo definitions
+wget -O $SRC/xo/xo.proto https://raw.githubusercontent.com/xo/ecosystem/master/proto/xo/xo.proto

@@ -250,6 +250,8 @@ func (l *Loader) Import(path string) (*types.Package, error) {
 		panic("expected Loader.Load to return exactly one package")
 	}
 	if PrintErrors(pkgs) > 0 {
+		// NOTE: The string "error importing package" is used to detect this
+		// error as the Go importer does not wrap errors.
 		return nil, fmt.Errorf("error importing package %q", path)
 	}
 	if pkgs[0].Types == nil {
@@ -273,6 +275,10 @@ type GunkPackage struct {
 	GunkTags  map[ast.Node][]GunkTag
 	Imports   map[string]*GunkPackage
 	ProtoName string // protobuf package name
+
+	// errorsPrinted is true if the errors have been printed. This is used to
+	// deduplicate errors.
+	errorsPrinted bool
 }
 
 func (g *GunkPackage) errorf(kind packages.ErrorKind, tokenPos token.Pos, fset *token.FileSet, format string, args ...interface{}) {
@@ -280,23 +286,27 @@ func (g *GunkPackage) errorf(kind packages.ErrorKind, tokenPos token.Pos, fset *
 }
 
 func (g *GunkPackage) addError(kind packages.ErrorKind, tokenPos token.Pos, fset *token.FileSet, err error) {
+	pos := ""
+	if tokenPos > 0 && fset != nil {
+		pos = fset.Position(tokenPos).String()
+	}
 	// errors.As is intentionally unused to prevent losing context.
 	if pkgErr, ok := err.(packages.Error); ok {
+		pkgErr.Kind = kind
+		pkgErr.Pos = pos
 		// Don't unnecessarily wrap the error if it is already the right type.
 		g.Errors = append(g.Errors, pkgErr)
 		return
 	}
 	// Create a packages.Error to add.
-	pos := ""
 	msg := err.Error()
-	if tokenPos > 0 && fset != nil {
-		pos = fset.Position(tokenPos).String()
-	}
 	if typeErr, ok := err.(types.Error); ok {
 		// Populate info if the error is a type-checking error from go/types.
 		// This prevents an unnecessary -: at the front of error messages.
-		pos = typeErr.Fset.Position(typeErr.Pos).String()
 		msg = typeErr.Msg
+		if pos == "" || pos == "-" {
+			pos = typeErr.Fset.Position(typeErr.Pos).String()
+		}
 	}
 	g.Errors = append(g.Errors, packages.Error{
 		Pos:  pos,

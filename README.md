@@ -1,18 +1,18 @@
 # Gunk [![GoDoc][godoc]][godoc-link]
 
-[godoc]: https://godoc.org/github.com/gunk/gunk?status.svg (GoDoc)
+[godoc]: https://godoc.org/github.com/gunk/gunk?status.svg "GoDoc"
 [godoc-link]: https://godoc.org/github.com/gunk/gunk
 
 Gunk is a modern frontend and syntax for [Protocol Buffers][protobuf].
 
 [Quickstart][] | [Installing][] | [Syntax][] | [Configuring][] | [About][] | [Releases][]
 
-[Quickstart]: #quickstart (Quickstart)
-[Installing]: #installing (Installing)
-[Syntax]: #protocol-types-and-messages (Protocol Types and Messages Syntax)
-[Configuring]: #project-configuration-files (Project Configuration Files)
-[About]: #about (About)
-[Releases]: https://github.com/gunk/gunk/releases (Releases)
+[quickstart]: #quickstart "Quickstart"
+[installing]: #installing "Installing"
+[syntax]: #protocol-types-and-messages "Protocol Types and Messages Syntax"
+[configuring]: #project-configuration-files "Project Configuration Files"
+[about]: #about "About"
+[releases]: https://github.com/gunk/gunk/releases "Releases"
 
 ## Overview
 
@@ -30,10 +30,10 @@ Create a working directory for a project:
 $ mkdir -p ~/src/example && cd ~/src/example
 ```
 
-[Install `gunk`][Installing] and place the following [Gunk definitions][Syntax]
+[Install `gunk`][installing] and place the following [Gunk definitions][syntax]
 in `example/util.gunk`:
 
-[Gunk definition]: #syntax (Gunk Protocol Syntax)
+[gunk definition]: #syntax "Gunk Protocol Syntax"
 
 ```go
 package util
@@ -53,7 +53,7 @@ type Message struct {
 
 Create the corresponding [project configuration][] in `example/.gunkconfig`:
 
-[project configuration]: #gunk-project-config (Gunk Project Configuration File)
+[project configuration]: #gunk-project-config "Gunk Project Configuration File"
 
 ```ini
 [generate go]
@@ -97,14 +97,14 @@ protoc --js_out=import_style=commonjs,binary:/home/user/example --descriptor_set
 
 The `gunk` command-line tool can be installed [via Release][], [via Homebrew][], [via Scoop][] or [via Go][]:
 
-[via Release]: #installing-via-release
-[via Homebrew]: #installing-via-homebrew-macos
-[via Scoop]: #installing-via-scoop-windows
-[via Go]: #installing-via-go
+[via release]: #installing-via-release
+[via homebrew]: #installing-via-homebrew-macos
+[via scoop]: #installing-via-scoop-windows
+[via go]: #installing-via-go
 
 ### Installing via Release
 
-1. [Download a release for your platform][Releases]
+1. [Download a release for your platform][releases]
 2. Extract the `gunk` or `gunk.exe` file from the `.tar.bz2` or `.zip` file
 3. Move the extracted executable to somewhere on your `$PATH` (Linux/macOS) or
    `%PATH%` (Windows)
@@ -151,7 +151,6 @@ for use. It's also possible to pin a specific version, see the section on [proto
 
 [protoc configuration]: #section-protoc
 
-
 ## Protocol Types and Messages
 
 Gunk provides an alternate, Go-derived syntax for defining [protocol
@@ -196,7 +195,7 @@ Gunk's Go-derived syntax uses the canonical [Go scalar types][protobuf-types]
 of the `proto3` syntax, defined by the [protocol buffer project][protobuf]:
 
 | Proto3 Type | Gunk Type |
-|-------------|-----------|
+| ----------- | --------- |
 | `double`    | `float64` |
 | `float`     | `float32` |
 | `int32`     | `int`     |
@@ -212,8 +211,7 @@ of the `proto3` syntax, defined by the [protocol buffer project][protobuf]:
 **Note:** Variable-length scalars will be enabled in the future using a tag
 parameter.
 
-[Gunk
-ons]: #gunk-annotations (Gunk Annotation Syntax)
+[gunk ons]: #gunk-annotations "Gunk Annotation Syntax"
 
 ### Messages
 
@@ -395,27 +393,28 @@ protoc=js
 
 ### Global section
 
-* `import_path` - see "Converting Existing Protobuf Files"
+- `import_path` - see "Converting Existing Protobuf Files"
 
-* `strip_enum_type_names` - with this option on, enums with their type prefixed
+- `strip_enum_type_names` - with this option on, enums with their type prefixed
   will be renamed to the version without prefix.
 
-  Note that this might produce invalid protobuf that stops compiling in 1.4.*
+  Note that this might produce invalid protobuf that stops compiling in 1.4.\*
   protoc-gen-go, if the enum names clash.
 
 ### Section `[format]`
+
 The configuration options for formatting Gunk files where formatting options
 that may break program behavior can be enabled.
 
 #### Parameters
 
-* `snake_case_json` - automatically sets all field tags of JSON to their snake
+- `snake_case_json` - automatically sets all field tags of JSON to their snake
   cased name if enabled
 
-* `initialisms` - comma-separated list of initialisms to be used when
+- `initialisms` - comma-separated list of initialisms to be used when
   formatting JSON names
 
-* `reorder_pb` - automatically sets pb according to the field's order,
+- `reorder_pb` - automatically sets pb according to the field's order,
   overwriting previous pb fields
 
 ### Section `[protoc]`
@@ -425,14 +424,14 @@ The version can also be pinned.
 
 #### Parameters
 
-* `version` - the version of protoc to use. If unspecified, defaults
+- `version` - the version of protoc to use. If unspecified, defaults
   to the latest release available. Otherwise, gunk will either download the specified
   version, or check that the version of `protoc` at the specified path matches what was
   configured.
 
-* `path` - the path to check for the `protoc` binary. If unspecified, defaults appropriate user
-   cache directory for the user's OS. If no file exists at the path, `gunk` will attempt to download
-   protoc.
+- `path` - the path to check for the `protoc` binary. If unspecified, defaults appropriate user
+  cache directory for the user's OS. If no file exists at the path, `gunk` will attempt to download
+  protoc.
 
 ### Section `[generate[ <type>]]`
 
@@ -443,23 +442,22 @@ to a invocation of the `protoc-gen-<type>` tool.
 
 Each `name[=value]` parameter defined within a `[generate]` section will be
 passed as a parameter to the `protoc-gen-<type>` tool, with the exception of
-the following special parameters that override the behavior of the `gunk
-generate` tool:
+the following special parameters that override the behavior of the `gunk generate` tool:
 
-* `command` - overrides the `protoc-gen-*` command executable used by
-  `gunk generate`.  The executable must be findable on `$PATH` (Linux/macOS) or
+- `command` - overrides the `protoc-gen-*` command executable used by
+  `gunk generate`. The executable must be findable on `$PATH` (Linux/macOS) or
   `%PATH%` (Windows), or may be the full path to the executable. If not
   defined, then `command` will be `protoc-gen-<type>`, when `<type>` is the
   value in `[generate <type>]`.
 
-* `protoc` - overrides the `<type>` value, causing `gunk generate` to use the
+- `protoc` - overrides the `<type>` value, causing `gunk generate` to use the
   `protoc` value in place of `<type>`.
 
-* `out` - overrides the output path of `protoc`. If not defined, output will be
+- `out` - overrides the output path of `protoc`. If not defined, output will be
   the same directory as the location of the `.gunk` files.
 
-* `plugin_version` - specify version of plugin. The plugin is downloaded
-  from github/maven, built in cache and used. It is *not* installed in $PATH.
+- `plugin_version` - specify version of plugin. The plugin is downloaded
+  from github/maven, built in cache and used. It is _not_ installed in $PATH.
   This currently works with the following plugins:
 
   - `protoc-gen-go`
@@ -474,12 +472,17 @@ generate` tool:
   It is recommended to use this function everywhere, for reproducible builds,
   together with `version` for protoc.
 
-* `json_tag_postproc` - uses `json` tags defined in gunk file also for go-generated
+- `json_tag_postproc` - uses `json` tags defined in gunk file also for go-generated
   file
 
-* `fix_paths_postproc` - for `js` and `ts` - by default, gunk generates wrong paths for other
-  imported gunk packages, because of the way gunk moves files around.
+- `fix_paths_postproc` - for `js` and `ts` - by default, gunk generates wrong
+  paths for other imported gunk packages, because of the way gunk moves files
+  around.
   Works only if `js` also has `import_style=commonjs` option.
+
+- `generate_single`- runs the generator with all files at once instead of per
+  package.
+  The `out` parameter must be set when enabled.
 
 All other `name[=value]` pairs specified within the `generate` section will be
 passed as plugin parameters to `protoc` and the `protoc-gen-<type>` generators.
@@ -526,7 +529,7 @@ It also attempts to move files to the same directory as the gunk file.
 
 The second one uses protoc and does not attempt to move any files.
 Protoc attempts to load plugin from $PATH, if it is not one of the
-built-in protoc plugins; this will *not* work together with pinned version
+built-in protoc plugins; this will _not_ work together with pinned version
 and other gunk features and is not recommended outside of built-in
 protoc generators.
 
@@ -553,7 +556,7 @@ options][protobuf-options], and specially recognizes some third-party API
 annotations, such as Google HTTP options, including all builtin/standard
 `protoc` options for code generation:
 
-[`+gunk` annotation syntax]: #protocol-options (Gunk Annotation Syntax)
+[`+gunk` annotation syntax]: #protocol-options "Gunk Annotation Syntax"
 
 ```go
 // +gunk java.Package("com.example.message")
@@ -600,7 +603,6 @@ $ gunk convert /path/to/protobuf/directory
 If your `.proto` is referencing another `.proto` from another directory,
 you can add `import_path` in the global section of your `.gunkconfig`.
 If you don't provide `import_path` it will only search in the root directory.
-
 
 ```ini
 import_path=relative/path/to/protobuf/directory

@@ -362,12 +362,21 @@ binary
 [generate ts]
 service=true
 plugin_version=v0.12.0
-fix_paths_post_proc=true
+fix_paths_postproc=true
 
 [generate ts_proto]
 service=true
 plugin_version=v1.110.4
+
+
+[generate protoc-gen-ts]
+service=true
+plugin_version=v0.8.6-rc1
 ```
+
+- `[generate ts]` uses [ts-protoc-gen](https://www.npmjs.com/package/ts-protoc-gen)
+- `[generate ts_proto]` uses [ts-proto](https://www.npmjs.com/package/ts-proto)
+- `[generate protoc-gen-ts]` uses [protoc-gen-ts](https://www.npmjs.com/package/protoc-gen-ts)
 
 ### Project Search Path
 

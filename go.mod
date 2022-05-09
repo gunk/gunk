@@ -11,7 +11,7 @@ require (
 	github.com/kenshaw/snaker v0.2.0
 	github.com/rogpeppe/go-internal v1.8.1
 	github.com/spf13/cobra v1.4.0
-	github.com/xo/ecosystem v0.0.0-20220411112624-b0e7160edb26
+	github.com/xo/ecosystem v0.0.0-20220509071343-c9f9b51c8b84
 	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
 	golang.org/x/tools v0.1.9
 	google.golang.org/genproto v0.0.0-20220202230416-2a053f022f0d
@@ -20,7 +20,6 @@ require (
 )
 
 require (
-	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.7 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e // indirect

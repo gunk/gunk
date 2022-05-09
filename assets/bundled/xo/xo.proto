@@ -14,6 +14,10 @@ extend google.protobuf.FieldOptions {
 	FieldOverride field_overrides = 1143;
 }
 
+extend google.protobuf.FileOptions {
+	FileOverride file_overrides = 1143;
+}
+
 // MessageOverride is an override of default marshalling behaviour of
 // protoc-gen-xo.
 message MessageOverride {
@@ -43,4 +47,11 @@ message FieldOverride {
 	bool embed_as_json = 3;
 	// SQL Expression for the default value for the annotated field.
 	string default_value = 4;
+}
+
+// FileOverride is an override of default marshalling behaviour of
+// protoc-gen-xo.
+message FileOverride {
+	// Skip the package prefix for all messages within the file.
+	bool skip_prefix = 1;
 }

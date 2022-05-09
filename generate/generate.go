@@ -892,7 +892,9 @@ func fileOptions(pkg *loader.GunkPackage) (*descriptorpb.FileOptions, error) {
 				reflectutil.UnmarshalAST(o, tag.Expr)
 				proto.SetExtension(fo, options.E_Openapiv2Swagger, o)
 			case "github.com/gunk/opt/xo.SkipPrefix":
-				// TODO: Implement SkipPrefix.
+				o := &xo.FileOverride{}
+				o.SkipPrefix = constant.BoolVal(tag.Value)
+				proto.SetExtension(fo, xo.E_FileOverrides, o)
 			default:
 				return nil, fmt.Errorf("gunk package option %q not supported", s)
 			}

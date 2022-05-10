@@ -28,7 +28,7 @@ func postProcess(input []byte, gen config.Generator, mainPkgPath string, pkgs ma
 			return tsPathProcessor(input, mainPkgPath, pkgs)
 		}
 	}
-	if code == "go" || code == "grpc-gateway" || code == "grpc-go" {
+	if code == "go" || code == "grpc-gateway" || code == "go-grpc" {
 		return format.Source(input, format.Options{LangVersion: "1.14"})
 	}
 	return input, nil

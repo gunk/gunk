@@ -4,8 +4,8 @@ SRC=$(realpath $(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd))
 
 # grab google protobuf definitions
 mkdir -p $SRC/google/protobuf
-for i in descriptor duration empty timestamp; do
-  wget -O $SRC/google/protobuf/$i.proto https://raw.githubusercontent.com/protocolbuffers/protobuf/master/src/google/protobuf/$i.proto
+for i in descriptor duration empty timestamp struct; do
+  wget -O $SRC/google/protobuf/$i.proto https://raw.githubusercontent.com/protocolbuffers/protobuf/main/src/google/protobuf/$i.proto
 done
 
 # grab google api definitions

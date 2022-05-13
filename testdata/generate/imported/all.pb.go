@@ -105,6 +105,7 @@ var (
 		(*Message)(nil), // 0: testdata.v1.util.imported.Message
 	}
 )
+
 var file_testdata_tld_util_imported_all_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type

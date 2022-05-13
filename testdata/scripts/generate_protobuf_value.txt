@@ -1,0 +1,19 @@
+gunk generate .
+! stdout .
+
+exists all.pb.go
+grep 'TestJSON \*structpb.Value' all.pb.go
+
+-- .gunkconfig --
+[generate]
+command=protoc-gen-go
+plugin_version=v1.26.0
+
+-- echo.gunk --
+package util
+
+import "encoding/json"
+
+type Foo struct {
+	TestJSON json.RawMessage `pb:"1" json:"test_json"`
+}

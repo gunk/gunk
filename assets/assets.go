@@ -10,6 +10,7 @@ import (
 //go:generate protoc -Ibundled/ --include_imports -ogen/google_protobuf_empty.fdp bundled/google/protobuf/empty.proto
 //go:generate protoc -Ibundled/ --include_imports -ogen/google_protobuf_timestamp.fdp bundled/google/protobuf/timestamp.proto
 //go:generate protoc -Ibundled/ --include_imports -ogen/google_protobuf_duration.fdp bundled/google/protobuf/duration.proto
+//go:generate protoc -Ibundled/ --include_imports -ogen/google_protobuf_struct.fdp bundled/google/protobuf/struct.proto
 //go:generate protoc -Ibundled/ --include_imports -ogen/protoc-gen-openapiv2_options_annotations.fdp bundled/protoc-gen-openapiv2/options/annotations.proto
 //go:generate protoc -Ibundled/ --include_imports -ogen/xo_xo.fdp bundled/xo/xo.proto
 // Assets contains gen project assets.

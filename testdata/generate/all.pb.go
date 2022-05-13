@@ -360,6 +360,7 @@ var (
 		(*emptypb.Empty)(nil),         // 8: google.protobuf.Empty
 	}
 )
+
 var file_testdata_tld_util_all_proto_depIdxs = []int32{
 	0,  // 0: testdata.v1.util.CheckStatusResponse.Status:type_name -> testdata.v1.util.Status
 	5,  // 1: testdata.v1.util.UtilTestRequest.Structs:type_name -> testdata.v1.util.imported.Message

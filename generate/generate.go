@@ -1541,6 +1541,9 @@ func (g *Generator) convertType(typ types.Type) (descriptorpb.FieldDescriptorPro
 		case "time.Duration":
 			g.addProtoDep("google/protobuf/duration.proto")
 			return descriptorpb.FieldDescriptorProto_TYPE_MESSAGE, descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL, ".google.protobuf.Duration", nil
+		case "encoding/json.RawMessage":
+			g.addProtoDep("google/protobuf/struct.proto")
+			return descriptorpb.FieldDescriptorProto_TYPE_MESSAGE, descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL, ".google.protobuf.Value", nil
 		}
 		fullName, err := g.qualifiedTypeName(typ.Obj().Name(), typ.Obj().Pkg())
 		if err != nil {

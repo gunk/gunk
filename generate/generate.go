@@ -1068,6 +1068,10 @@ func (g *Generator) fieldOptions(field *ast.Field) (*descriptorpb.FieldOptions, 
 					proto.SetExtension(o, options.E_Openapiv2Field, jsonSchema)
 				}
 			}
+		case "github.com/gunk/opt/openapiv2.JSONSchema":
+			jsonSchema := &options.JSONSchema{}
+			reflectutil.UnmarshalAST(jsonSchema, tag.Expr)
+			proto.SetExtension(o, options.E_Openapiv2Field, jsonSchema)
 		case "github.com/gunk/opt/xo.IndexType":
 			xoOk = true
 			switch v, _ := constant.Uint64Val(tag.Value); v {

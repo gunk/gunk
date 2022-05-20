@@ -1026,6 +1026,11 @@ func (g *Generator) messageOptions(tspec *ast.TypeSpec) (*descriptorpb.MessageOp
 			xoOpts.Ignore, xoOk = constant.BoolVal(tag.Value), true
 		case "github.com/gunk/opt/xo.Embed":
 			xoOpts.EmbedAsJson, xoOk = constant.BoolVal(tag.Value), true
+		case "github.com/gunk/opt/xo.HasMany":
+			otmEntry := &xo.OneToMany{}
+			reflectutil.UnmarshalAST(otmEntry, tag.Expr)
+			xoOpts.HasMany = append(xoOpts.HasMany, otmEntry)
+			xoOk = true
 		default:
 			return nil, fmt.Errorf("gunk message option %q not supported", s)
 		}

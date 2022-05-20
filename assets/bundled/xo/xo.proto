@@ -7,15 +7,24 @@ option go_package = "github.com/xo/ecosystem/proto/xo";
 import "google/protobuf/descriptor.proto";
 
 extend google.protobuf.MessageOptions {
-	MessageOverride msg_overrides = 1143;
+	MessageOverride msg_overrides = 1147;
 }
 
 extend google.protobuf.FieldOptions {
-	FieldOverride field_overrides = 1143;
+	FieldOverride field_overrides = 1147;
 }
 
 extend google.protobuf.FileOptions {
-	FileOverride file_overrides = 1143;
+	FileOverride file_overrides = 1147;
+}
+
+// OneToMany is an entry to create a one-to-many table for.
+message OneToMany {
+	// A unique name identifying the one-to-many field.
+	string name = 1;
+	// A unique suffix identifying the type of the one-to-many field. The
+	// specified field must have an associated table.
+	string type_suffix = 2;
 }
 
 // MessageOverride is an override of default marshalling behaviour of
@@ -28,6 +37,8 @@ message MessageOverride {
 	// Embeds the message as a JSON instead of creating a new table, whenever
 	// referenced.
 	bool embed_as_json = 3;
+	// A list of one-to-many fields to create tables for.
+	repeated OneToMany has_many = 4;
 }
 
 // FieldOverride is an override of default marshalling behaviour of

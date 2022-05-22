@@ -11,7 +11,7 @@ require (
 	github.com/kenshaw/snaker v0.2.0
 	github.com/rogpeppe/go-internal v1.8.1
 	github.com/spf13/cobra v1.4.0
-	github.com/xo/ecosystem v0.0.0-20220520064323-55abd4ab7d02
+	github.com/xo/ecosystem v0.0.0-20220522104031-b8b506ed6b07
 	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
 	golang.org/x/tools v0.1.9
 	google.golang.org/genproto v0.0.0-20220202230416-2a053f022f0d

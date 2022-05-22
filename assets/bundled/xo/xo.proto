@@ -27,6 +27,14 @@ message OneToMany {
 	string type_suffix = 2;
 }
 
+// Ref is a reference of a field in another type.
+message Ref {
+	// A unique suffix identifying the type of the referenced table.
+	string type_suffix = 1;
+	// Name of the field that the current field references.
+	string field_name = 2;
+}
+
 // MessageOverride is an override of default marshalling behaviour of
 // protoc-gen-xo.
 message MessageOverride {
@@ -58,6 +66,10 @@ message FieldOverride {
 	bool embed_as_json = 3;
 	// SQL Expression for the default value for the annotated field.
 	string default_value = 4;
+	// The field referenced by the overridden field.
+	Ref ref = 5;
+	// Mark the annotated field as nullable.
+	bool nullable = 6;
 }
 
 // FileOverride is an override of default marshalling behaviour of

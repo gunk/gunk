@@ -220,7 +220,7 @@ func (g *Generator) findPkg(path string) (pkg *loader.GunkPackage, ok bool) {
 	}
 	for k, p := range g.gunkPkgs {
 		switch path {
-		case strings.Replace(k, ".", "/", -1):
+		case strings.ReplaceAll(k, ".", "/"):
 			// Python does not allow '.' in package names.
 			return p, true
 		}
@@ -506,7 +506,7 @@ func (g *Generator) generatePlugin(req *pluginpb.CodeGeneratorRequest, gen confi
 		return log.ExecError(gen.actualCommand(), err)
 	}
 	var resp pluginpb.CodeGeneratorResponse
-	if err := proto.Unmarshal(out, &resp); err != nil {
+	if err = proto.Unmarshal(out, &resp); err != nil {
 		return err
 	}
 	if rerr := resp.GetError(); rerr != "" {
@@ -685,7 +685,7 @@ func (g *Generator) generateDoc(cfg *config.Config, gen *config.Generator) error
 		if err != nil {
 			return fmt.Errorf("unable to build output path for %q: %w", out, err)
 		}
-		if err := mkdirAll(out); err != nil {
+		if err = mkdirAll(out); err != nil {
 			return fmt.Errorf("unable to create output directory for %q: %w", gen.Out, err)
 		}
 		f, err := os.Create(filepath.Join(out, name+".json"))
@@ -803,7 +803,7 @@ func (g *Generator) translatePkg(pkgPath string) error {
 	g.enumIndex = 0
 	for i, fpath := range gpkg.GunkNames {
 		if err := g.appendFile(fpath, gpkg.GunkSyntax[i]); err != nil {
-			return fmt.Errorf("%s: %v", g.Loader.Fset.Position(g.curPos), err)
+			return fmt.Errorf("%s: %v", g.Fset.Position(g.curPos), err)
 		}
 	}
 	var leftToTranslate []string
@@ -1093,6 +1093,12 @@ func (g *Generator) fieldOptions(field *ast.Field) (*descriptorpb.FieldOptions, 
 			xoOpts.EmbedAsJson, xoOk = constant.BoolVal(tag.Value), true
 		case "github.com/gunk/opt/xo.Default":
 			xoOpts.DefaultValue, xoOk = constant.StringVal(tag.Value), true
+		case "github.com/gunk/opt/xo.Ref":
+			ref := &xo.Ref{}
+			reflectutil.UnmarshalAST(ref, tag.Expr)
+			xoOpts.Ref, xoOk = ref, true
+		case "github.com/gunk/opt/xo.Nullable":
+			xoOpts.Nullable, xoOk = constant.BoolVal(tag.Value), true
 		default:
 			return nil, fmt.Errorf("gunk field option %q not supported", s)
 		}

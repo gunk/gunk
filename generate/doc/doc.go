@@ -364,6 +364,8 @@ func (doc *Doc) convertType(typ types.Type, inService bool) (Type, error) {
 			return &Basic{"Timestamp", ""}, nil
 		case "time.Duration":
 			return &Basic{"Duration", ""}, nil
+		case "encoding/json.RawMessage":
+			return &Basic{"JSON Object", ""}, nil
 		}
 		obj := typ.Obj()
 		fullName := doc.qualifiedTypeName(obj.Name(), obj.Pkg())

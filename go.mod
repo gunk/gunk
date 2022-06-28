@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/emicklei/proto v1.9.2
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.3
-	github.com/gunk/opt v0.2.1-0.20220520074802-01e2eda5db6c
+	github.com/gunk/opt v0.3.1
 	github.com/karelbilek/dirchanges v0.0.0-20210218071031-880a92f1a313
 	github.com/kenshaw/ini v0.5.1
 	github.com/kenshaw/snaker v0.2.0

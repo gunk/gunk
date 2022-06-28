@@ -137,6 +137,7 @@ func NewGenerator(dir string) *Generator {
 			Types: true,
 		},
 		gunkPkgs:    make(map[string]*loader.GunkPackage),
+		ignoredGen:  make(map[string]ignored),
 		allProto:    make(map[string]*descriptorpb.FileDescriptorProto),
 		protoLoader: &loader.ProtoLoader{},
 	}
@@ -144,14 +145,17 @@ func NewGenerator(dir string) *Generator {
 
 type Generator struct {
 	loader.Loader
-	curPkg *loader.GunkPackage               // current package being translated or generated
-	curPos token.Pos                         // current position of the token being evaluated
-	gfile  *ast.File                         // current Go file being translated
-	pfile  *descriptorpb.FileDescriptorProto // current protobuf file being translated into
+	curPkg    *loader.GunkPackage               // current package being translated or generated
+	curPos    token.Pos                         // current position of the token being evaluated
+	curIgnore ignored                           // current entries for items being ignored
+	gfile     *ast.File                         // current Go file being translated
+	pfile     *descriptorpb.FileDescriptorProto // current protobuf file being translated into
 
 	usedImports map[string]bool // imports being used for the current package
 	// Maps from package import path to package information.
 	gunkPkgs map[string]*loader.GunkPackage
+	// Maps package import path to ignored items by proto name
+	ignoredGen map[string]ignored
 	// imported proto files will be loaded using protoLoader
 	// holds the absolute path passed to -I flag from protoc
 	protoLoader *loader.ProtoLoader
@@ -161,6 +165,17 @@ type Generator struct {
 	messageIndex int32
 	serviceIndex int32
 	enumIndex    int32
+}
+
+type ignored struct {
+	services map[string]*ignoredEntry // child item is methods
+	enums    map[string]*ignoredEntry // child item is enum values
+	messages map[string]*ignoredEntry // child item is fields
+}
+
+type ignoredEntry struct {
+	ignoreFor []string
+	items     map[string]*ignoredEntry
 }
 
 // recordPkgs records all provided packages and their imports in the gunkPkgs
@@ -342,6 +357,88 @@ func (g *Generator) GeneratePkgs(paths []string, gens map[string][]config.Genera
 		}
 	}
 	return nil
+}
+
+func (g *Generator) pruneIgnored(old *pluginpb.CodeGeneratorRequest, gen config.Generator) *pluginpb.CodeGeneratorRequest {
+	if gen.Command == "" {
+		return old
+	}
+	target := strings.TrimPrefix(gen.Command, "protoc-gen-")
+	// Copy everything but ProtoFile.
+	req := *old
+	req.ProtoFile = make([]*descriptorpb.FileDescriptorProto, 0, len(old.ProtoFile))
+	// For all of the protofiles, copy everything, but prune as needed.
+	for _, oldFile := range old.ProtoFile {
+		entry, ok := g.ignoredGen[oldFile.Options.GetGoPackage()]
+		// Non-gunk proto file
+		if !ok {
+			req.ProtoFile = append(req.ProtoFile, oldFile)
+			continue
+		}
+
+		// Go over messages, enums, and services.
+		fdp := *oldFile
+		fdp.MessageType = make([]*descriptorpb.DescriptorProto, 0, len(oldFile.MessageType))
+		fdp.EnumType = make([]*descriptorpb.EnumDescriptorProto, 0, len(oldFile.EnumType))
+		fdp.Service = make([]*descriptorpb.ServiceDescriptorProto, 0, len(oldFile.Service))
+
+		// Convert messages.
+		for _, oldMsg := range oldFile.MessageType {
+			msgEntry := entry.messages[oldMsg.GetName()]
+			if containsString(msgEntry.ignoreFor, target) {
+				continue
+			}
+			msg := *oldMsg
+			msg.Field = make([]*descriptorpb.FieldDescriptorProto, 0, len(oldMsg.Field))
+			for _, field := range oldMsg.Field {
+				fieldEntry := msgEntry.items[field.GetName()]
+				if containsString(fieldEntry.ignoreFor, target) {
+					continue
+				}
+				msg.Field = append(msg.Field, field)
+			}
+			fdp.MessageType = append(fdp.MessageType, &msg)
+		}
+
+		// Convert Enums.
+		for _, oldEnum := range oldFile.EnumType {
+			enumEntry := entry.enums[oldEnum.GetName()]
+			if containsString(enumEntry.ignoreFor, target) {
+				continue
+			}
+			enum := *oldEnum
+			enum.Value = make([]*descriptorpb.EnumValueDescriptorProto, 0, len(oldEnum.Value))
+			for _, val := range oldEnum.Value {
+				valEntry := enumEntry.items[val.GetName()]
+				if containsString(valEntry.ignoreFor, target) {
+					continue
+				}
+				enum.Value = append(enum.Value, val)
+			}
+			fdp.EnumType = append(fdp.EnumType, &enum)
+		}
+
+		// Convert Services.
+		for _, oldSrv := range oldFile.Service {
+			srvEntry := entry.services[oldSrv.GetName()]
+			if containsString(srvEntry.ignoreFor, target) {
+				continue
+			}
+			srv := *oldSrv
+			srv.Method = make([]*descriptorpb.MethodDescriptorProto, 0, len(oldSrv.Method))
+			for _, method := range oldSrv.Method {
+				methodEntry := srvEntry.items[method.GetName()]
+				if containsString(methodEntry.ignoreFor, target) {
+					continue
+				}
+				srv.Method = append(srv.Method, method)
+			}
+			fdp.Service = append(fdp.Service, &srv)
+		}
+
+		req.ProtoFile = append(req.ProtoFile, &fdp)
+	}
+	return &req
 }
 
 // generateProtoc invokes protoc to generate the package specified in the
@@ -662,6 +759,11 @@ func (g *Generator) translatePkg(pkgPath string) error {
 	}
 	g.curPkg = gpkg
 	g.usedImports = make(map[string]bool)
+	g.curIgnore = ignored{
+		services: make(map[string]*ignoredEntry),
+		enums:    make(map[string]*ignoredEntry),
+		messages: make(map[string]*ignoredEntry),
+	}
 
 	protoGoPkgPath := pkgPath
 	if pkgPath == "command-line-arguments" {
@@ -687,11 +789,14 @@ func (g *Generator) translatePkg(pkgPath string) error {
 	g.messageIndex = 0
 	g.serviceIndex = 0
 	g.enumIndex = 0
+
 	for i, fpath := range gpkg.GunkNames {
 		if err := g.appendFile(fpath, gpkg.GunkSyntax[i]); err != nil {
 			return fmt.Errorf("%s: %v", g.Fset.Position(g.curPos), err)
 		}
 	}
+	g.ignoredGen[*fo.GoPackage] = g.curIgnore
+
 	var leftToTranslate []string
 	for _, gfile := range gpkg.GunkSyntax {
 		for _, imp := range gfile.Imports {
@@ -888,14 +993,22 @@ func (g *Generator) addDoc(text string, path ...int32) {
 	)
 }
 
+type optIgnore struct {
+	Generator string
+}
+
 // messageOptions returns the MessageOptions set using Gunk tags.
-func (g *Generator) messageOptions(tspec *ast.TypeSpec) (*descriptorpb.MessageOptions, error) {
+func (g *Generator) messageOptions(tspec *ast.TypeSpec, entry *ignoredEntry) (*descriptorpb.MessageOptions, error) {
 	o := &descriptorpb.MessageOptions{}
 	xoOpts := &xo.MessageOverride{}
 	var xoOk bool
 	// Check message tags
 	for _, tag := range g.curPkg.GunkTags[tspec] {
 		switch s := tag.Type.String(); s {
+		case "github.com/gunk/opt/message.Ignore":
+			var ignore optIgnore
+			reflectutil.UnmarshalAST(&ignore, tag.Expr)
+			entry.ignoreFor = append(entry.ignoreFor, ignore.Generator)
 		case "github.com/gunk/opt/message.MessageSetWireFormat":
 			o.MessageSetWireFormat = proto.Bool(constant.BoolVal(tag.Value))
 		case "github.com/gunk/opt/message.NoStandardDescriptorAccessor":
@@ -930,13 +1043,17 @@ func (g *Generator) messageOptions(tspec *ast.TypeSpec) (*descriptorpb.MessageOp
 }
 
 // FieldOptions returns the FieldOptions set using Gunk tags.
-func (g *Generator) fieldOptions(field *ast.Field) (*descriptorpb.FieldOptions, error) {
+func (g *Generator) fieldOptions(field *ast.Field, entry *ignoredEntry) (*descriptorpb.FieldOptions, error) {
 	o := &descriptorpb.FieldOptions{}
 	xoOpts := &xo.FieldOverride{}
 	var xoOk bool
 	// Check field tags
 	for _, tag := range g.curPkg.GunkTags[field] {
 		switch s := tag.Type.String(); s {
+		case "github.com/gunk/opt/field.Ignore":
+			var ignore optIgnore
+			reflectutil.UnmarshalAST(&ignore, tag.Expr)
+			entry.ignoreFor = append(entry.ignoreFor, ignore.Generator)
 		case "github.com/gunk/opt/field.Packed":
 			o.Packed = proto.Bool(constant.BoolVal(tag.Value))
 		case "github.com/gunk/opt/field.Lazy":
@@ -1004,11 +1121,15 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*descriptorpb.Descripto
 	msg := &descriptorpb.DescriptorProto{
 		Name: proto.String(tspec.Name.Name),
 	}
-	messageOptions, err := g.messageOptions(tspec)
+	msgEntry := &ignoredEntry{
+		items: make(map[string]*ignoredEntry),
+	}
+	messageOptions, err := g.messageOptions(tspec, msgEntry)
 	if err != nil {
 		return nil, fmt.Errorf("error getting message options: %v", err)
 	}
 	msg.Options = messageOptions
+	// convert fields
 	stype := tspec.Type.(*ast.StructType)
 	for i, field := range stype.Fields.List {
 		if len(field.Names) != 1 {
@@ -1060,7 +1181,8 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*descriptorpb.Descripto
 		if err != nil {
 			return nil, fmt.Errorf("unable to convert tag to number on %s: %v", fieldName, err)
 		}
-		fieldOptions, err := g.fieldOptions(field)
+		entry := new(ignoredEntry)
+		fieldOptions, err := g.fieldOptions(field, entry)
 		if err != nil {
 			return nil, fmt.Errorf("error getting field options: %v", err)
 		}
@@ -1073,16 +1195,22 @@ func (g *Generator) convertMessage(tspec *ast.TypeSpec) (*descriptorpb.Descripto
 			JsonName: jsonName(tag),
 			Options:  fieldOptions,
 		})
+		msgEntry.items[fieldName] = entry
 	}
+	g.curIgnore.messages[tspec.Name.Name] = msgEntry
 	g.messageIndex++
 	return msg, nil
 }
 
 // serviceOptions returns the ServiceOptions set using Gunk tags.
-func (g *Generator) serviceOptions(tspec *ast.TypeSpec) (*descriptorpb.ServiceOptions, error) {
+func (g *Generator) serviceOptions(tspec *ast.TypeSpec, entry *ignoredEntry) (*descriptorpb.ServiceOptions, error) {
 	o := &descriptorpb.ServiceOptions{}
 	for _, tag := range g.curPkg.GunkTags[tspec] {
 		switch s := tag.Type.String(); s {
+		case "github.com/gunk/opt/service.Ignore":
+			var ignore optIgnore
+			reflectutil.UnmarshalAST(&ignore, tag.Expr)
+			entry.ignoreFor = append(entry.ignoreFor, ignore.Generator)
 		case "github.com/gunk/opt/service.Deprecated":
 			o.Deprecated = proto.Bool(constant.BoolVal(tag.Value))
 		default:
@@ -1094,11 +1222,15 @@ func (g *Generator) serviceOptions(tspec *ast.TypeSpec) (*descriptorpb.ServiceOp
 }
 
 // methodOptions returns the MethodOptions set using Gunk tags.
-func (g *Generator) methodOptions(method *ast.Field) (*descriptorpb.MethodOptions, error) {
+func (g *Generator) methodOptions(method *ast.Field, entry *ignoredEntry) (*descriptorpb.MethodOptions, error) {
 	o := &descriptorpb.MethodOptions{}
 	var httpRule *annotations.HttpRule
 	for _, tag := range g.curPkg.GunkTags[method] {
 		switch s := tag.Type.String(); s {
+		case "github.com/gunk/opt/method.Ignore":
+			var ignore optIgnore
+			reflectutil.UnmarshalAST(&ignore, tag.Expr)
+			entry.ignoreFor = append(entry.ignoreFor, ignore.Generator)
 		case "github.com/gunk/opt/method.Deprecated":
 			o.Deprecated = proto.Bool(constant.BoolVal(tag.Value))
 		case "github.com/gunk/opt/method.IdempotencyLevel":
@@ -1172,7 +1304,10 @@ func (g *Generator) convertService(tspec *ast.TypeSpec) (*descriptorpb.ServiceDe
 	srv := &descriptorpb.ServiceDescriptorProto{
 		Name: proto.String(tspec.Name.Name),
 	}
-	serviceOptions, err := g.serviceOptions(tspec)
+	srvEntry := &ignoredEntry{
+		items: make(map[string]*ignoredEntry),
+	}
+	serviceOptions, err := g.serviceOptions(tspec, srvEntry)
 	if err != nil {
 		return nil, fmt.Errorf("error getting service options: %v", err)
 	}
@@ -1184,10 +1319,12 @@ func (g *Generator) convertService(tspec *ast.TypeSpec) (*descriptorpb.ServiceDe
 		}
 		g.addDoc(method.Doc.Text(), servicePath, g.serviceIndex, serviceMethodPath, int32(i))
 		g.curPos = method.Pos()
+		methodName := method.Names[0].Name
 		pmethod := &descriptorpb.MethodDescriptorProto{
-			Name: proto.String(method.Names[0].Name),
+			Name: proto.String(methodName),
 		}
-		methodOptions, err := g.methodOptions(method)
+		methodEntry := new(ignoredEntry)
+		methodOptions, err := g.methodOptions(method, methodEntry)
 		if err != nil {
 			return nil, fmt.Errorf("error getting method options: %v", err)
 		}
@@ -1202,7 +1339,9 @@ func (g *Generator) convertService(tspec *ast.TypeSpec) (*descriptorpb.ServiceDe
 			return nil, err
 		}
 		srv.Method = append(srv.Method, pmethod)
+		srvEntry.items[methodName] = methodEntry
 	}
+	g.curIgnore.services[tspec.Name.Name] = srvEntry
 	g.serviceIndex++
 	return srv, nil
 }
@@ -1292,10 +1431,14 @@ func (g *Generator) convertParameter(tuple *types.Tuple) (*string, *bool, error)
 }
 
 // enumOptions returns the EnumOptions set using Gunk tags.
-func (g *Generator) enumOptions(tspec *ast.TypeSpec) (*descriptorpb.EnumOptions, error) {
+func (g *Generator) enumOptions(tspec *ast.TypeSpec, entry *ignoredEntry) (*descriptorpb.EnumOptions, error) {
 	o := &descriptorpb.EnumOptions{}
 	for _, tag := range g.curPkg.GunkTags[tspec] {
 		switch s := tag.Type.String(); s {
+		case "github.com/gunk/opt/enum.Ignore":
+			var ignore optIgnore
+			reflectutil.UnmarshalAST(&ignore, tag.Expr)
+			entry.ignoreFor = append(entry.ignoreFor, ignore.Generator)
 		case "github.com/gunk/opt/enum.AllowAlias":
 			o.AllowAlias = proto.Bool(constant.BoolVal(tag.Value))
 		case "github.com/gunk/opt/enum.Deprecated":
@@ -1309,10 +1452,14 @@ func (g *Generator) enumOptions(tspec *ast.TypeSpec) (*descriptorpb.EnumOptions,
 }
 
 // enumValueOptions returns the EnumValueOptions set using Gunk tags.
-func (g *Generator) enumValueOptions(vspec *ast.ValueSpec) (*descriptorpb.EnumValueOptions, error) {
+func (g *Generator) enumValueOptions(vspec *ast.ValueSpec, entry *ignoredEntry) (*descriptorpb.EnumValueOptions, error) {
 	o := &descriptorpb.EnumValueOptions{}
 	for _, tag := range g.curPkg.GunkTags[vspec] {
 		switch s := tag.Type.String(); s {
+		case "github.com/gunk/opt/enumvalues.Ignore":
+			var ignore optIgnore
+			reflectutil.UnmarshalAST(&ignore, tag.Expr)
+			entry.ignoreFor = append(entry.ignoreFor, ignore.Generator)
 		case "github.com/gunk/opt/enumvalues.Deprecated":
 			o.Deprecated = proto.Bool(constant.BoolVal(tag.Value))
 		default:
@@ -1330,7 +1477,10 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*descriptorpb.EnumDescript
 	enum := &descriptorpb.EnumDescriptorProto{
 		Name: proto.String(tspec.Name.Name),
 	}
-	enumOptions, err := g.enumOptions(tspec)
+	enumEntry := &ignoredEntry{
+		items: make(map[string]*ignoredEntry),
+	}
+	enumOptions, err := g.enumOptions(tspec, enumEntry)
 	if err != nil {
 		return nil, fmt.Errorf("error getting enum options: %v", err)
 	}
@@ -1369,7 +1519,8 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*descriptorpb.EnumDescript
 			}
 			val := g.curPkg.TypesInfo.Defs[name].(*types.Const).Val()
 			ival, _ := constant.Int64Val(val)
-			enumValueOptions, err := g.enumValueOptions(vs)
+			valEntry := new(ignoredEntry)
+			enumValueOptions, err := g.enumValueOptions(vs, valEntry)
 			if err != nil {
 				return nil, fmt.Errorf("error getting enum value options: %v", err)
 			}
@@ -1379,8 +1530,10 @@ func (g *Generator) convertEnum(tspec *ast.TypeSpec) (*descriptorpb.EnumDescript
 				Number:  proto.Int32(int32(ival)),
 				Options: enumValueOptions,
 			})
+			enumEntry.items[name.Name] = valEntry
 		}
 	}
+	g.curIgnore.enums[tspec.Name.Name] = enumEntry
 	g.enumIndex++
 	// If an enum doesn't have any values
 	if len(enum.Value) == 0 {
@@ -1566,4 +1719,13 @@ func outPath(g config.Generator, packageDir string, pkg string) (string, error) 
 		return out, nil
 	}
 	return filepath.Join(g.ConfigDir, out), nil
+}
+
+func containsString(slice []string, str string) bool {
+	for _, s := range slice {
+		if s == str {
+			return true
+		}
+	}
+	return false
 }

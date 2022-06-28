@@ -2,6 +2,9 @@ github.com/golang/protobuf v1.5.0/go.mod h1:FsONVRAS9T7sI+LIUmWTfcYkHO4aIWwzhcaS
 github.com/google/go-cmp v0.5.5/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/gunk/opt v0.1.0 h1:SPiQ/CDziji3P+oriP7tNFFtYTJlaZBUGVSOAjRs+GE=
 github.com/gunk/opt v0.1.0/go.mod h1:obihNPJmkzIr2BhsZ84EiTCJd9OD403KDEA5qG4s9vc=
+github.com/gunk/opt v0.3.1 h1:6d7thc5WsaaFEiCvtDa7g8u7wAdD/5FlN3d9ITl4dAE=
+github.com/gunk/opt v0.3.1/go.mod h1:Pp/fgnNbbjanUyvaIZ+4eMPAcZNHuro8QjpVSNxwJJU=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 google.golang.org/protobuf v1.26.0-rc.1/go.mod h1:jlhhOSvTdKEhbULTjvd4ARK9grFBp09yW+WbY/TyQbw=
 google.golang.org/protobuf v1.26.0/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQnmE0givc=
+google.golang.org/protobuf v1.27.1/go.mod h1:9q0QmTI4eRPtz6boOQmLYwt+qCgq0jsYwAQnmE0givc=

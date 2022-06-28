@@ -1,0 +1,76 @@
+gunk generate .
+! stdout .
+
+exists all.pb.go
+exists all_grpc.pb.go
+
+grep 'type Foo struct' all.pb.go
+grep 'PresentField *string' all.pb.go
+! grep 'IgnoredField *string' all.pb.go
+! grep 'type IgnoredStruct struct' all.pb.go
+
+grep 'type Bar int32' all.pb.go
+grep 'Bar_BarA Bar = 0' all.pb.go
+! grep 'type IgnoredEnum int32' all.pb.go
+! grep 'IgnoredEnumValue' all.pb.go
+
+grep 'type BazServer interface' all_grpc.pb.go
+grep 'Baz\(context.Context, \*emptypb.Empty\) \(\*emptypb.Empty, error\)' all_grpc.pb.go
+! grep 'IgnoredMethod\(context.Context, \*emptypb.Empty\) \(\*emptypb.Empty, error\)' all_grpc.pb.go
+! grep 'type IgnoredService interface' all.pb.go
+
+
+-- .gunkconfig --
+[generate go]
+plugin_version=v1.26.0
+json_tag_postproc=true
+
+[generate grpc-go]
+plugin_version=v1.1.0
+
+-- echo.gunk --
+package util
+
+import (
+	"encoding/json"
+
+	"github.com/gunk/opt/field"
+	"github.com/gunk/opt/message"
+	"github.com/gunk/opt/enum"
+	"github.com/gunk/opt/enumvalues"
+	"github.com/gunk/opt/service"
+	"github.com/gunk/opt/method"
+)
+
+type Foo struct {
+	PresentField string `pb:"1" json:"present_field"`
+	// +gunk field.Ignore{Generator:"go"}
+	IgnoredField string `pb:"2" json:"ignored_field"`
+}
+
+// +gunk message.Ignore{Generator:"go"}
+type IgnoredStruct struct {}
+
+type Bar int
+
+const (
+	BarA Bar = iota
+	// +gunk enumvalues.Ignore{Generator:"go"}
+	BarB
+)
+
+// +gunk enum.Ignore{Generator:"go"}
+type IgnoredEnum int
+
+const (
+	IgnoredEnumValue IgnoredEnum = iota
+)
+
+type Baz interface {
+	Baz()
+	// +gunk method.Ignore{Generator:"grpc-go"}
+	IgnoredMethod()
+}
+
+// +gunk service.Ignore{Generator:"grpc-go"}
+type IgnoredService interface {}

@@ -38,10 +38,6 @@ type Generator struct {
 	Single        bool
 }
 
-func (g Generator) IsDoc() bool {
-	return g.Command == "doc"
-}
-
 func (g Generator) IsProtoc() bool {
 	return g.ProtocGen != ""
 }

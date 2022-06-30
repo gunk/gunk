@@ -641,11 +641,12 @@ func (g *Generator) generatePlugin(req *pluginpb.CodeGeneratorRequest, gen confi
 
 			// If there is no prefix match, it's likely a local relative path.
 			if matching == "" {
-				dir = outputPath
+				dir = filepath.Join(outputPath, pkgPath)
 			}
 		} else {
 			dir = outputPath
 		}
+
 		data := []byte(*rf.Content)
 		if gen.HasPostproc() {
 			if mainPkgPath == "" {
@@ -657,9 +658,6 @@ func (g *Generator) generatePlugin(req *pluginpb.CodeGeneratorRequest, gen confi
 		}
 
 		outPath := filepath.Join(dir, basename)
-		if !isGunkPkg {
-			outPath = filepath.Join(dir, *rf.Name)
-		}
 
 		// remove fake path
 		outPath = strings.TrimPrefix(outPath, "fake-path.com/command-line-arguments/")

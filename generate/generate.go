@@ -646,6 +646,7 @@ func (g *Generator) generatePlugin(req *pluginpb.CodeGeneratorRequest, gen confi
 		} else {
 			dir = outputPath
 		}
+
 		data := []byte(*rf.Content)
 		if gen.HasPostproc() {
 			if mainPkgPath == "" {
@@ -657,9 +658,6 @@ func (g *Generator) generatePlugin(req *pluginpb.CodeGeneratorRequest, gen confi
 		}
 
 		outPath := filepath.Join(dir, basename)
-		if !isGunkPkg {
-			outPath = filepath.Join(dir, *rf.Name)
-		}
 
 		// remove fake path
 		outPath = strings.TrimPrefix(outPath, "fake-path.com/command-line-arguments/")

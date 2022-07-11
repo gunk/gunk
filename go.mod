@@ -12,6 +12,7 @@ require (
 	github.com/rogpeppe/go-internal v1.8.1
 	github.com/spf13/cobra v1.4.0
 	github.com/xo/ecosystem v0.0.0-20220522104031-b8b506ed6b07
+	golang.org/x/mod v0.6.0-dev.0.20211013180041-c96bc1413d57
 	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
 	golang.org/x/tools v0.1.9
 	google.golang.org/genproto v0.0.0-20220202230416-2a053f022f0d
@@ -24,7 +25,6 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	golang.org/x/mod v0.6.0-dev.0.20211013180041-c96bc1413d57 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/errgo.v2 v2.1.0 // indirect

@@ -14,6 +14,7 @@ import (
 
 	"github.com/gunk/gunk/log"
 	"github.com/rogpeppe/go-internal/lockedfile"
+	"golang.org/x/mod/semver"
 	"golang.org/x/sys/unix"
 )
 
@@ -159,8 +160,20 @@ func verifyProtocBinary(path, version string) error {
 	gotVersion = "v" + gotVersion
 	// split "-rc"
 	split := strings.Split(version, "-")
-	if gotVersion != split[0] {
-		return fmt.Errorf("want protoc version %q got %q", split[0], gotVersion)
+	wantVersion := split[0]
+
+	if gotVersion != wantVersion {
+		// protoc renumbered from 3.20.x to 21.x, but the protoc still returns 3.21.x
+		// so, when we specify version 21.x in split[0], we can still get 3.21.x as the output
+		// so change the wantVersion to have the `v3.`
+		if semver.Compare(wantVersion, "v21") >= 0 {
+			wantVersionV3 := strings.ReplaceAll(wantVersion, "v", "v3.")
+			if gotVersion == wantVersionV3 {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("want protoc version %q got %q", wantVersion, gotVersion)
 	}
 	return nil
 }
@@ -193,8 +206,14 @@ func protocDownloadURL(os, arch, version string) (string, error) {
 	case os == "darwin" && arch == "amd64":
 		platform = "osx-x86_64"
 	case os == "darwin" && arch == "arm64":
-		// for now, protoc has only amd64, let's use rosetta
-		platform = "osx-x86_64"
+		sv := semver.Compare(version, "v3.20.0")
+		if sv == -1 {
+			// older versions have only amd64, let's use rosetta
+			platform = "osx-x86_64"
+		} else {
+			// new versions have aarch.
+			platform = "osx-aarch_64"
+		}
 	case os == "linux" && arch == "386":
 		platform = "linux-x86_32"
 	case os == "linux" && arch == "amd64":

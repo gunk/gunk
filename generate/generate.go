@@ -168,14 +168,45 @@ type Generator struct {
 }
 
 type ignored struct {
-	services map[string]*ignoredEntry // child item is methods
-	enums    map[string]*ignoredEntry // child item is enum values
 	messages map[string]*ignoredEntry // child item is fields
+	enums    map[string]*ignoredEntry // child item is enum values
+	services map[string]*ignoredEntry // child item is methods
 }
 
 type ignoredEntry struct {
 	ignoreFor []string
 	items     map[string]*ignoredEntry
+}
+
+func (ie ignoredEntry) ignoring() bool {
+	if ie.ignoreFor != nil {
+		return true
+	}
+	for _, entry := range ie.items {
+		if entry.ignoreFor != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (i ignored) ignoring() bool {
+	for _, msg := range i.messages {
+		if msg.ignoring() {
+			return true
+		}
+	}
+	for _, enum := range i.enums {
+		if enum.ignoring() {
+			return true
+		}
+	}
+	for _, svc := range i.services {
+		if svc.ignoring() {
+			return true
+		}
+	}
+	return false
 }
 
 // recordPkgs records all provided packages and their imports in the gunkPkgs
@@ -252,13 +283,13 @@ func (g *Generator) GeneratePkg(path string, gens []config.Generator, protocPath
 func (g *Generator) GeneratePkgs(paths []string, gens map[string][]config.Generator, protocPath map[string]string) error {
 	run := func(req *pluginpb.CodeGeneratorRequest, generators []config.Generator, path string) error {
 		for _, gen := range generators {
-			req := g.pruneIgnored(req, gen)
+			pruned := g.pruneIgnored(req, gen)
 			switch {
 			case gen.IsProtoc():
 				if gen.PluginVersion != "" {
 					return fmt.Errorf("cannot use pinned version with protoc option")
 				}
-				if err := g.generateProtoc(req, gen, protocPath[path]); err != nil {
+				if err := g.generateProtoc(pruned, gen, protocPath[path]); err != nil {
 					return fmt.Errorf("unable to generate protoc: %w", err)
 				}
 			default:
@@ -274,7 +305,7 @@ func (g *Generator) GeneratePkgs(paths []string, gens map[string][]config.Genera
 					}
 					c.binary = &bin
 				}
-				if err := g.generatePlugin(req, c); err != nil {
+				if err := g.generatePlugin(pruned, c); err != nil {
 					return fmt.Errorf("unable to generate plugin: %w", err)
 				}
 			}
@@ -375,70 +406,188 @@ func (g *Generator) pruneIgnored(old *pluginpb.CodeGeneratorRequest, gen config.
 			req.ProtoFile = append(req.ProtoFile, oldFile)
 			continue
 		}
+		// Nothing's ignored
+		if !entry.ignoring() {
+			req.ProtoFile = append(req.ProtoFile, oldFile)
+			continue
+		}
 
 		// Go over messages, enums, and services.
 		fdp := *oldFile
 		fdp.MessageType = make([]*descriptorpb.DescriptorProto, 0, len(oldFile.MessageType))
 		fdp.EnumType = make([]*descriptorpb.EnumDescriptorProto, 0, len(oldFile.EnumType))
 		fdp.Service = make([]*descriptorpb.ServiceDescriptorProto, 0, len(oldFile.Service))
+		newInfo, parsed := parseSrcInfo(oldFile)
+		fdp.SourceCodeInfo = newInfo
 
 		// Convert messages.
-		for _, oldMsg := range oldFile.MessageType {
+		for i, oldMsg := range oldFile.MessageType {
 			msgEntry := entry.messages[oldMsg.GetName()]
 			if containsString(msgEntry.ignoreFor, target) {
 				continue
 			}
+
 			msg := *oldMsg
 			msg.Field = make([]*descriptorpb.FieldDescriptorProto, 0, len(oldMsg.Field))
-			for _, field := range oldMsg.Field {
+			for j, field := range oldMsg.Field {
 				fieldEntry := msgEntry.items[field.GetName()]
 				if containsString(fieldEntry.ignoreFor, target) {
 					continue
 				}
+
+				// insert source code information for the field based on index respecting ignored fields
+				if loc := parsed.msgFields[i][j]; loc != nil {
+					loc.Path = []int32{messagePath, int32(len(fdp.MessageType)), messageFieldPath, int32(len(msg.Field))}
+					fdp.SourceCodeInfo.Location = append(fdp.SourceCodeInfo.Location, loc)
+				}
+
 				msg.Field = append(msg.Field, field)
 			}
+
+			// insert source code info
+			if loc := parsed.msg[i]; loc != nil {
+				loc.Path = []int32{messagePath, int32(len(fdp.MessageType))}
+				fdp.SourceCodeInfo.Location = append(fdp.SourceCodeInfo.Location, loc)
+			}
+
 			fdp.MessageType = append(fdp.MessageType, &msg)
 		}
 
 		// Convert Enums.
-		for _, oldEnum := range oldFile.EnumType {
+		for i, oldEnum := range oldFile.EnumType {
 			enumEntry := entry.enums[oldEnum.GetName()]
 			if containsString(enumEntry.ignoreFor, target) {
 				continue
 			}
+
 			enum := *oldEnum
 			enum.Value = make([]*descriptorpb.EnumValueDescriptorProto, 0, len(oldEnum.Value))
-			for _, val := range oldEnum.Value {
+			for j, val := range oldEnum.Value {
 				valEntry := enumEntry.items[val.GetName()]
 				if containsString(valEntry.ignoreFor, target) {
 					continue
 				}
+
+				// insert source code info
+				if loc := parsed.enumVals[i][j]; loc != nil {
+					loc.Path = []int32{enumPath, int32(len(fdp.EnumType)), enumValuePath, int32(len(enum.Value))}
+					fdp.SourceCodeInfo.Location = append(fdp.SourceCodeInfo.Location, loc)
+				}
+
 				enum.Value = append(enum.Value, val)
 			}
+
+			// insert source code info
+			if loc := parsed.enum[i]; loc != nil {
+				loc.Path = []int32{enumPath, int32(len(fdp.EnumType))}
+				fdp.SourceCodeInfo.Location = append(fdp.SourceCodeInfo.Location, loc)
+			}
+
 			fdp.EnumType = append(fdp.EnumType, &enum)
 		}
 
 		// Convert Services.
-		for _, oldSrv := range oldFile.Service {
-			srvEntry := entry.services[oldSrv.GetName()]
+		for i, oldSvc := range oldFile.Service {
+			srvEntry := entry.services[oldSvc.GetName()]
 			if containsString(srvEntry.ignoreFor, target) {
 				continue
 			}
-			srv := *oldSrv
-			srv.Method = make([]*descriptorpb.MethodDescriptorProto, 0, len(oldSrv.Method))
-			for _, method := range oldSrv.Method {
+
+			svc := *oldSvc
+			svc.Method = make([]*descriptorpb.MethodDescriptorProto, 0, len(oldSvc.Method))
+			for j, method := range oldSvc.Method {
 				methodEntry := srvEntry.items[method.GetName()]
 				if containsString(methodEntry.ignoreFor, target) {
 					continue
 				}
-				srv.Method = append(srv.Method, method)
-			}
-			fdp.Service = append(fdp.Service, &srv)
-		}
 
+				// insert source code info
+				if loc := parsed.svcMethods[i][j]; loc != nil {
+					loc.Path = []int32{servicePath, int32(len(fdp.Service)), serviceMethodPath, int32(len(svc.Method))}
+					fdp.SourceCodeInfo.Location = append(fdp.SourceCodeInfo.Location, loc)
+				}
+
+				svc.Method = append(svc.Method, method)
+			}
+
+			// insert source code info
+			if loc := parsed.svc[i]; loc != nil {
+				loc.Path = []int32{servicePath, int32(len(fdp.Service))}
+				fdp.SourceCodeInfo.Location = append(fdp.SourceCodeInfo.Location, loc)
+			}
+
+			fdp.Service = append(fdp.Service, &svc)
+		}
 		req.ProtoFile = append(req.ProtoFile, &fdp)
 	}
 	return &req
+}
+
+func parseSrcInfo(fdp *descriptorpb.FileDescriptorProto) (*descriptorpb.SourceCodeInfo, sourceCodeLocations) {
+	newInfo := &descriptorpb.SourceCodeInfo{
+		Location: make([]*descriptorpb.SourceCodeInfo_Location, 0, len(fdp.SourceCodeInfo.Location)),
+	}
+	locs := sourceCodeLocations{
+		msg:  make([]*descriptorpb.SourceCodeInfo_Location, len(fdp.MessageType)),
+		enum: make([]*descriptorpb.SourceCodeInfo_Location, len(fdp.EnumType)),
+		svc:  make([]*descriptorpb.SourceCodeInfo_Location, len(fdp.Service)),
+
+		msgFields:  make([][]*descriptorpb.SourceCodeInfo_Location, len(fdp.MessageType)),
+		enumVals:   make([][]*descriptorpb.SourceCodeInfo_Location, len(fdp.EnumType)),
+		svcMethods: make([][]*descriptorpb.SourceCodeInfo_Location, len(fdp.Service)),
+	}
+	for i := range fdp.MessageType {
+		locs.msgFields[i] = make([]*descriptorpb.SourceCodeInfo_Location, len(fdp.MessageType[i].Field))
+	}
+	for i := range fdp.EnumType {
+		locs.enumVals[i] = make([]*descriptorpb.SourceCodeInfo_Location, len(fdp.EnumType[i].Value))
+	}
+	for i := range fdp.Service {
+		locs.svcMethods[i] = make([]*descriptorpb.SourceCodeInfo_Location, len(fdp.Service[i].Method))
+	}
+	for _, loc := range fdp.SourceCodeInfo.Location {
+		// make copy, to allow reassigning path
+		newLoc := *loc
+		loc := &newLoc
+
+		if len(loc.Path) == 2 {
+			idx := int(loc.Path[1])
+			switch loc.Path[0] {
+			case messagePath:
+				locs.msg[idx] = loc
+			case enumPath:
+				locs.enum[idx] = loc
+			case servicePath:
+				locs.svc[idx] = loc
+			}
+			continue
+		}
+		if len(loc.Path) == 4 {
+			idx := int(loc.Path[1])
+			fieldIdx := int(loc.Path[3])
+			switch loc.Path[0] {
+			case messagePath:
+				locs.msgFields[idx][fieldIdx] = loc
+			case enumPath:
+				locs.enumVals[idx][fieldIdx] = loc
+			case servicePath:
+				locs.svcMethods[idx][fieldIdx] = loc
+			}
+			continue
+		}
+		newInfo.Location = append(newInfo.Location, loc)
+	}
+	return newInfo, locs
+}
+
+type sourceCodeLocations struct {
+	msg  []*descriptorpb.SourceCodeInfo_Location
+	enum []*descriptorpb.SourceCodeInfo_Location
+	svc  []*descriptorpb.SourceCodeInfo_Location
+
+	msgFields  [][]*descriptorpb.SourceCodeInfo_Location
+	enumVals   [][]*descriptorpb.SourceCodeInfo_Location
+	svcMethods [][]*descriptorpb.SourceCodeInfo_Location
 }
 
 // generateProtoc invokes protoc to generate the package specified in the
@@ -1719,6 +1868,7 @@ func outPath(g config.Generator, packageDir string, pkg string) (string, error) 
 	return filepath.Join(g.ConfigDir, out), nil
 }
 
+// containsString will check if any element in slice equals str.
 func containsString(slice []string, str string) bool {
 	for _, s := range slice {
 		if s == str {

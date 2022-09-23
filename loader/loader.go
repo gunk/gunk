@@ -618,8 +618,8 @@ func (l *Loader) splitGunkTags(pkg *GunkPackage, file *ast.File) {
 				return true
 			}
 			if doc := nodeDoc(gd.Specs[0]); doc != nil {
-				// Move the doc to the only spec, since we want
-				// +gunk tags attached to the type specs.
+				// Move the doc to the only spec, since we want +gunk tags
+				// attached to the type specs.
 				*doc = gd.Doc
 			}
 			return true

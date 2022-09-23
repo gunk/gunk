@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"go/ast"
-	"go/format"
 	"go/parser"
 	"go/printer"
 	"go/token"
@@ -148,8 +147,15 @@ func (f *Formatter) formatFile(fset *token.FileSet, file *ast.File) (_ []byte, f
 		}
 		return true
 	})
+	ast.SortImports(fset, file)
+	// format -- formerly this was go/format.Node, but logic has changed since
+	// go1.19
+	p := printer.Config{
+		Mode:     printer.UseSpaces | printer.TabIndent | 1<<30,
+		Tabwidth: 8,
+	}
 	var buf bytes.Buffer
-	if err := format.Node(&buf, fset, file); err != nil {
+	if err := p.Fprint(&buf, fset, file); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil

@@ -367,7 +367,18 @@ fix_paths_post_proc=true
 [generate ts_proto]
 service=true
 plugin_version=v1.110.4
+
+[generate protobuf-ts]
+ts_nocheck
+eslint_disable
+optimize_code_size
+plugin_version= v2.9.4
+
 ```
+
+- `[generate ts]` uses [ts-protoc-gen](https://www.npmjs.com/package/ts-protoc-gen)
+- `[generate ts_proto]` uses [ts-proto](https://www.npmjs.com/package/ts-proto)
+- `[generate protobuf-ts]` uses [@protobuf-ts/plugin](https://www.npmjs.com/package/@protobuf-ts/plugin)
 
 ### Project Search Path
 

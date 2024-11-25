@@ -15,7 +15,7 @@ require (
 	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8
 	golang.org/x/tools v0.1.12
 	google.golang.org/genproto v0.0.0-20220923205249-dd2d53f1fffc
-	google.golang.org/protobuf v1.28.1
+	google.golang.org/protobuf v1.33.0
 	mvdan.cc/gofumpt v0.3.1
 )
 
